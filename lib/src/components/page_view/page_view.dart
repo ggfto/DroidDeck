@@ -11,6 +11,7 @@ class MyPageView extends StatelessWidget {
         onPressed: () {},
         child: Center(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [Icon(Icons.play_arrow), Text("Play/Pause")],
           ),
         ),
