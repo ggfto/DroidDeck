@@ -2,59 +2,84 @@ import 'package:companion/src/components/page_view/page.bloc.dart';
 import 'package:flutter/material.dart';
 
 class MyPageView extends StatelessWidget {
+  const MyPageView({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final _bloc = PageBloc();
-    final _l = <Widget>[];
-    _l.add(
+    final bloc = PageBloc();
+    final l = <Widget>[];
+    l.add(
       ElevatedButton(
         onPressed: () {},
-        child: Center(
+        child: const Center(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [Icon(Icons.play_arrow), Text("Play/Pause")],
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [Icon(Icons.play_arrow)],
           ),
         ),
       ),
     );
-    _l.add(
+    l.add(
       ElevatedButton(
         onPressed: () {},
-        child: Center(
+        child: const Center(
           child: Column(
-            children: [Icon(Icons.stop), Text("Parar")],
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [Icon(Icons.stop)],
           ),
         ),
       ),
     );
-    final _list = [
+    l.add(
+      ElevatedButton(
+        onPressed: () {},
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [Icon(Icons.skip_next)],
+          ),
+        ),
+      ),
+    );
+    l.add(
+      ElevatedButton(
+        onPressed: () {},
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [Icon(Icons.skip_previous)],
+          ),
+        ),
+      ),
+    );
+    final list = [
       {"nome": "Play/Pause", "icone": Icons.play_arrow},
       {"nome": "Stop", "icone": Icons.stop}
     ];
     return PageView(
       /// [PageView.scrollDirection] defaults to [Axis.horizontal].
       /// Use [Axis.vertical] to scroll vertically.
-      controller: _bloc.controller,
-      onPageChanged: (val) => {_bloc.printVal(val)},
+      controller: bloc.controller,
+      onPageChanged: (val) => {bloc.printVal(val)},
       children: <Widget>[
         Center(
           child: GridView.count(
             crossAxisCount: 4,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            children: _l,
+            children: l,
           ),
         ),
         Center(
           child: ListView.builder(
-            itemCount: _list.length,
+            itemCount: list.length,
             itemBuilder: (context, index) {
               return ElevatedButton(
                 onPressed: () {},
                 child: Column(
                   children: [
-                    Icon(_list[index]["icone"] as IconData),
-                    Text(_list[index]["nome"].toString()),
+                    Icon(list[index]["icone"] as IconData),
+                    Text(list[index]["nome"].toString()),
                   ],
                 ),
               );

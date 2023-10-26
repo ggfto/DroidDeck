@@ -1,7 +1,10 @@
-import 'package:companion/src/home/home.bloc.dart';
+import 'package:companion/src/components/controls/expanding_panel/expanding_panel.dart';
+import 'package:companion/src/components/controls/iconed_slider/iconed_slider.dart';
+import 'package:companion/src/components/page_view/page_view.dart';
 import 'package:flutter/material.dart';
-import 'package:companion/src/splash/splash_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../config/config_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -11,25 +14,22 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  final _bloc = HomeBloc();
+  int selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(actions: <Widget>[
           IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sair',
+            icon: const Icon(Icons.settings),
+            tooltip: 'Configurações',
             onPressed: () {
-              logoutRequest(context);
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (context) => ConfigPage()));
             },
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.person),
-            tooltip: 'Usuário',
-          )
         ]),
-        body: _bloc.loadPage(),
+        body: loadPage(),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
@@ -37,56 +37,91 @@ class HomePageState extends State<HomePage> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
+                icon: Icon(Icons.volume_up_rounded), label: 'Mídias'),
+            BottomNavigationBarItem(
               icon: Icon(Icons.grid_view),
-              label: 'Pages',
+              label: 'Atalhos',
             ),
           ],
-          currentIndex: _bloc.selectedIndex,
+          currentIndex: selectedIndex,
           selectedItemColor: Colors.blueAccent,
           onTap: (val) {
             setState(() {
-              _bloc.selectedIndex = val;
+              selectedIndex = val;
             });
           },
         ));
   }
 
-  Future<void> logoutRequest(BuildContext context) async {
-    Widget cancelButton = TextButton(
-      child: const Text("Não"),
-      onPressed: () {
-        Navigator.of(context).pop();
-      },
-    );
-
-    Widget confirmButton = TextButton(
-        child: const Text("Sim"),
-        onPressed: () {
-          Navigator.of(context).pop();
-          logout();
-        });
-
-    AlertDialog alert = AlertDialog(
-      title: Text("Confirmação"),
-      content: Text("Fazer lougout?"),
-      actions: [
-        confirmButton,
-        cancelButton,
-      ],
-    );
-    // show the dialog
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
-  }
-
-  Future<void> logout() async {
-    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-    sharedPreferences.remove('token');
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => const SplashPage()));
+  Widget loadPage() {
+    double currentSliderValue = 100;
+    if (selectedIndex == 1) {
+      return ListView(children: <Widget>[
+        ListTile(
+          leading: const CircleAvatar(child: Text('A')),
+          title: const Text('Dispositivo'),
+          subtitle: Slider(
+            value: currentSliderValue,
+            max: 100,
+            label: currentSliderValue.round().toString(),
+            onChanged: (double value) {
+              currentSliderValue = value;
+            },
+          ),
+          trailing: const Icon(Icons.favorite_rounded),
+        ),
+        ListTile(
+          leading: const CircleAvatar(child: Text('B')),
+          title: const Text('App 1'),
+          subtitle: Slider(
+            value: currentSliderValue,
+            max: 100,
+            label: currentSliderValue.round().toString(),
+            onChanged: (double value) {
+              currentSliderValue = value;
+            },
+          ),
+          trailing: const Icon(Icons.favorite_rounded),
+        ),
+        ListTile(
+          leading: const CircleAvatar(child: Text('C')),
+          title: const Text('App 2'),
+          subtitle: Slider(
+            value: currentSliderValue,
+            max: 100,
+            label: currentSliderValue.round().toString(),
+            onChanged: (double value) {
+              currentSliderValue = value;
+            },
+          ),
+          trailing: const Icon(Icons.favorite_rounded),
+        ),
+      ]);
+    } else if (selectedIndex == 2) {
+      return const MyPageView();
+    } else {
+      return const Column(children: [
+        ExpandingPanel(
+            closedContent: IconedSlider(
+              title: "Headset",
+              crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            openedContent: Column(children: <Widget>[
+              IconedSlider(title: "Discord"),
+              IconedSlider(title: "Opera"),
+              IconedSlider(title: "Spotify")
+            ])),
+        ExpandingPanel(
+            closedContent: IconedSlider(
+              title: "Alto-Falantes",
+              crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            openedContent: Column(children: <Widget>[
+              IconedSlider(title: "Discord"),
+              IconedSlider(title: "Opera"),
+              IconedSlider(title: "Spotify")
+            ]))
+      ]);
+    }
   }
 }
