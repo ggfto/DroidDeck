@@ -1,6 +1,6 @@
 import 'package:companion/src/core/constants.dart';
 import 'package:companion/src/services/signalr_service.dart';
-import 'package:companion_core/companion_core.dart';
+import 'package:companion/core/core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';

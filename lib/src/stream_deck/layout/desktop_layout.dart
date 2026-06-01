@@ -2,7 +2,7 @@ import 'package:companion/src/stream_deck/stream_deck_controller.dart';
 import 'package:companion/src/stream_deck/widgets/button_property_panel.dart';
 import 'package:companion/src/stream_deck/widgets/dynamic_deck_button.dart';
 import 'package:companion/src/services/signalr_service.dart';
-import 'package:companion_core/companion_core.dart';
+import 'package:companion/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 

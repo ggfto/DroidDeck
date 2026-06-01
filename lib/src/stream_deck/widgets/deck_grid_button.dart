@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:companion_core/companion_core.dart';
+import 'package:companion/core/core.dart';
 import 'package:flutter/material.dart';
 
 class DeckGridButton extends StatelessWidget {

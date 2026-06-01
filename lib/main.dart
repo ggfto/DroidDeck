@@ -1,6 +1,6 @@
 import 'package:companion/src/binding/companion_application_binding.dart';
 import 'package:companion/src/core/constants.dart';
-import 'package:companion_core/companion_core.dart';
+import 'package:companion/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 

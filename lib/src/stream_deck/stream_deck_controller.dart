@@ -1,4 +1,4 @@
-import 'package:companion_core/companion_core.dart'; // Contains AnyDeckClient, DeckProfile, etc.
+import 'package:companion/core/core.dart'; // Contains AnyDeckClient, DeckProfile, etc.
 import 'package:flutter/foundation.dart';
 
 class StreamDeckController {

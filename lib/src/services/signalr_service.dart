@@ -1,4 +1,4 @@
-import 'package:companion_core/companion_core.dart';
+import 'package:companion/core/core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:logging/logging.dart';

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:companion_core/companion_core.dart';
+import 'package:companion/core/core.dart';
 import 'package:companion/src/services/signalr_service.dart';
 
 class HomeController {

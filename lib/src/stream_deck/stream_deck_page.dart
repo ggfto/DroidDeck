@@ -3,7 +3,7 @@ import 'package:companion/src/stream_deck/layout/desktop_layout.dart';
 import 'package:companion/src/stream_deck/stream_deck_controller.dart';
 import 'package:companion/src/stream_deck/widgets/dynamic_deck_button.dart';
 import 'package:companion/src/stream_deck/widgets/button_editor_dialog.dart';
-import 'package:companion_core/companion_core.dart';
+import 'package:companion/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:collection/collection.dart';

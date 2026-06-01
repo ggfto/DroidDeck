@@ -1,4 +1,4 @@
-import 'package:companion_core/companion_core.dart';
+import 'package:companion/core/core.dart';
 import '../services/signalr_service.dart';
 
 class CompanionApplicationBinding extends ApplicationBindings {

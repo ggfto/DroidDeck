@@ -30,8 +30,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  companion_core:
-    path: ../companion-core
+  # Antiga lib companion_core, agora fundida em lib/core/ (mesmas deps que ela trazia)
+  dio: ^5.4.1
+  signals_flutter: ^4.4.0
+  flutter_getit: ^2.0.0
+  asyncstate: ^2.1.1-dev.1
+  loading_animation_widget: ^1.2.0+4
+  top_snackbar_flutter: ^3.1.0
   http: ^1.1.0
   shared_preferences: ^2.0.18
   onesignal_flutter: ^5.0.0
