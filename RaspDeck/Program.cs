@@ -24,6 +24,17 @@ namespace AnyDeck
             // Modo headless: sem janela/bandeja, roda apenas o servidor web.
             // Útil para autostart silencioso, execução sem desktop ou depuração.
             // Ctrl+C encerra graciosamente via ConsoleLifetime do host.
+            // Diagnóstico/headless de pareamento: imprime a URI e salva o QR em PNG, depois sai.
+            if (args.Contains("--print-pairing"))
+            {
+                var uri = Lib.PairingInfo.BuildUri();
+                Console.WriteLine(uri);
+                var pngPath = Path.Combine(Path.GetTempPath(), "anydeck-pair.png");
+                File.WriteAllBytes(pngPath, Lib.PairingInfo.BuildQrPng(uri));
+                Console.WriteLine("QR_PNG=" + pngPath);
+                return;
+            }
+
             if (args.Contains("--headless") || args.Contains("--no-tray"))
             {
                 RunWebAppAsync(args, CancellationToken.None).GetAwaiter().GetResult();

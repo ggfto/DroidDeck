@@ -50,6 +50,13 @@ namespace AnyDeck
             var openItem = new ToolStripMenuItem("Abrir no navegador");
             openItem.Click += (_, _) => OpenWebUi();
 
+            var pairItem = new ToolStripMenuItem("Parear dispositivo (QR)…");
+            pairItem.Click += (_, _) =>
+            {
+                using var f = new frmPairing();
+                f.ShowDialog();
+            };
+
             _autoStartItem = new ToolStripMenuItem("Iniciar com o Windows")
             {
                 CheckOnClick = true,
@@ -61,6 +68,7 @@ namespace AnyDeck
             exitItem.Click += (_, _) => Application.Exit();
 
             menu.Items.Add(openItem);
+            menu.Items.Add(pairItem);
             menu.Items.Add(_autoStartItem);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(exitItem);

@@ -14,6 +14,7 @@
     <PackageReference Include="LocalStorage" Version="2.1.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NLog" Version="6.0.4" />
+    <PackageReference Include="QRCoder" Version="1.8.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.4" />
     <PackageReference Include="NLog.Extensions.Logging" Version="5.0.0" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.2" />
