@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace AnyDeck.Mixer
 {
-    internal class MixerConfig
+    public class MixerConfig
     {
         public MixerConfig(bool enabled, string customName)
         {

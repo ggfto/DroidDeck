@@ -17,13 +17,13 @@ namespace AnyDeck.Lib
             return val.Equals(_storage.Get<string>(key));
         }
 
-        public static object Retrieve(string key)
+        public static object? Retrieve(string key)
         {
             try
             {
                 return _storage.Get<object>(key);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }

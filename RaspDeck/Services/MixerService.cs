@@ -1,37 +1,46 @@
 ﻿using AnyDeck.Mixer;
 using NAudio.CoreAudioApi;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
 namespace AnyDeck.Services
 {
-    internal class MixerService
+    public class MixerService
     {
+        private readonly ILogger<MixerService> _logger;
+        private readonly AnyDeck.Audio.IAudioDeviceEnumerator _enumerator;
+
+        public MixerService(ILogger<MixerService> logger, AnyDeck.Audio.IAudioDeviceEnumerator enumerator)
+        {
+            _logger = logger;
+            _enumerator = enumerator;
+        }
+
         public List<MixerEntity> FindAllOutputs()
         {
-            List<MixerEntity> list = new List<MixerEntity>();
-            foreach (MixerMaster item in MixerMaster.GetAllMixers(DataFlow.Render, DeviceState.Active))
-            {
-                list.Add(new MixerEntity(item));
-            }
-            return list;
+            _logger.LogDebug("Finding all output mixers");
+            // Use direct NAudio access instead of abstraction to enable icon extraction
+            return MixerMaster.GetAllMixers(DataFlow.Render, DeviceState.Active)
+                .Select(m => new MixerEntity(m))
+                .ToList();
         }
 
         public List<MixerEntity> FindAllInputs()
         {
-            List<MixerEntity> list = new List<MixerEntity>();
-            foreach(MixerMaster item in MixerMaster.GetAllMixers(DataFlow.Capture, DeviceState.Active))
-            {
-                list.Add(new MixerEntity(item));
-            }
-            return list;
+            _logger.LogDebug("Finding all input mixers");
+            // Use direct NAudio access instead of abstraction to enable icon extraction
+            return MixerMaster.GetAllMixers(DataFlow.Capture, DeviceState.Active)
+                .Select(m => new MixerEntity(m))
+                .ToList();
         }
 
-        public MixerEntity FindOne(string id)
+        public MixerEntity? FindOne(string id)
         {
-            MixerMaster result = new MixerMaster(id);
-            if (result != null)
-                return new MixerEntity(result);
-            return null;
+            _logger.LogDebug("Finding mixer by id {id}", id);
+            // Use direct NAudio access instead of abstraction to enable icon extraction
+            var master = MixerMaster.GetAllMixers(DataFlow.Render, DeviceState.Active).FirstOrDefault(d => d.Id == id)
+                      ?? MixerMaster.GetAllMixers(DataFlow.Capture, DeviceState.Active).FirstOrDefault(d => d.Id == id);
+
+            return master != null ? new MixerEntity(master) : null;
         }
     }
 }

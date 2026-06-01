@@ -10,7 +10,7 @@ namespace AnyDeck.Lib
 {
     internal class IconExtractor
     {
-        public static Icon Extract(string file, int number, bool largeIcon)
+        public static Icon? Extract(string file, int number, bool largeIcon)
         {
             IntPtr large;
             IntPtr small;

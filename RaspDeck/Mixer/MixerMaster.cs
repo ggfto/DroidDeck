@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace AnyDeck
 {
-    class MixerMaster
+    public class MixerMaster
     {
-        private Dictionary<int, MixerChannel> channels;
+        private Dictionary<int, MixerChannel>? channels;
 
         public MixerMaster()
         {
@@ -16,20 +16,59 @@ namespace AnyDeck
         {
             newMaster(device);
         }
+
+        public MixerMaster(AnyDeck.Audio.IAudioDevice device)
+        {
+            // construct from abstraction
+            Id = device.Id;
+            Title = device.FriendlyName.Contains("(") ? device.FriendlyName.Substring(0, device.FriendlyName.IndexOf("(")).Trim() : device.FriendlyName;
+            Description = device.DeviceFriendlyName;
+            Volume = (int)(device.MasterVolumeLevelScalar * 100);
+            Mute = device.Mute;
+            Icon = null;
+            if (device.DataFlow == DataFlow.Render)
+            {
+                channels = new Dictionary<int, MixerChannel>();
+                foreach (var session in device.Sessions)
+                {
+                    if (session.IsSystemSoundsSession) continue;
+                    var channel = new MixerChannel();
+                    // best-effort: set basic properties
+                    // Note: IAudioSession abstraction doesn't expose process info for icon extraction
+                    channel.Id = (int)session.GetProcessID();
+                    channel.Mute = session.Mute;
+                    channel.Volume = (int)(session.Volume * device.MasterVolumeLevelScalar * 100);
+                    channels[channel.Id] = channel;
+                }
+            }
+        }
         public MixerMaster(string idString)
         {
             var devices = new MMDeviceEnumerator();
-            var device = devices.GetDevice(idString);
-            if (device.State.CompareTo(DeviceState.Unplugged) == 0 ||
-                device.State.CompareTo(DeviceState.NotPresent) == 0 ||
-                device.State.CompareTo(DeviceState.Disabled) == 0) device = null;
-            if (device != null) newMaster(device);
+            MMDevice? device = null;
+            try
+            {
+                device = devices.GetDevice(idString);
+            }
+            catch
+            {
+                device = null;
+            }
+
+            if (device == null) return;
+            if (device.State == DeviceState.Unplugged ||
+                device.State == DeviceState.NotPresent ||
+                device.State == DeviceState.Disabled) return;
+
+            newMaster(device);
         }
 
         private void newMaster(MMDevice device)
         {
             Id = device.ID;
-            Title = device.FriendlyName.Substring(0, device.FriendlyName.IndexOf("(")).Trim();
+            var friendly = device.FriendlyName ?? string.Empty;
+            var idx = friendly.IndexOf("(");
+            Title = idx >= 0 ? friendly.Substring(0, idx).Trim() : friendly.Trim();
             Description = device.DeviceFriendlyName;
             Volume = (int)(device.AudioEndpointVolume.MasterVolumeLevelScalar * 100);
             Mute = device.AudioEndpointVolume.Mute;
@@ -56,12 +95,24 @@ namespace AnyDeck
             }
             return devices;
         }
-        public MixerChannel GetChannel(int id)
+
+        public static List<MixerMaster> GetAllMixers(AnyDeck.Audio.IAudioDeviceEnumerator enumerator, DataFlow dataFlow, DeviceState deviceState)
         {
-            return channels[id];
+            var devices = new List<MixerMaster>();
+            foreach (var d in enumerator.EnumerateAudioEndPoints(dataFlow, deviceState))
+            {
+                devices.Add(new MixerMaster(d));
+            }
+            return devices;
+        }
+        public MixerChannel? GetChannel(int id)
+        {
+            if (channels == null) return null;
+            channels.TryGetValue(id, out var ch);
+            return ch;
         }
 
-        public MixerMaster SetOptions(string id, MixerData data)
+        public MixerMaster? SetOptions(string id, MixerData data)
         {
             var devices = new MMDeviceEnumerator();
             var device = devices.GetDevice(id);
@@ -72,28 +123,32 @@ namespace AnyDeck
                 volume = (data.Volume ?? -1.0f) / 100.0f;
                 bool mute = data.Mute == true;
                 if (data.Session >= 0 && device.DataFlow.CompareTo(DataFlow.Render) == 0)
-                    GetChannel(data.Session).SetOptions(data, device.AudioEndpointVolume.MasterVolumeLevelScalar);
+                {
+                    var ch = GetChannel(data.Session);
+                    if (ch != null)
+                        ch.SetOptions(data, device.AudioEndpointVolume.MasterVolumeLevelScalar);
+                }
                 else
                     if (mute && device.AudioEndpointVolume.MasterVolumeLevelScalar >= volume)
                     device.AudioEndpointVolume.Mute = mute;
                 else
-                        if (volume > 0)
-                {
-                    device.AudioEndpointVolume.MasterVolumeLevelScalar = volume;
-                    device.AudioEndpointVolume.Mute = false;
-                }
-                else
-                    device.AudioEndpointVolume.Mute = mute;
+                    if (volume > 0)
+                    {
+                        device.AudioEndpointVolume.MasterVolumeLevelScalar = volume;
+                        device.AudioEndpointVolume.Mute = false;
+                    }
+                    else
+                        device.AudioEndpointVolume.Mute = mute;
             }
             return new MixerMaster(device);
         }
 
-        public string Id { get; set; }
-        public string Title { get; set; }
-        public string Description { get; set; }
+        public string? Id { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
         public int Volume { get; set; }
-        public string Icon { get; set; }
+        public string? Icon { get; set; }
         public bool Mute { get; set; }
-        public List<MixerChannel> Channels { get => channels != null ? channels.Values.ToList() : null; }
+        public List<MixerChannel>? Channels => channels?.Values.ToList();
     }
 }

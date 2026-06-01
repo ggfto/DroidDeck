@@ -8,7 +8,11 @@ namespace AnyDeck.Software
 {
     public class SoftwareData
     {
-        public string Name { get; set; }
-        public string Action { get; set; }
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(200)]
+        public string? Name { get; set; }
+
+        [System.ComponentModel.DataAnnotations.StringLength(500)]
+        public string? Action { get; set; }
     }
 }

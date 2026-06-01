@@ -2,31 +2,33 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using AnyDeck.Lib;
-using System.IO;
 using System.Reflection;
 
 namespace AnyDeck
 {
     class Startup
     {
-        string appName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
-        string version = "v" + Assembly.GetExecutingAssembly().GetName().Version.ToString().Replace(".", "").Replace("0", "");
         readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+        public string AppName { get; }
+        public string Version { get; }
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+            AppName = Assembly.GetExecutingAssembly().GetName().Name ?? "AnyDeck";
+            Version = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0");
         }
+
         public IConfiguration Configuration { get; }
         public void ConfigureServices(IServiceCollection services)
         {
+
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = appName, Version = version });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = AppName, Version = Version });
             });
             services.AddCors(options =>
             {
@@ -37,22 +39,15 @@ namespace AnyDeck
                             });
             });
         }
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
                 app.UseCors(MyAllowSpecificOrigins);
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", appName + " " + version));
+                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", AppName + " " + Version));
             }
-            app.UseFileServer(new FileServerOptions
-            {
-                FileProvider = new PhysicalFileProvider(
-                          Path.Combine(Directory.GetCurrentDirectory(), "Static")),
-                RequestPath = "",
-                EnableDefaultFiles = true
-            });
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {

@@ -4,9 +4,9 @@ using System.Runtime.InteropServices;
 
 namespace AnyDeck
 {
-  class IconExtractor
+    class IconExtractor
     {
-      public static Icon Extract(string file, int number, bool largeIcon)
+      public static Icon? Extract(string file, int number, bool largeIcon)
       {
         ExtractIconEx(file, number, out IntPtr large, out IntPtr small, 1);
         try

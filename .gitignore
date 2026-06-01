@@ -131,3 +131,15 @@ $RECYCLE.BIN/
 .DS_Store
 
 _NCrunch*
+
+# =========================
+# AnyDeck-specific
+# =========================
+
+# Flutter Web build output served by the backend (regenerável via `flutter build web`)
+wwwroot/
+
+# Debug/scratch logs deixados durante depuração
+*_debug.txt
+discovery_debug.txt
+monitor_debug.txt
