@@ -5,6 +5,8 @@ import 'package:companion/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'qr_scan_page.dart';
+
 class ConfigPage extends StatefulWidget {
   const ConfigPage({super.key});
 
@@ -78,15 +80,59 @@ class ConfigPageState extends State<ConfigPage> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(Constants.ipAddrKey, ip); // Save raw IP for UI
+    final apiKey = prefs.getString(Constants.apiKeyKey); // mantém a chave do pareamento
 
     // Update Singletons immediately
     final client = Injector.get<AnyDeckClient>();
     client.setBaseUrl(baseUrl);
+    client.setApiKey(apiKey);
 
     final signalR = Injector.get<SignalRService>();
-    await signalR.updateUrl(baseUrl); // Use local baseUrl, not client.baseUrl
+    await signalR.updateUrl(baseUrl, apiKey: apiKey); // Use local baseUrl, not client.baseUrl
 
     if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
+  }
+
+  Future<void> _pairWithQr() async {
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const QrScanPage()),
+    );
+    if (result == null || !mounted) return;
+
+    final uri = Uri.tryParse(result);
+    final ip = uri?.queryParameters['ip'];
+    final port = uri?.queryParameters['port'] ?? '5000';
+    final key = uri?.queryParameters['key'];
+
+    if (uri == null ||
+        uri.scheme != 'anydeck' ||
+        ip == null ||
+        ip.isEmpty ||
+        key == null ||
+        key.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('QR de pareamento inválido')),
+      );
+      return;
+    }
+
+    final baseUrl = 'http://$ip:$port';
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(Constants.ipAddrKey, ip);
+    await prefs.setString(Constants.apiKeyKey, key);
+
+    final client = Injector.get<AnyDeckClient>();
+    client.setBaseUrl(baseUrl);
+    client.setApiKey(key);
+    final signalR = Injector.get<SignalRService>();
+    await signalR.updateUrl(baseUrl, apiKey: key);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pareado com sucesso!')),
+      );
       Navigator.of(context).pushReplacementNamed('/home');
     }
   }
@@ -116,6 +162,12 @@ class ConfigPageState extends State<ConfigPage> {
                     icon: const Icon(Icons.search),
                     label: const Text('Pesquisar Servidor'),
                   ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _pairWithQr,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Parear (QR)'),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _saveAndGoBack,

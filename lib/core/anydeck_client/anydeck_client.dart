@@ -24,6 +24,15 @@ class AnyDeckClient {
     _dio.options.baseUrl = url;
   }
 
+  /// Define (ou remove) a chave de API enviada em todas as requisições (header X-API-KEY).
+  void setApiKey(String? key) {
+    if (key == null || key.isEmpty) {
+      _dio.options.headers.remove('X-API-KEY');
+    } else {
+      _dio.options.headers['X-API-KEY'] = key;
+    }
+  }
+
   Future<List<MixerEntity>> getOutputs() async {
     final response = await _dio.get('/api/v1/Mixer/out');
     return (response.data as List)

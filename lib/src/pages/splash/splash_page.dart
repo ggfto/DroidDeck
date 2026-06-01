@@ -26,16 +26,18 @@ class SplashPageState extends State<SplashPage> {
     }
     final sp = await SharedPreferences.getInstance();
     final ip = sp.getString(Constants.ipAddrKey);
+    final apiKey = sp.getString(Constants.apiKeyKey);
 
     if (ip != null && ip.isNotEmpty && mounted) {
       final baseUrl = 'http://$ip:5000';
 
       final client = Injector.get<AnyDeckClient>();
       client.setBaseUrl(baseUrl);
+      client.setApiKey(apiKey);
 
       // Initialize SignalR with the configured URL (use local variable, not client.baseUrl)
       final signalR = Injector.get<SignalRService>();
-      await signalR.init(baseUrl);
+      await signalR.init(baseUrl, apiKey: apiKey);
 
       Navigator.of(context).pushReplacementNamed('/home');
     } else if (mounted) {

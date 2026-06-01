@@ -45,7 +45,7 @@ class SignalRService {
 
   SignalRService();
 
-  Future<void> init(String baseUrl) async {
+  Future<void> init(String baseUrl, {String? apiKey}) async {
     if (_hubConnection != null) return;
 
     // Normalize Base URL (handle relative path)
@@ -62,6 +62,12 @@ class SignalRService {
       }
     } else {
       hubUrl = '$baseUrl/deckHub';
+    }
+
+    // SignalR via WebSocket autentica pela query string (?access_token=).
+    if (apiKey != null && apiKey.isNotEmpty) {
+      final sep = hubUrl.contains('?') ? '&' : '?';
+      hubUrl += '${sep}access_token=${Uri.encodeQueryComponent(apiKey)}';
     }
 
     currentUrl.value = hubUrl; // Track the URL being used
@@ -157,11 +163,11 @@ class SignalRService {
     }
   }
 
-  Future<void> updateUrl(String baseUrl) async {
+  Future<void> updateUrl(String baseUrl, {String? apiKey}) async {
     if (_hubConnection != null) {
       await _hubConnection!.stop();
       _hubConnection = null;
     }
-    await init(baseUrl);
+    await init(baseUrl, apiKey: apiKey);
   }
 }
