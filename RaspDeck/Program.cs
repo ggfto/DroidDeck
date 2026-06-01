@@ -21,13 +21,22 @@ namespace AnyDeck
         [STAThread]
         public static void Main(string[] args)
         {
+            // Modo headless: sem janela/bandeja, roda apenas o servidor web.
+            // Útil para autostart silencioso, execução sem desktop ou depuração.
+            // Ctrl+C encerra graciosamente via ConsoleLifetime do host.
+            if (args.Contains("--headless") || args.Contains("--no-tray"))
+            {
+                RunWebAppAsync(args, CancellationToken.None).GetAwaiter().GetResult();
+                return;
+            }
+
             // Cancellation token to coordinate shutdown between WinForms and the web server
             var cts = new CancellationTokenSource();
 
             // Inicializa e roda o servidor web em paralelo, observando o token
             var webTask = RunWebAppAsync(args, cts.Token);
 
-            // Inicializa WinForms
+            // App de bandeja: a janela fica invisível e toda a interação é pelo ícone na bandeja.
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 

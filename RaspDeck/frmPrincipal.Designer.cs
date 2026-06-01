@@ -39,8 +39,6 @@ namespace AnyDeck
             this.ntiTray.BalloonTipTitle = "AnyDeck";
             this.ntiTray.Icon = ((System.Drawing.Icon)(resources.GetObject("ntiTray.Icon")));
             this.ntiTray.Text = "AnyDeck";
-            this.ntiTray.Click += new System.EventHandler(this.ntiTray_Click);
-            this.ntiTray.DoubleClick += new System.EventHandler(this.ntiTray_DoubleClick);
             // 
             // frmPrincipal
             // 
@@ -51,7 +49,6 @@ namespace AnyDeck
             this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "frmPrincipal";
             this.Text = "AnyDeck";
-            this.Resize += new System.EventHandler(this.frmPrincipal_Resize);
             this.ResumeLayout(false);
 
         }
