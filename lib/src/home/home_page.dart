@@ -1,127 +1,130 @@
-import 'package:companion/src/components/controls/expanding_panel/expanding_panel.dart';
-import 'package:companion/src/components/controls/iconed_slider/iconed_slider.dart';
-import 'package:companion/src/components/page_view/page_view.dart';
+import 'package:companion_core/companion_core.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 
-import '../config/config_page.dart';
+import 'home_controller.dart';
+import 'mixer_page.dart';
+import '../stream_deck/stream_deck_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   HomePageState createState() => HomePageState();
 }
 
 class HomePageState extends State<HomePage> {
+  final controller = HomeController();
+  final PageController _pageController = PageController();
   int selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    controller.startPolling();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Configurações',
-            onPressed: () {
-              Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (context) => ConfigPage()));
-            },
-          ),
-        ]),
-        body: loadPage(),
-        bottomNavigationBar: BottomNavigationBar(
+      body: Watch((context) {
+        if (controller.isLoading.value && controller.outputs.value.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.error.value != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Erro: ${controller.error.value}'),
+                ElevatedButton(
+                    onPressed: controller.fetchOutputs,
+                    child: const Text('Tentar novamente'))
+              ],
+            ),
+          );
+        }
+
+        // Toggle System UI based on fullscreen state
+        if (controller.isFullscreen.value) {
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        } else {
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        }
+
+        return PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              selectedIndex = index;
+            });
+          },
+          children: [
+            MixerPage(
+              title: 'Outputs',
+              devices: controller.outputs.value,
+              onRefresh: controller.fetchOutputs,
+              controller: controller,
+              isInput: false,
+              isFullscreen: controller.isFullscreen.value,
+              onToggleFullscreen: controller.toggleFullscreen,
+            ),
+            MixerPage(
+              title: 'Inputs',
+              devices: controller.inputs.value,
+              onRefresh: controller.fetchInputs,
+              controller: controller,
+              isInput: true,
+              isFullscreen: controller.isFullscreen.value,
+              onToggleFullscreen: controller.toggleFullscreen,
+            ),
+            StreamDeckPage(
+              onToggleFullscreen: controller.toggleFullscreen,
+              isFullscreen: controller.isFullscreen.value,
+            ),
+          ],
+        );
+      }),
+      bottomNavigationBar: Watch((context) {
+        if (controller.isFullscreen.value) {
+          return const SizedBox.shrink();
+        }
+        return BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
+              icon: Icon(Icons.volume_up),
+              label: 'Outputs',
             ),
             BottomNavigationBarItem(
-                icon: Icon(Icons.volume_up_rounded), label: 'Mídias'),
+              icon: Icon(Icons.mic),
+              label: 'Inputs',
+            ),
             BottomNavigationBarItem(
               icon: Icon(Icons.grid_view),
-              label: 'Atalhos',
+              label: 'Deck',
             ),
           ],
           currentIndex: selectedIndex,
           selectedItemColor: Colors.blueAccent,
           onTap: (val) {
+            _pageController.animateToPage(
+              val,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
             setState(() {
               selectedIndex = val;
             });
           },
-        ));
-  }
-
-  Widget loadPage() {
-    double currentSliderValue = 100;
-    if (selectedIndex == 1) {
-      return ListView(children: <Widget>[
-        ListTile(
-          leading: const CircleAvatar(child: Text('A')),
-          title: const Text('Dispositivo'),
-          subtitle: Slider(
-            value: currentSliderValue,
-            max: 100,
-            label: currentSliderValue.round().toString(),
-            onChanged: (double value) {
-              currentSliderValue = value;
-            },
-          ),
-          trailing: const Icon(Icons.favorite_rounded),
-        ),
-        ListTile(
-          leading: const CircleAvatar(child: Text('B')),
-          title: const Text('App 1'),
-          subtitle: Slider(
-            value: currentSliderValue,
-            max: 100,
-            label: currentSliderValue.round().toString(),
-            onChanged: (double value) {
-              currentSliderValue = value;
-            },
-          ),
-          trailing: const Icon(Icons.favorite_rounded),
-        ),
-        ListTile(
-          leading: const CircleAvatar(child: Text('C')),
-          title: const Text('App 2'),
-          subtitle: Slider(
-            value: currentSliderValue,
-            max: 100,
-            label: currentSliderValue.round().toString(),
-            onChanged: (double value) {
-              currentSliderValue = value;
-            },
-          ),
-          trailing: const Icon(Icons.favorite_rounded),
-        ),
-      ]);
-    } else if (selectedIndex == 2) {
-      return const MyPageView();
-    } else {
-      return const Column(children: [
-        ExpandingPanel(
-            closedContent: IconedSlider(
-              title: "Headset",
-              crossAxisAlignment: CrossAxisAlignment.start,
-            ),
-            openedContent: Column(children: <Widget>[
-              IconedSlider(title: "Discord"),
-              IconedSlider(title: "Opera"),
-              IconedSlider(title: "Spotify")
-            ])),
-        ExpandingPanel(
-            closedContent: IconedSlider(
-              title: "Alto-Falantes",
-              crossAxisAlignment: CrossAxisAlignment.start,
-            ),
-            openedContent: Column(children: <Widget>[
-              IconedSlider(title: "Discord"),
-              IconedSlider(title: "Opera"),
-              IconedSlider(title: "Spotify")
-            ]))
-      ]);
-    }
+        );
+      }),
+    );
   }
 }
