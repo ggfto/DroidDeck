@@ -83,7 +83,13 @@ namespace AnyDeck
                         // Authentication: API Key
                         services.AddAuthentication("ApiKey")
                                 .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AnyDeck.Auth.ApiKeyAuthenticationHandler>("ApiKey", null);
-                        services.AddAuthorization();
+                        services.AddAuthorization(options =>
+                        {
+                            // Exige a API key em TODOS os endpoints, exceto os marcados [AllowAnonymous].
+                            options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                                .RequireAuthenticatedUser()
+                                .Build();
+                        });
 
                         services.AddSingleton<AnyDeck.Audio.IAudioDeviceEnumerator, AnyDeck.Audio.NAudioDeviceEnumerator>();
                         services.AddSingleton<AnyDeck.Services.MixerService>();
@@ -169,9 +175,13 @@ namespace AnyDeck
                         app.UseRouting();
                         app.UseAuthentication();
                         app.UseAuthorization();
-                        app.UseAuthorization();
                         app.UseEndpoints(endpoints =>
                         {
+                            // Endpoint anônimo para o app checar conectividade (antes de ter a chave).
+                            endpoints.MapGet("/api/ping", () =>
+                                Microsoft.AspNetCore.Http.Results.Ok(new { ok = true, name = Environment.MachineName }))
+                                .AllowAnonymous();
+
                             endpoints.MapControllers();
                             endpoints.MapHub<AnyDeck.Hubs.DeckHub>("/deckHub");
                         });
