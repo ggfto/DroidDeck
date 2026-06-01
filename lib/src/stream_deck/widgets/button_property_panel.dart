@@ -23,9 +23,10 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   late TextEditingController _labelController;
   late TextEditingController _actionParamController;
   String _selectedActionType = 'none';
+  String _mixerOperation = 'toggleMute';
   Color _selectedColor = Colors.grey[800]!;
 
-  final List<String> _actionTypes = ['none', 'hotkey', 'launch_app'];
+  final List<String> _actionTypes = ['none', 'hotkey', 'launch_app', 'mixer'];
   final List<Color> _colors = [
     Colors.grey[800]!,
     Colors.red[900]!,
@@ -75,6 +76,11 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       } else if (_selectedActionType == 'launch_app') {
         _actionParamController = TextEditingController(
             text: widget.button.action!.parameters['path'] ?? '');
+      } else if (_selectedActionType == 'mixer') {
+        _actionParamController = TextEditingController(
+            text: widget.button.action!.parameters['processName'] ?? '');
+        _mixerOperation =
+            widget.button.action!.parameters['operation'] ?? 'toggleMute';
       } else {
         _actionParamController = TextEditingController();
       }
@@ -139,6 +145,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       params['keys'] = _actionParamController.text;
     } else if (_selectedActionType == 'launch_app') {
       params['path'] = _actionParamController.text;
+    } else if (_selectedActionType == 'mixer') {
+      params['operation'] = _mixerOperation;
+      params['processName'] = _actionParamController.text.trim();
     }
 
     final newAction = _selectedActionType == 'none'
@@ -243,6 +252,33 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                     decoration: const InputDecoration(
                       labelText: 'Application Path (.exe)',
                       hintText: 'C:\\Windows\\System32\\notepad.exe',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+                if (_selectedActionType == 'mixer') ...[
+                  DropdownButtonFormField<String>(
+                    value: _mixerOperation,
+                    decoration: const InputDecoration(
+                      labelText: 'Operação',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'toggleMute', child: Text('Alternar mudo')),
+                      DropdownMenuItem(value: 'mute', child: Text('Mutar')),
+                      DropdownMenuItem(value: 'unmute', child: Text('Desmutar')),
+                    ],
+                    onChanged: (val) =>
+                        setState(() => _mixerOperation = val ?? 'toggleMute'),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _actionParamController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome do app (processo)',
+                      hintText: 'Spotify, Discord, chrome…',
+                      helperText: 'Sem .exe — o nome do processo no Windows',
                       border: OutlineInputBorder(),
                     ),
                   ),
