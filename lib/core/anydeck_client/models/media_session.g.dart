@@ -7,18 +7,18 @@ part of 'media_session.dart';
 // **************************************************************************
 
 MediaSession _$MediaSessionFromJson(Map<String, dynamic> json) => MediaSession(
-      id: json['id'] as String?,
-      title: json['title'] as String?,
-      artist: json['artist'] as String?,
-      albumTitle: json['albumTitle'] as String?,
-      thumbnailBase64: json['thumbnailBase64'] as String?,
-      playbackStatus: json['playbackStatus'] as String?,
-      canPlayPause: json['canPlayPause'] as bool? ?? false,
-      canGoNext: json['canGoNext'] as bool? ?? false,
-      canGoPrevious: json['canGoPrevious'] as bool? ?? false,
-      position: (json['position'] as num?)?.toDouble() ?? 0.0,
-      duration: (json['duration'] as num?)?.toDouble() ?? 0.0,
-    );
+  id: json['id'] as String?,
+  title: json['title'] as String?,
+  artist: json['artist'] as String?,
+  albumTitle: json['albumTitle'] as String?,
+  thumbnailBase64: json['thumbnailBase64'] as String?,
+  playbackStatus: json['playbackStatus'] as String?,
+  canPlayPause: json['canPlayPause'] as bool? ?? false,
+  canGoNext: json['canGoNext'] as bool? ?? false,
+  canGoPrevious: json['canGoPrevious'] as bool? ?? false,
+  position: (json['position'] as num?)?.toDouble() ?? 0.0,
+  duration: (json['duration'] as num?)?.toDouble() ?? 0.0,
+);
 
 Map<String, dynamic> _$MediaSessionToJson(MediaSession instance) =>
     <String, dynamic>{
@@ -36,11 +36,7 @@ Map<String, dynamic> _$MediaSessionToJson(MediaSession instance) =>
     };
 
 MediaCommandData _$MediaCommandDataFromJson(Map<String, dynamic> json) =>
-    MediaCommandData(
-      command: json['command'] as String,
-    );
+    MediaCommandData(command: json['command'] as String);
 
 Map<String, dynamic> _$MediaCommandDataToJson(MediaCommandData instance) =>
-    <String, dynamic>{
-      'command': instance.command,
-    };
+    <String, dynamic>{'command': instance.command};

@@ -7,10 +7,10 @@ part of 'audio_target.dart';
 // **************************************************************************
 
 AudioTarget _$AudioTargetFromJson(Map<String, dynamic> json) => AudioTarget(
-      processName: json['ProcessName'] as String?,
-      processId: (json['ProcessId'] as num?)?.toInt(),
-      mute: json['Mute'] as bool?,
-    );
+  processName: json['ProcessName'] as String?,
+  processId: (json['ProcessId'] as num?)?.toInt(),
+  mute: json['Mute'] as bool?,
+);
 
 Map<String, dynamic> _$AudioTargetToJson(AudioTarget instance) =>
     <String, dynamic>{

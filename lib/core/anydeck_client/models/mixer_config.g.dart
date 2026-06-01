@@ -7,9 +7,9 @@ part of 'mixer_config.dart';
 // **************************************************************************
 
 MixerConfig _$MixerConfigFromJson(Map<String, dynamic> json) => MixerConfig(
-      enabled: json['enabled'] as bool?,
-      customName: json['customName'] as String?,
-    );
+  enabled: json['enabled'] as bool?,
+  customName: json['customName'] as String?,
+);
 
 Map<String, dynamic> _$MixerConfigToJson(MixerConfig instance) =>
     <String, dynamic>{

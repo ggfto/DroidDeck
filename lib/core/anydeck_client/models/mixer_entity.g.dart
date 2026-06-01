@@ -7,12 +7,12 @@ part of 'mixer_entity.dart';
 // **************************************************************************
 
 MixerEntity _$MixerEntityFromJson(Map<String, dynamic> json) => MixerEntity(
-      device: MixerMaster.fromJson(json['device'] as Map<String, dynamic>),
-      config: MixerConfig.fromJson(json['config'] as Map<String, dynamic>),
-      id: json['id'] as String?,
-      volume: (json['volume'] as num?)?.toInt() ?? 0,
-      mute: json['mute'] as bool? ?? false,
-    );
+  device: MixerMaster.fromJson(json['device'] as Map<String, dynamic>),
+  config: MixerConfig.fromJson(json['config'] as Map<String, dynamic>),
+  id: json['id'] as String?,
+  volume: (json['volume'] as num?)?.toInt() ?? 0,
+  mute: json['mute'] as bool? ?? false,
+);
 
 Map<String, dynamic> _$MixerEntityToJson(MixerEntity instance) =>
     <String, dynamic>{
