@@ -11,17 +11,20 @@ namespace AnyDeck.Services
         private readonly IAppActivator _appActivator;
         private readonly MediaControlService _mediaService;
         private readonly MixerService _mixerService;
+        private readonly IAudioControlService _audioControl;
 
         public ActionExecutorService(
             ILogger<ActionExecutorService> logger,
             IAppActivator appActivator,
             MediaControlService mediaService,
-            MixerService mixerService)
+            MixerService mixerService,
+            IAudioControlService audioControl)
         {
             _logger = logger;
             _appActivator = appActivator;
             _mediaService = mediaService;
             _mixerService = mixerService;
+            _audioControl = audioControl;
         }
 
         public async Task ExecuteActionAsync(DeckAction action)
@@ -113,11 +116,72 @@ namespace AnyDeck.Services
             }
         }
 
+        /// <summary>
+        /// Executa ações de mixer disparadas por um botão do deck.
+        /// Parâmetros aceitos:
+        ///   operation : "toggleMute" (padrão) | "mute" | "unmute" | "setVolume"
+        ///   processName : nome do processo (ex.: "Spotify") -> controla o áudio daquele app
+        ///   deviceId    : id do dispositivo -> controla o dispositivo inteiro
+        ///   volume      : 0-100 (usado com setVolume em deviceId)
+        /// </summary>
         private void ExecuteMixerAction(DeckAction action)
         {
-             // TODO: Implement mixer actions (mute, volume set)
-             // Need to map parameters to MixerService calls
-             // Example: action=toggleMute, deviceName=Speakers
+            var p = action.Parameters;
+
+            p.TryGetValue("operation", out var operationRaw);
+            var operation = (operationRaw ?? "toggleMute").Trim().ToLowerInvariant();
+
+            p.TryGetValue("processName", out var processName);
+            p.TryGetValue("deviceId", out var deviceId);
+
+            int? volume = null;
+            if (p.TryGetValue("volume", out var volStr) && int.TryParse(volStr, out var v))
+                volume = Math.Clamp(v, 0, 100);
+
+            // Alvo = aplicativo (por nome de processo): mute/toggle por sessão de áudio.
+            if (!string.IsNullOrWhiteSpace(processName))
+            {
+                switch (operation)
+                {
+                    case "mute":
+                        _audioControl.MuteByProcessName(processName, true);
+                        break;
+                    case "unmute":
+                        _audioControl.MuteByProcessName(processName, false);
+                        break;
+                    default: // toggleMute
+                        _audioControl.ToggleMuteByProcessName(processName);
+                        break;
+                }
+                _logger.LogInformation("Mixer: '{Op}' no processo '{Proc}'", operation, processName);
+                return;
+            }
+
+            // Alvo = dispositivo (por id): volume/mute do dispositivo inteiro.
+            if (!string.IsNullOrWhiteSpace(deviceId))
+            {
+                var data = new MixerData { Session = -1 };
+                switch (operation)
+                {
+                    case "mute":
+                        data.Mute = true;
+                        break;
+                    case "unmute":
+                        data.Mute = false;
+                        break;
+                    case "setvolume":
+                        data.Volume = volume;
+                        break;
+                    default: // toggleMute
+                        data.Mute = !(_mixerService.FindOne(deviceId)?.Mute ?? false);
+                        break;
+                }
+                new MixerMaster(deviceId).SetOptions(deviceId, data);
+                _logger.LogInformation("Mixer: '{Op}' no dispositivo '{Dev}' (vol={Vol})", operation, deviceId, volume);
+                return;
+            }
+
+            _logger.LogWarning("Mixer action ignorada: faltou 'processName' ou 'deviceId'.");
         }
     }
 }
