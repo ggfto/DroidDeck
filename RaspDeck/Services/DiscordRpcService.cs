@@ -88,7 +88,7 @@ namespace AnyDeck.Services
         }
 
         // ---- Conexão + autenticação ----
-        public async Task ConnectAsync()
+        public async Task ConnectAsync(bool interactive = true)
         {
             var cfg = LoadConfig();
             if (string.IsNullOrWhiteSpace(cfg.ClientId) || string.IsNullOrWhiteSpace(cfg.ClientSecret))
@@ -113,6 +113,9 @@ namespace AnyDeck.Services
             }
             if (!authed)
             {
+                // Auto-conexão (startup) nunca abre popup; só reusa o token salvo.
+                if (!interactive)
+                    throw new InvalidOperationException("Sem token válido para auto-conexão.");
                 var token = await AuthorizeAndGetTokenAsync(cfg);
                 cfg.AccessToken = token;
                 SaveConfig(cfg);
