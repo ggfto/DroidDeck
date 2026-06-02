@@ -7,12 +7,14 @@ class ButtonPropertyPanel extends StatefulWidget {
   final DeckButton button;
   final Function(DeckButton) onSave;
   final VoidCallback? onCancel;
+  final List<DeckProfile> profiles;
 
   const ButtonPropertyPanel({
     super.key,
     required this.button,
     required this.onSave,
     this.onCancel,
+    this.profiles = const [],
   });
 
   @override
@@ -24,9 +26,17 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   late TextEditingController _actionParamController;
   String _selectedActionType = 'none';
   String _mixerOperation = 'toggleMute';
+  String? _targetProfileId;
   Color _selectedColor = Colors.grey[800]!;
 
-  final List<String> _actionTypes = ['none', 'hotkey', 'launch_app', 'mixer'];
+  final List<String> _actionTypes = [
+    'none',
+    'hotkey',
+    'launch_app',
+    'mixer',
+    'open_profile',
+    'back',
+  ];
   final List<Color> _colors = [
     Colors.grey[800]!,
     Colors.red[900]!,
@@ -81,6 +91,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
             text: widget.button.action!.parameters['processName'] ?? '');
         _mixerOperation =
             widget.button.action!.parameters['operation'] ?? 'toggleMute';
+      } else if (_selectedActionType == 'open_profile') {
+        _actionParamController = TextEditingController();
+        _targetProfileId = widget.button.action!.parameters['profileId'];
       } else {
         _actionParamController = TextEditingController();
       }
@@ -148,7 +161,10 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     } else if (_selectedActionType == 'mixer') {
       params['operation'] = _mixerOperation;
       params['processName'] = _actionParamController.text.trim();
+    } else if (_selectedActionType == 'open_profile') {
+      if (_targetProfileId != null) params['profileId'] = _targetProfileId!;
     }
+    // 'back' não precisa de parâmetros.
 
     final newAction = _selectedActionType == 'none'
         ? null
@@ -253,6 +269,38 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                       labelText: 'Application Path (.exe)',
                       hintText: 'C:\\Windows\\System32\\notepad.exe',
                       border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+                if (_selectedActionType == 'open_profile') ...[
+                  DropdownButtonFormField<String>(
+                    value: widget.profiles.any((p) => p.id == _targetProfileId)
+                        ? _targetProfileId
+                        : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Abrir pasta/perfil',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: widget.profiles
+                        .map((p) => DropdownMenuItem(
+                            value: p.id, child: Text(p.name)))
+                        .toList(),
+                    onChanged: (val) => setState(() => _targetProfileId = val),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Ao tocar, abre esse perfil como uma pasta (use um botão BACK para voltar).',
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                  ),
+                ],
+                if (_selectedActionType == 'back') ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Botão de voltar: retorna para a pasta/perfil anterior.',
+                      style: TextStyle(color: Colors.grey),
                     ),
                   ),
                 ],

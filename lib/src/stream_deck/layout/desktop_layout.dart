@@ -169,6 +169,7 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
                     key: ValueKey(_selectedButton!
                         .id), // Force rebuild on selection change
                     button: _selectedButton!,
+                    profiles: profiles,
                     onSave: (btn) {
                       widget.controller.updateButton(btn);
                       // Update local selection to reflect changes

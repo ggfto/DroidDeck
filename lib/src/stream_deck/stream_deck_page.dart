@@ -26,6 +26,8 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
   final StreamDeckController controller = StreamDeckController();
   late PageController _pageController;
   void Function()? _deckSyncCleanup;
+  final List<String> _navStack = []; // pilha de pastas (perfis) abertas
+  DeckProfile? _rootProfile; // perfil-raiz antes de entrar em pastas
 
   @override
   void initState() {
@@ -52,6 +54,119 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
     _deckSyncCleanup?.call();
     _pageController.dispose();
     super.dispose();
+  }
+
+  DeckProfile? _folderProfile(List<DeckProfile> profiles) {
+    if (_navStack.isEmpty) return null;
+    try {
+      return profiles.firstWhere((p) => p.id == _navStack.last);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Trata o toque: abre pasta (open_profile), volta (back) ou executa a ação.
+  void _handlePress(DeckButton b, List<DeckProfile> profiles) {
+    final type = b.action?.type;
+    if (type == 'open_profile') {
+      final targetId = b.action!.parameters['profileId'];
+      DeckProfile? target;
+      try {
+        target = profiles.firstWhere((p) => p.id == targetId);
+      } catch (_) {
+        target = null;
+      }
+      if (target != null) {
+        setState(() {
+          _rootProfile ??= controller.currentProfile.value;
+          _navStack.add(target!.id);
+          controller.currentProfile.value = target;
+        });
+      }
+      return;
+    }
+    if (type == 'back') {
+      _goBack(profiles);
+      return;
+    }
+    controller.executeButtonAction(b);
+  }
+
+  void _goBack(List<DeckProfile> profiles) {
+    setState(() {
+      if (_navStack.isNotEmpty) _navStack.removeLast();
+      if (_navStack.isEmpty) {
+        controller.currentProfile.value =
+            _rootProfile ?? controller.currentProfile.value;
+        _rootProfile = null;
+      } else {
+        try {
+          controller.currentProfile.value =
+              profiles.firstWhere((p) => p.id == _navStack.last);
+        } catch (_) {}
+      }
+    });
+  }
+
+  void _editButton(DeckButton button) {
+    showDialog(
+      context: context,
+      builder: (context) => ButtonEditorDialog(
+        button: button,
+        onSave: controller.updateButton,
+      ),
+    );
+  }
+
+  Widget _buildButtonGrid(DeckProfile profile, List<DeckProfile> profiles) {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 110,
+        childAspectRatio: 1.0,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: 50,
+      itemBuilder: (context, index) {
+        final int cols = profile.columns > 0 ? profile.columns : 5;
+        final row = index ~/ cols;
+        final col = index % cols;
+
+        final existingButton = profile.buttons.firstWhereOrNull(
+          (b) => b.row == row && b.column == col,
+        );
+
+        final buttonToEdit = existingButton ??
+            DeckButton(
+              id: '',
+              label: 'New Button',
+              row: row,
+              column: col,
+              action: DeckAction(type: 'none'),
+            );
+
+        if (existingButton == null) {
+          return InkWell(
+            onTap: () => _editButton(buttonToEdit),
+            onLongPress: () => _editButton(buttonToEdit),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[900],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[800]!),
+              ),
+              child: const Center(child: Icon(Icons.add, color: Colors.grey)),
+            ),
+          );
+        }
+
+        return DynamicDeckButton(
+          button: existingButton,
+          onTap: () => _handlePress(existingButton, profiles),
+          onLongPress: () => _editButton(existingButton),
+        );
+      },
+    );
   }
 
   @override
@@ -119,7 +234,16 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
       appBar: widget.isFullscreen
           ? null
           : AppBar(
-              title: Text(currentProfile?.name ?? 'StreamDeck'),
+              leading: _navStack.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Voltar',
+                      onPressed: () => _goBack(profiles),
+                    )
+                  : null,
+              title: Text(_navStack.isNotEmpty
+                  ? (_folderProfile(profiles)?.name ?? 'Pasta')
+                  : (currentProfile?.name ?? 'StreamDeck')),
               actions: [
                 // SIGNALR DEBUG INDICATOR
                 Padding(
@@ -233,92 +357,13 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
               }
             },
             itemBuilder: (context, pageIndex) {
-              final profile = profiles[pageIndex];
               return RefreshIndicator(
                 onRefresh: () async {
                   await controller.loadProfiles();
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 110,
-                      childAspectRatio: 1.0,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemCount: 50,
-                    itemBuilder: (context, index) {
-                      final int cols =
-                          profile.columns > 0 ? profile.columns : 5;
-                      final row = index ~/ cols;
-                      final col = index % cols;
-
-                      final existingButton = profile.buttons.firstWhereOrNull(
-                        (b) => b.row == row && b.column == col,
-                      );
-
-                      final isEmpty = existingButton == null;
-
-                      final buttonToEdit = existingButton ??
-                          DeckButton(
-                            id: '',
-                            label: 'New Button',
-                            row: row,
-                            column: col,
-                            action: DeckAction(type: 'none'),
-                          );
-
-                      if (isEmpty) {
-                        return InkWell(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => ButtonEditorDialog(
-                                button: buttonToEdit,
-                                onSave: controller.updateButton,
-                              ),
-                            );
-                          },
-                          onLongPress: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => ButtonEditorDialog(
-                                button: buttonToEdit,
-                                onSave: controller.updateButton,
-                              ),
-                            );
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[900],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[800]!),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.add, color: Colors.grey),
-                            ),
-                          ),
-                        );
-                      }
-
-                      return DynamicDeckButton(
-                        button: existingButton,
-                        onTap: () =>
-                            controller.executeButtonAction(existingButton),
-                        onLongPress: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => ButtonEditorDialog(
-                              button: existingButton,
-                              onSave: controller.updateButton,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                  child: _buildButtonGrid(profiles[pageIndex], profiles),
                 ),
               );
             },
@@ -358,6 +403,15 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
               color: Colors.black.withValues(alpha: 0.5),
               child: const Center(
                 child: CircularProgressIndicator(),
+              ),
+            ),
+          // Sobreposição da pasta aberta (perfil empilhado).
+          if (_navStack.isNotEmpty && _folderProfile(profiles) != null)
+            Positioned.fill(
+              child: Container(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                padding: const EdgeInsets.all(8.0),
+                child: _buildButtonGrid(_folderProfile(profiles)!, profiles),
               ),
             ),
         ],
