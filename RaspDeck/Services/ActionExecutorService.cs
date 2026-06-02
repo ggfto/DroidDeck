@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 using AnyDeck.Hubs;
 using AnyDeck.Models;
@@ -59,6 +61,10 @@ namespace AnyDeck.Services
 
                     case "mixer":
                         await ExecuteMixerAction(action);
+                        break;
+
+                    case "multi":
+                        await ExecuteMultiAction(action);
                         break;
 
                     default:
@@ -190,6 +196,53 @@ namespace AnyDeck.Services
             }
 
             _logger.LogWarning("Mixer action ignorada: faltou 'processName' ou 'deviceId'.");
+        }
+
+        private static readonly JsonSerializerOptions _jsonOpts =
+            new() { PropertyNameCaseInsensitive = true };
+
+        /// <summary>
+        /// Executa uma sequência de ações. parameters["steps"] = JSON de
+        /// [{type, parameters, delayMs}]; delayMs é aguardado ANTES de cada passo.
+        /// </summary>
+        private async Task ExecuteMultiAction(DeckAction action)
+        {
+            if (!action.Parameters.TryGetValue("steps", out var stepsJson) ||
+                string.IsNullOrWhiteSpace(stepsJson))
+                return;
+
+            List<MultiStep>? steps;
+            try
+            {
+                steps = JsonSerializer.Deserialize<List<MultiStep>>(stepsJson, _jsonOpts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Multi-ação: JSON de passos inválido");
+                return;
+            }
+            if (steps == null) return;
+
+            foreach (var step in steps)
+            {
+                if (string.IsNullOrWhiteSpace(step.Type)) continue;
+                if (string.Equals(step.Type, "multi", StringComparison.OrdinalIgnoreCase))
+                    continue; // não aninha multi
+                if (step.DelayMs > 0)
+                    await Task.Delay(step.DelayMs);
+                await ExecuteActionAsync(new DeckAction
+                {
+                    Type = step.Type!,
+                    Parameters = step.Parameters ?? new Dictionary<string, string>()
+                });
+            }
+        }
+
+        private class MultiStep
+        {
+            public string? Type { get; set; }
+            public Dictionary<string, string>? Parameters { get; set; }
+            public int DelayMs { get; set; }
         }
     }
 }
