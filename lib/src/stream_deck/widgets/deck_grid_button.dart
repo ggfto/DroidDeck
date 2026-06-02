@@ -89,9 +89,13 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     });
   }
 
+  /// Cor exibida quando o botão está "ativo" (toggle ligado). Configurável; padrão vermelho.
+  Color _activeColor() =>
+      _parseColor(widget.button.activeColor) ?? Colors.red[900]!;
+
   Widget _render(bool? muted) {
     final baseColor = _parseColor(widget.button.backgroundColor) ?? Colors.grey[850];
-    final bg = muted == true ? Colors.red[900] : baseColor;
+    final bg = muted == true ? _activeColor() : baseColor;
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -134,7 +138,7 @@ class _DeckGridButtonState extends State<DeckGridButton> {
   Widget _renderDiscord(String op, bool active) {
     final baseColor =
         _parseColor(widget.button.backgroundColor) ?? Colors.grey[850];
-    final bg = active ? Colors.red[900] : baseColor;
+    final bg = active ? _activeColor() : baseColor;
     final icon = op == 'deaf'
         ? (active ? Icons.headset_off : Icons.headset_mic)
         : (active ? Icons.mic_off : Icons.mic);

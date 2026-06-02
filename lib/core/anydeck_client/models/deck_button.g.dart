@@ -14,6 +14,7 @@ DeckButton _$DeckButtonFromJson(Map<String, dynamic> json) => DeckButton(
   iconBase64: json['iconBase64'] as String?,
   iconName: json['iconName'] as String?,
   backgroundColor: json['backgroundColor'] as String?,
+  activeColor: json['activeColor'] as String?,
   action: json['action'] == null
       ? null
       : DeckAction.fromJson(json['action'] as Map<String, dynamic>),
@@ -29,6 +30,7 @@ Map<String, dynamic> _$DeckButtonToJson(DeckButton instance) =>
       'iconBase64': instance.iconBase64,
       'iconName': instance.iconName,
       'backgroundColor': instance.backgroundColor,
+      'activeColor': instance.activeColor,
       'action': instance.action,
       'dynamicType': instance.dynamicType,
     };

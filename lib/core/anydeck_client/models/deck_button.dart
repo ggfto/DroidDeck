@@ -26,6 +26,11 @@ class DeckButton {
   @JsonKey(name: 'backgroundColor')
   final String? backgroundColor;
 
+  /// Cor exibida quando o botão está "ativo" (toggle ligado: mute/discord).
+  /// Se nulo, o runtime usa vermelho como padrão.
+  @JsonKey(name: 'activeColor')
+  final String? activeColor;
+
   @JsonKey(name: 'action')
   final DeckAction? action;
 
@@ -40,6 +45,7 @@ class DeckButton {
     this.iconBase64,
     this.iconName,
     this.backgroundColor,
+    this.activeColor,
     this.action,
     this.dynamicType,
   });

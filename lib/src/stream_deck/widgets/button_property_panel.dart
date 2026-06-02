@@ -32,6 +32,11 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   List<Map<String, dynamic>> _multiSteps = [];
   int _stepSeq = 0;
   Color _selectedColor = Colors.grey[800]!;
+  Color _activeColor = Colors.red[900]!;
+
+  /// Ações que refletem um estado ligado/desligado (e portanto têm "cor de ativo").
+  bool get _isStatefulAction =>
+      _selectedActionType == 'discord' || _selectedActionType == 'mixer';
 
   final List<String> _actionTypes = [
     'none',
@@ -119,6 +124,11 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
         widget.button.backgroundColor!.isNotEmpty) {
       _selectedColor =
           _parseColor(widget.button.backgroundColor!) ?? Colors.grey[800]!;
+    }
+    if (widget.button.activeColor != null &&
+        widget.button.activeColor!.isNotEmpty) {
+      _activeColor =
+          _parseColor(widget.button.activeColor!) ?? Colors.red[900]!;
     }
     _iconBase64 = widget.button.iconBase64;
     _dynamicType = widget.button.dynamicType;
@@ -265,6 +275,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       column: widget.button.column,
       label: _labelController.text,
       backgroundColor: _colorToHex(_selectedColor),
+      activeColor: _isStatefulAction ? _colorToHex(_activeColor) : null,
       iconName: _selectedIcon,
       iconBase64: _iconBase64,
       dynamicType: _dynamicType,
@@ -627,6 +638,44 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                           ))
                       .toList(),
                 ),
+
+                // Cor de "ativo" (toggle): só para ações que refletem estado.
+                if (_isStatefulAction) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    _selectedActionType == 'discord'
+                        ? 'Cor quando ativo (mutado/ensurdecido)'
+                        : 'Cor quando ativo (mutado)',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: _colors
+                        .map((c) => InkWell(
+                              onTap: () => setState(() => _activeColor = c),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                    color: c,
+                                    shape: BoxShape.circle,
+                                    border: _activeColor == c
+                                        ? Border.all(
+                                            color: Colors.white, width: 2)
+                                        : null,
+                                    boxShadow: const [
+                                      BoxShadow(
+                                          blurRadius: 2, color: Colors.black26)
+                                    ]),
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTogglePreview(),
+                ],
+
                 // Dynamic Type
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
@@ -691,6 +740,59 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
         ),
       ],
     );
+  }
+
+  /// Mostra lado a lado como o botão fica desligado x ativo (com a cor escolhida).
+  Widget _buildTogglePreview() {
+    final icons = _previewIcons();
+    Widget chip(String label, Color color, IconData icon) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [
+                BoxShadow(blurRadius: 3, color: Colors.black38)
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: 26),
+          ),
+          const SizedBox(height: 4),
+          Text(label,
+              style: const TextStyle(fontSize: 11, color: Colors.white70)),
+        ],
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          chip('Desligado', _selectedColor, icons.$1),
+          const Icon(Icons.arrow_forward, color: Colors.white38, size: 20),
+          chip('Ativo', _activeColor, icons.$2),
+        ],
+      ),
+    );
+  }
+
+  /// (ícone desligado, ícone ativo) conforme a ação — espelha o runtime.
+  (IconData, IconData) _previewIcons() {
+    if (_selectedActionType == 'discord') {
+      return _discordOp == 'toggleDeafen'
+          ? (Icons.headset_mic, Icons.headset_off)
+          : (Icons.mic, Icons.mic_off);
+    }
+    return (Icons.volume_up, Icons.volume_off);
   }
 
   Widget _buildIconOption(String? iconName) {
