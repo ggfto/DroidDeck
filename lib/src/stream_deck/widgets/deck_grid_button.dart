@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:companion/core/core.dart';
+import 'package:companion/src/services/signalr_service.dart';
 import 'package:flutter/material.dart';
 
-class DeckGridButton extends StatelessWidget {
+class DeckGridButton extends StatefulWidget {
   final DeckButton button;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -15,13 +16,62 @@ class DeckGridButton extends StatelessWidget {
   });
 
   @override
+  State<DeckGridButton> createState() => _DeckGridButtonState();
+}
+
+class _DeckGridButtonState extends State<DeckGridButton> {
+  /// Se o botão é um toggle de mute (ação mixer mute/toggle com processName),
+  /// retorna o nome do processo-alvo; senão null (botão comum).
+  String? get _muteProcess {
+    final a = widget.button.action;
+    if (a == null || a.type != 'mixer') return null;
+    final op = (a.parameters['operation'] ?? 'toggleMute').toLowerCase();
+    final pn = a.parameters['processName'];
+    if (pn != null && pn.isNotEmpty && op.contains('mute')) return pn;
+    return null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final p = _muteProcess;
+    if (p == null) return;
+    // Consulta o estado de mute inicial uma vez (se ainda não conhecido).
+    try {
+      final sr = Injector.get<SignalRService>();
+      if (!sr.muteStates.value.containsKey(p)) {
+        Injector.get<AnyDeckClient>().getMuteState(p).then((m) {
+          if (m != null && mounted) {
+            final cur = Map<String, bool>.from(sr.muteStates.value);
+            cur[p] = m;
+            sr.muteStates.value = cur;
+          }
+        }).catchError((_) {});
+      }
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final p = _muteProcess;
+    if (p == null) return _render(null);
+    // Reage ao estado de mute vindo do backend (toque ou mudança externa).
+    return Watch((context) {
+      final muted = Injector.get<SignalRService>().muteStates.watch(context)[p];
+      return _render(muted);
+    });
+  }
+
+  Widget _render(bool? muted) {
+    final baseColor = _parseColor(widget.button.backgroundColor) ?? Colors.grey[850];
+    final bg = muted == true ? Colors.red[900] : baseColor;
+
     return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       child: Container(
         decoration: BoxDecoration(
-          color: _parseColor(button.backgroundColor) ?? Colors.grey[850],
+          color: bg,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
@@ -34,24 +84,15 @@ class DeckGridButton extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (button.iconBase64 != null && button.iconBase64!.isNotEmpty)
-              _buildBase64Icon()
-            else if (button.iconName != null && button.iconName!.isNotEmpty)
-              Icon(
-                _getIconData(button.iconName!),
-                size: 32,
-                color: Colors.white,
-              )
-            else
-              const Icon(Icons.touch_app, size: 32, color: Colors.white54),
-            if (button.label != null && button.label!.isNotEmpty) ...[
+            _buildIcon(muted),
+            if (widget.button.label != null && widget.button.label!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                button.label!,
+                widget.button.label!,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 10, // Small font for grid
+                  fontSize: 10,
                   overflow: TextOverflow.ellipsis,
                 ),
                 maxLines: 2,
@@ -63,9 +104,26 @@ class DeckGridButton extends StatelessWidget {
     );
   }
 
+  Widget _buildIcon(bool? muted) {
+    // Toggle de mute: o ícone reflete o estado real.
+    if (muted != null) {
+      return Icon(muted ? Icons.volume_off : Icons.volume_up,
+          size: 32, color: Colors.white);
+    }
+    if (widget.button.iconBase64 != null &&
+        widget.button.iconBase64!.isNotEmpty) {
+      return _buildBase64Icon();
+    }
+    if (widget.button.iconName != null && widget.button.iconName!.isNotEmpty) {
+      return Icon(_getIconData(widget.button.iconName!),
+          size: 32, color: Colors.white);
+    }
+    return const Icon(Icons.touch_app, size: 32, color: Colors.white54);
+  }
+
   Widget _buildBase64Icon() {
     try {
-      String base64String = button.iconBase64!;
+      String base64String = widget.button.iconBase64!;
       if (base64String.startsWith('data:image')) {
         base64String = base64String.split(',')[1];
       }
@@ -95,8 +153,6 @@ class DeckGridButton extends StatelessWidget {
   }
 
   IconData _getIconData(String name) {
-    // Simple mapping for common icons, hard to map all dynamically without a library
-    // For now, fallback to generic icon if not mapped, or implement a smarter lookup
     switch (name.toLowerCase()) {
       case 'play':
         return Icons.play_arrow;

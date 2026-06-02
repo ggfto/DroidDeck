@@ -96,6 +96,14 @@ class AnyDeckClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Estado de mute atual de um processo (null se não houver sessão de áudio).
+  Future<bool?> getMuteState(String process) async {
+    final response = await _dio.get('/api/Software/mute-state/$process');
+    final data = response.data;
+    if (data is Map && data['muted'] is bool) return data['muted'] as bool;
+    return null;
+  }
+
   // Media Control methods
   Future<List<MediaSession>> getMediaSessions() async {
     final response = await _dio.get('/api/v1/Media/sessions');

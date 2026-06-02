@@ -66,6 +66,9 @@ class SignalRService {
   // Incrementa quando o backend avisa que um perfil do deck mudou (sync ao vivo).
   final deckUpdated = signal<int>(0);
 
+  // Estado de mute por processo (para botões toggle refletirem a realidade).
+  final muteStates = signal<Map<String, bool>>({});
+
   SignalRService();
 
   Future<void> init(String baseUrl, {String? apiKey}) async {
@@ -168,6 +171,24 @@ class SignalRService {
     _hubConnection?.on('ReceiveDeckUpdate', (arguments) {
       deckUpdated.value = deckUpdated.value + 1;
       _logger.info('Deck update recebido');
+    });
+
+    // Estado de mute de um processo mudou → atualiza para os botões toggle.
+    _hubConnection?.on('ReceiveMuteState', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        try {
+          final u = arguments[0] as Map<String, dynamic>;
+          final pn = u['processName'] as String?;
+          final muted = u['muted'];
+          if (pn != null && muted is bool) {
+            final cur = Map<String, bool>.from(muteStates.value);
+            cur[pn] = muted;
+            muteStates.value = cur;
+          }
+        } catch (e) {
+          _logger.warning('Error parsing ReceiveMuteState: $e');
+        }
+      }
     });
 
     _hubConnection?.onclose(({error}) {
