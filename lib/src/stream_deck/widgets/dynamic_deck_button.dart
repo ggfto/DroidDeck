@@ -82,64 +82,81 @@ class DynamicDeckButton extends StatelessWidget {
   }
 
   Widget _buildCpuMonitor(SystemStats stats) {
-    // Color gradient based on usage
-    // Handle potential NaN or Infinity
-    double safeUsage = stats.cpuUsage;
-    if (safeUsage.isNaN || safeUsage.isInfinite) safeUsage = 0;
-
-    final usage = (safeUsage / 100.0).clamp(0.0, 1.0);
-    Color barColor = Colors.green;
-    if (usage > 0.6) barColor = Colors.orange;
-    if (usage > 0.85) barColor = Colors.red;
-
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      children: [
-        // Background Bar
-        FractionallySizedBox(
-          heightFactor: usage,
-          widthFactor: 1.0,
-          alignment: Alignment.bottomCenter,
-          child: Container(color: barColor.withValues(alpha: 0.5)),
-        ),
-        Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.memory, color: Colors.white, size: 24),
-              const SizedBox(height: 4),
-              Text('${stats.cpuUsage.toStringAsFixed(0)}%',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      shadows: [Shadow(color: Colors.black, blurRadius: 2)])),
-              const Text('CPU',
-                  style: TextStyle(color: Colors.white70, fontSize: 10)),
-            ],
-          ),
-        ),
-      ],
+    double pct = stats.cpuUsage;
+    if (pct.isNaN || pct.isInfinite) pct = 0;
+    return _gauge(
+      percent: pct,
+      icon: Icons.memory,
+      value: '${pct.toStringAsFixed(0)}%',
+      label: 'CPU',
     );
   }
 
   Widget _buildMemoryMonitor(SystemStats stats) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.storage, color: Colors.white, size: 24),
-          const SizedBox(height: 4),
-          Text('${(stats.ramAvailable / 1024).toStringAsFixed(1)} GB',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              )),
-          const Text('FREE RAM',
-              style: TextStyle(color: Colors.white70, fontSize: 10)),
-        ],
-      ),
+    double pct = stats.ramUsedPercent;
+    if (pct.isNaN || pct.isInfinite) pct = 0;
+    final detail = stats.ramTotal > 0
+        ? '${stats.ramUsedGb.toStringAsFixed(1)}/${stats.ramTotalGb.toStringAsFixed(1)}G'
+        : 'RAM';
+    return _gauge(
+      percent: pct,
+      icon: Icons.memory_outlined,
+      value: '${pct.toStringAsFixed(0)}%',
+      label: detail,
+    );
+  }
+
+  Color _usageColor(double pct) {
+    if (pct > 85) return Colors.redAccent;
+    if (pct > 60) return Colors.orangeAccent;
+    return Colors.greenAccent;
+  }
+
+  /// Medidor circular: anel colorido pela faixa de uso + ícone/valor/label no centro.
+  Widget _gauge({
+    required double percent,
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    final p = (percent / 100).clamp(0.0, 1.0);
+    final color = _usageColor(percent);
+    return LayoutBuilder(
+      builder: (context, c) {
+        final small = c.maxWidth < 70 || c.maxHeight < 70;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: CircularProgressIndicator(
+                  value: p,
+                  strokeWidth: small ? 4 : 6,
+                  backgroundColor: Colors.white12,
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: Colors.white, size: small ? 14 : 18),
+                Text(value,
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: small ? 12 : 15)),
+                Text(label,
+                    style: TextStyle(
+                        color: Colors.white70, fontSize: small ? 8 : 9),
+                    maxLines: 1,
+                    overflow: TextOverflow.clip),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

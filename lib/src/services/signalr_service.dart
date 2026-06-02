@@ -4,15 +4,24 @@ import 'package:signalr_netcore/signalr_client.dart';
 import 'package:logging/logging.dart';
 
 class SystemStats {
-  final double cpuUsage;
-  final double ramUsage; // Bytes or MB depending on backend
-  final double ramAvailable;
+  final double cpuUsage; // % (0-100)
+  final double ramUsage; // % usada (0-100)
+  final double ramTotal; // MB
+  final double ramAvailable; // MB
 
   SystemStats({
     this.cpuUsage = 0,
     this.ramUsage = 0,
+    this.ramTotal = 0,
     this.ramAvailable = 0,
   });
+
+  /// % de RAM em uso (usa o valor do backend; se faltar, calcula de total/disponível).
+  double get ramUsedPercent => ramUsage > 0
+      ? ramUsage
+      : (ramTotal > 0 ? (ramTotal - ramAvailable) / ramTotal * 100 : 0);
+  double get ramUsedGb => (ramTotal - ramAvailable) / 1024.0;
+  double get ramTotalGb => ramTotal / 1024.0;
 
   factory SystemStats.fromJson(Map<String, dynamic> json) {
     double parseDouble(dynamic val) {
@@ -24,6 +33,8 @@ class SystemStats {
 
     return SystemStats(
       cpuUsage: parseDouble(json['cpuUsage'] ?? json['CpuUsage']),
+      ramUsage: parseDouble(json['ramUsage'] ?? json['RamUsage']),
+      ramTotal: parseDouble(json['ramTotal'] ?? json['RamTotal']),
       ramAvailable: parseDouble(json['ramAvailable'] ?? json['RamAvailable']),
     );
   }
