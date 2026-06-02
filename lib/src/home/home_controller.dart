@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:companion/core/core.dart';
 import 'package:companion/src/services/signalr_service.dart';
 
@@ -61,7 +62,7 @@ class HomeController {
       error.value = null;
     } catch (e) {
       error.value = e.toString();
-      print('DEBUG ERROR (outputs): $e');
+      debugPrint('DEBUG ERROR (outputs): $e');
     } finally {
       if (isInitialLoad) {
         isLoading.value = false;
@@ -77,21 +78,21 @@ class HomeController {
     }
 
     try {
-      print('DEBUG: Fetching inputs...');
+      debugPrint('DEBUG: Fetching inputs...');
       final res = await _client.getInputs();
-      print('DEBUG: Got ${res.length} input devices');
+      debugPrint('DEBUG: Got ${res.length} input devices');
       inputs.value = res;
       error.value = null;
 
       // Debug: Print first input device
       if (res.isNotEmpty) {
-        print('DEBUG: First input device title: ${res.first.device.title}');
+        debugPrint('DEBUG: First input device title: ${res.first.device.title}');
       } else {
-        print('DEBUG: No input devices found');
+        debugPrint('DEBUG: No input devices found');
       }
     } catch (e) {
       error.value = e.toString();
-      print('DEBUG ERROR (inputs): $e');
+      debugPrint('DEBUG ERROR (inputs): $e');
     } finally {
       if (isInitialLoad) {
         isLoading.value = false;
@@ -158,19 +159,19 @@ class HomeController {
   Future<void> fetchMediaSessions() async {
     try {
       final sessions = await _client.getMediaSessions();
-      print('DEBUG: Fetched ${sessions.length} media sessions');
+      debugPrint('DEBUG: Fetched ${sessions.length} media sessions');
       // Convert list to map by ID for easy lookup
       final sessionMap = <String, MediaSession>{};
       for (final session in sessions) {
         if (session.id != null) {
           sessionMap[session.id!] = session;
-          print(
+          debugPrint(
               'DEBUG: Media session ID: ${session.id} - Title: ${session.title}');
         }
       }
       mediaSessions.value = sessionMap;
     } catch (e) {
-      print('DEBUG ERROR (media sessions): $e');
+      debugPrint('DEBUG ERROR (media sessions): $e');
     }
   }
 
@@ -184,7 +185,7 @@ class HomeController {
       // Refresh immediately for instant UI feedback
       fetchMediaSessions();
     } catch (e) {
-      print('DEBUG ERROR (send media command): $e');
+      debugPrint('DEBUG ERROR (send media command): $e');
     }
   }
 }

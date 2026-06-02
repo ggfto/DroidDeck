@@ -100,7 +100,7 @@ class DynamicDeckButton extends StatelessWidget {
           heightFactor: usage,
           widthFactor: 1.0,
           alignment: Alignment.bottomCenter,
-          child: Container(color: barColor.withOpacity(0.5)),
+          child: Container(color: barColor.withValues(alpha: 0.5)),
         ),
         Center(
           child: Column(

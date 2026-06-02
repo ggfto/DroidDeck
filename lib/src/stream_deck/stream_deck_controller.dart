@@ -118,7 +118,7 @@ class StreamDeckController {
       final profile = profiles.value.firstWhere((p) => p.id == profileId);
       currentProfile.value = profile;
     } catch (e) {
-      print('Profile not found: $profileId');
+      debugPrint('Profile not found: $profileId');
     }
   }
 

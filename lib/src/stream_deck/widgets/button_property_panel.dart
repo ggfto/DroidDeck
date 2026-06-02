@@ -456,7 +456,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
         height: 40,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.withOpacity(0.3) : Colors.grey[800],
+          color: isSelected ? Colors.blue.withValues(alpha: 0.3) : Colors.grey[800],
           borderRadius: BorderRadius.circular(4),
           border: isSelected
               ? Border.all(color: Colors.blue)

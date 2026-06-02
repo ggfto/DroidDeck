@@ -72,7 +72,7 @@ class _VolumeControlState extends State<VolumeControl> {
       }
       _cachedImageBytes = base64Decode(base64String);
     } catch (e) {
-      print('Error decoding icon: $e');
+      debugPrint('Error decoding icon: $e');
       _cachedImageBytes = null;
     }
   }

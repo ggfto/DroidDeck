@@ -62,7 +62,7 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
                       return ListTile(
                         selected: isSelected,
                         selectedTileColor:
-                            Theme.of(context).primaryColor.withOpacity(0.2),
+                            Theme.of(context).primaryColor.withValues(alpha: 0.2),
                         title: Text(profile.name),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete,
@@ -254,7 +254,7 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
                       : Container(
                           // Empty Slot
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: Colors.white10),
                           ),

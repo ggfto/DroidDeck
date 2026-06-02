@@ -68,7 +68,7 @@ class _MediaControlWidgetState extends State<MediaControlWidget> {
     final isPlaying = displayStatus.toLowerCase() == 'playing';
 
     // Debug: print playback status
-    print(
+    debugPrint(
         'DEBUG MediaControl: playbackStatus="${widget.session.playbackStatus}", optimistic="$_optimisticPlaybackStatus", isPlaying=$isPlaying');
 
     return Card(

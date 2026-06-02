@@ -317,7 +317,7 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
               left: 16,
               right: 16,
               child: Card(
-                color: Colors.redAccent.withOpacity(0.9),
+                color: Colors.redAccent.withValues(alpha: 0.9),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(
@@ -343,7 +343,7 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
             ),
           if (isLoading)
             Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               child: const Center(
                 child: CircularProgressIndicator(),
               ),
