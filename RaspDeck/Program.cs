@@ -157,6 +157,7 @@ namespace AnyDeck
                             services.AddSingleton<AnyDeck.Services.IAppActivator, AnyDeck.Services.AppActivator>();
                             services.AddSingleton<Services.MediaControlService>();
                             services.AddSingleton<Services.StreamDeckConfigService>();
+                            services.AddSingleton<Services.DiscordRpcService>();
                             services.AddSingleton<Services.ActionExecutorService>();
                             services.AddHostedService<Services.SystemMonitorService>();
                         }

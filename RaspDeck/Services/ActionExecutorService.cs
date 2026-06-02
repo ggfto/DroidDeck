@@ -17,6 +17,7 @@ namespace AnyDeck.Services
         private readonly MixerService _mixerService;
         private readonly IAudioControlService _audioControl;
         private readonly IHubContext<DeckHub> _hubContext;
+        private readonly DiscordRpcService _discord;
 
         public ActionExecutorService(
             ILogger<ActionExecutorService> logger,
@@ -24,7 +25,8 @@ namespace AnyDeck.Services
             MediaControlService mediaService,
             MixerService mixerService,
             IAudioControlService audioControl,
-            IHubContext<DeckHub> hubContext)
+            IHubContext<DeckHub> hubContext,
+            DiscordRpcService discord)
         {
             _logger = logger;
             _appActivator = appActivator;
@@ -32,6 +34,7 @@ namespace AnyDeck.Services
             _mixerService = mixerService;
             _audioControl = audioControl;
             _hubContext = hubContext;
+            _discord = discord;
         }
 
         public async Task ExecuteActionAsync(DeckAction action)
@@ -65,6 +68,10 @@ namespace AnyDeck.Services
 
                     case "multi":
                         await ExecuteMultiAction(action);
+                        break;
+
+                    case "discord":
+                        await ExecuteDiscordAction(action);
                         break;
 
                     default:
@@ -235,6 +242,27 @@ namespace AnyDeck.Services
                     Type = step.Type!,
                     Parameters = step.Parameters ?? new Dictionary<string, string>()
                 });
+            }
+        }
+
+        private async Task ExecuteDiscordAction(DeckAction action)
+        {
+            action.Parameters.TryGetValue("operation", out var op);
+            switch ((op ?? "toggleMute").Trim().ToLowerInvariant())
+            {
+                case "toggledeafen":
+                case "toggledeaf":
+                    await _discord.SetDeafAsync(null);
+                    break;
+                case "mute":
+                    await _discord.SetMuteAsync(true);
+                    break;
+                case "unmute":
+                    await _discord.SetMuteAsync(false);
+                    break;
+                default: // toggleMute
+                    await _discord.SetMuteAsync(null);
+                    break;
             }
         }
 
