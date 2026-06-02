@@ -13,8 +13,10 @@ namespace AnyDeck.Services
     {
         private readonly ILogger<StreamDeckConfigService> _logger;
         private readonly string _profilesDirectory;
+        private readonly string _layoutPath;
         private readonly object _lock = new object();
         private List<DeckProfile> _cache = new List<DeckProfile>();
+        private DeviceLayout _layout = new DeviceLayout();
 
         private readonly JsonSerializerOptions _jsonOptions;
 
@@ -28,14 +30,53 @@ namespace AnyDeck.Services
                 PropertyNameCaseInsensitive = true
             };
 
-            _profilesDirectory = Path.Combine(
+            var baseDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "AnyDeck",
-                "Profiles"
+                "AnyDeck"
             );
+            _profilesDirectory = Path.Combine(baseDir, "Profiles");
+            _layoutPath = Path.Combine(baseDir, "layout.json");
 
             EnsureDirectoryExists();
             LoadProfiles();
+            LoadLayout();
+        }
+
+        // ---- Grade física do deck (definida pelo celular, usada pelo configurador) ----
+        public DeviceLayout GetLayout()
+        {
+            lock (_lock)
+            {
+                return new DeviceLayout { Rows = _layout.Rows, Columns = _layout.Columns };
+            }
+        }
+
+        public void SaveLayout(DeviceLayout layout)
+        {
+            lock (_lock)
+            {
+                _layout = new DeviceLayout
+                {
+                    Rows = System.Math.Clamp(layout.Rows, 1, 20),
+                    Columns = System.Math.Clamp(layout.Columns, 1, 20)
+                };
+                try { File.WriteAllText(_layoutPath, JsonSerializer.Serialize(_layout, _jsonOptions)); }
+                catch (Exception ex) { _logger.LogError(ex, "Error saving layout"); }
+            }
+        }
+
+        private void LoadLayout()
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    if (File.Exists(_layoutPath))
+                        _layout = JsonSerializer.Deserialize<DeviceLayout>(File.ReadAllText(_layoutPath), _jsonOptions)
+                                  ?? new DeviceLayout();
+                }
+                catch (Exception ex) { _logger.LogError(ex, "Error loading layout"); }
+            }
         }
 
         private void EnsureDirectoryExists()

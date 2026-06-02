@@ -31,6 +31,17 @@ namespace AnyDeck.Hubs
                 }
                 catch { }
             }
+            // Manda a grade física atual (o configurador web a usa no lugar de um seletor manual).
+            if (_services.GetService(typeof(Services.StreamDeckConfigService)) is Services.StreamDeckConfigService cfg)
+            {
+                try
+                {
+                    var layout = cfg.GetLayout();
+                    await Clients.Caller.SendAsync("ReceiveLayoutUpdate",
+                        new { rows = layout.Rows, columns = layout.Columns });
+                }
+                catch { }
+            }
             await base.OnConnectedAsync();
         }
 

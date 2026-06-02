@@ -69,5 +69,24 @@ namespace AnyDeck.Controllers
             await _executorService.ExecuteActionAsync(action);
             return Ok();
         }
+
+        // ---- Grade física do deck (o celular envia quantos botões cabem na tela) ----
+        [HttpGet("layout")]
+        public ActionResult<DeviceLayout> GetLayout()
+        {
+            return Ok(_configService.GetLayout());
+        }
+
+        [HttpPost("layout")]
+        public async Task<ActionResult> SaveLayout([FromBody] DeviceLayout layout)
+        {
+            if (layout == null || layout.Rows < 1 || layout.Columns < 1) return BadRequest();
+            _configService.SaveLayout(layout);
+            var saved = _configService.GetLayout();
+            // Avisa o configurador web (e outros clientes) da nova grade, ao vivo.
+            await _hubContext.Clients.All.SendAsync("ReceiveLayoutUpdate",
+                new { rows = saved.Rows, columns = saved.Columns });
+            return Ok(saved);
+        }
     }
 }

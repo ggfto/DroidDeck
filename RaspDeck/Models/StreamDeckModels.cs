@@ -32,4 +32,15 @@ namespace AnyDeck.Models
         public string Type { get; set; } = "none"; // launchApp, media, mixer, hotkey, etc
         public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
     }
+
+    /// <summary>
+    /// Grade física do deck. Definida pelo celular (quantos botões cabem inteiros na tela)
+    /// e enviada ao PC; o configurador web usa estes valores (não há seletor manual).
+    /// É global (todos os perfis compartilham a mesma grade).
+    /// </summary>
+    public class DeviceLayout
+    {
+        public int Rows { get; set; } = 3;
+        public int Columns { get; set; } = 5;
+    }
 }
