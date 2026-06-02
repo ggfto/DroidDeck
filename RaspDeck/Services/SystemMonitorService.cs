@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +16,6 @@ namespace AnyDeck.Services
         private readonly ILogger<SystemMonitorService> _logger;
         private readonly IHubContext<DeckHub> _hubContext;
         private PerformanceCounter? _cpuCounter;
-        private PerformanceCounter? _ramCounter;
 
         public SystemMonitorService(ILogger<SystemMonitorService> logger, IHubContext<DeckHub> hubContext)
         {
@@ -44,17 +44,6 @@ namespace AnyDeck.Services
                     catch (Exception ex) { _logger.LogError(ex, "Failed to init CPU Counter"); }
                 }
 
-                try
-                {
-                    _ramCounter = new PerformanceCounter("Memory", "Available MBytes");
-                }
-                catch
-                {
-                    // Fallback for PT-BR
-                    try { _ramCounter = new PerformanceCounter("Memória", "MBytes disponíveis"); }
-                    catch (Exception ex) { _logger.LogError(ex, "Failed to init RAM Counter"); }
-                }
-
                 if (_cpuCounter != null) _cpuCounter.NextValue();
             }
             catch (Exception ex)
@@ -68,13 +57,23 @@ namespace AnyDeck.Services
                 try
                 {
                     var cpu = _cpuCounter?.NextValue() ?? 0;
-                    var ramAvailable = _ramCounter?.NextValue() ?? 0;
 
-                    // Simple Stats Object
+                    // RAM via GlobalMemoryStatusEx: total, disponível e % de uso de uma vez.
+                    var mem = new MEMORYSTATUSEX();
+                    float ramTotal = 0, ramAvailable = 0, ramLoad = 0;
+                    if (GlobalMemoryStatusEx(mem))
+                    {
+                        ramTotal = mem.ullTotalPhys / (1024f * 1024f); // MB
+                        ramAvailable = mem.ullAvailPhys / (1024f * 1024f); // MB
+                        ramLoad = mem.dwMemoryLoad; // % usada (0-100)
+                    }
+
                     var stats = new SystemStats
                     {
                         CpuUsage = (float)Math.Round(cpu, 1),
-                        RamAvailable = ramAvailable
+                        RamTotal = ramTotal,
+                        RamAvailable = ramAvailable,
+                        RamUsage = ramLoad,
                     };
 
                     // Broadcast to clients listening on "ReceiveSystemStats"
@@ -88,5 +87,28 @@ namespace AnyDeck.Services
                 await Task.Delay(1000, stoppingToken);
             }
         }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private class MEMORYSTATUSEX
+        {
+            public uint dwLength;
+            public uint dwMemoryLoad;
+            public ulong ullTotalPhys;
+            public ulong ullAvailPhys;
+            public ulong ullTotalPageFile;
+            public ulong ullAvailPageFile;
+            public ulong ullTotalVirtual;
+            public ulong ullAvailVirtual;
+            public ulong ullAvailExtendedVirtual;
+
+            public MEMORYSTATUSEX()
+            {
+                dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX));
+            }
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GlobalMemoryStatusEx([In, Out] MEMORYSTATUSEX lpBuffer);
     }
 }
