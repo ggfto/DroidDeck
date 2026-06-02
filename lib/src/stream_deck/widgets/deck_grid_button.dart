@@ -74,8 +74,9 @@ class _DeckGridButtonState extends State<DeckGridButton> {
   Widget build(BuildContext context) {
     final dop = _discordOp;
     if (dop != null) {
+      // .value (não .watch(context)) é o idiomático dentro de Watch — garante rebuild.
       return Watch((context) {
-        final ds = Injector.get<SignalRService>().discordState.watch(context);
+        final ds = Injector.get<SignalRService>().discordState.value;
         final active = (dop == 'deaf' ? ds['deaf'] : ds['mute']) == true;
         return _renderDiscord(dop, active);
       });
@@ -84,7 +85,7 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     if (p == null) return _render(null);
     // Reage ao estado de mute vindo do backend (toque ou mudança externa).
     return Watch((context) {
-      final muted = Injector.get<SignalRService>().muteStates.watch(context)[p];
+      final muted = Injector.get<SignalRService>().muteStates.value[p];
       return _render(muted);
     });
   }
@@ -93,12 +94,40 @@ class _DeckGridButtonState extends State<DeckGridButton> {
   Color _activeColor() =>
       _parseColor(widget.button.activeColor) ?? Colors.red[900]!;
 
+  /// Atualiza o estado local na hora do toque (otimista): o botão pinta imediatamente,
+  /// sem depender da volta do broadcast. O broadcast do backend confirma/corrige depois.
+  void _handleTap() {
+    try {
+      final sr = Injector.get<SignalRService>();
+      final op = (widget.button.action?.parameters['operation'] ?? 'toggleMute')
+          .toLowerCase();
+      final dop = _discordOp;
+      if (dop != null) {
+        if (op.startsWith('toggle')) {
+          final cur = Map<String, dynamic>.from(sr.discordState.value);
+          final key = dop == 'deaf' ? 'deaf' : 'mute';
+          cur[key] = !(cur[key] == true);
+          sr.discordState.value = cur;
+        }
+      } else {
+        final p = _muteProcess;
+        if (p != null) {
+          final cur = Map<String, bool>.from(sr.muteStates.value);
+          final now = cur[p] == true;
+          cur[p] = op == 'mute' ? true : (op == 'unmute' ? false : !now);
+          sr.muteStates.value = cur;
+        }
+      }
+    } catch (_) {}
+    widget.onTap();
+  }
+
   Widget _render(bool? muted) {
     final baseColor = _parseColor(widget.button.backgroundColor) ?? Colors.grey[850];
     final bg = muted == true ? _activeColor() : baseColor;
 
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: _handleTap,
       onLongPress: widget.onLongPress,
       child: Container(
         decoration: BoxDecoration(
@@ -147,7 +176,7 @@ class _DeckGridButtonState extends State<DeckGridButton> {
             ? widget.button.label!
             : (op == 'deaf' ? 'Deafen' : 'Mute');
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: _handleTap,
       onLongPress: widget.onLongPress,
       child: Container(
         decoration: BoxDecoration(

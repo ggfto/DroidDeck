@@ -198,6 +198,7 @@ class StreamDeckController {
         iconBase64: b.iconBase64,
         iconName: b.iconName,
         backgroundColor: b.backgroundColor,
+        activeColor: b.activeColor,
         action: b.action,
         dynamicType: b.dynamicType,
       );
