@@ -21,6 +21,7 @@ namespace AnyDeck.Models
         public string? IconBase64 { get; set; }
         public string? IconName { get; set; } // Material icon name
         public string? BackgroundColor { get; set; }
+        public string? ActiveColor { get; set; } // Cor quando o botão está "ativo" (toggle: mute/discord ligado)
         public string? DynamicType { get; set; }
         public DeckAction? Action { get; set; }
         // Future: LongPressAction
