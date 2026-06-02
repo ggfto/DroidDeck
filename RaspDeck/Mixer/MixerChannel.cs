@@ -16,60 +16,33 @@ namespace AnyDeck
         {
             Id = 0;
             Description = "Windows";
-            Debug.WriteLine($"[MixerChannel] Processing session, IsSystemSounds: {session.IsSystemSoundsSession}");
 
-            if (!session.IsSystemSoundsSession)
+            if (!session.IsSystemSoundsSession && ProcessExists(session.GetProcessID))
             {
-                if (ProcessExists(session.GetProcessID))
+                Process process = Process.GetProcessById((int)session.GetProcessID);
+                Description = (process.ProcessName == "Spotify" ? process.ProcessName + ": " : "") + (!string.IsNullOrEmpty(process.MainWindowTitle) ? process.MainWindowTitle : process.ProcessName);
+                Id = (int)session.GetProcessID;
+
+                try
                 {
-                    Process process = Process.GetProcessById((int)session.GetProcessID);
-                    Description = (process.ProcessName == "Spotify" ? process.ProcessName + ": " : "") + (!string.IsNullOrEmpty(process.MainWindowTitle) ? process.MainWindowTitle : process.ProcessName);
-                    Debug.WriteLine($"[MixerChannel] Found process: {process.ProcessName}, Description: {Description}");
-
-                    string? SigBase64 = null;
-                    Id = (int)session.GetProcessID;
-                    try
+                    var moduleFile = process.MainModule?.FileName;
+                    if (!string.IsNullOrEmpty(moduleFile))
                     {
-                        var moduleFile = process.MainModule?.FileName;
-                        Debug.WriteLine($"[MixerChannel] Module file: {moduleFile}");
-
-                        if (!string.IsNullOrEmpty(moduleFile))
+                        var icon = System.Drawing.Icon.ExtractAssociatedIcon(moduleFile!);
+                        if (icon != null)
                         {
-                            var icon = System.Drawing.Icon.ExtractAssociatedIcon(moduleFile!);
-                            if (icon != null)
-                            {
-                                Bitmap bImage = icon.ToBitmap();
-                                System.IO.MemoryStream ms = new MemoryStream();
-                                bImage.Save(ms, ImageFormat.Png);
-                                byte[] byteImage = ms.ToArray();
-                                SigBase64 = "data:image/png;base64," + Convert.ToBase64String(byteImage);
-                                Debug.WriteLine($"[MixerChannel] Icon extracted successfully, length: {SigBase64.Length}");
-                            }
-                            else
-                            {
-                                Debug.WriteLine("[MixerChannel] ExtractAssociatedIcon returned null");
-                            }
+                            using var ms = new MemoryStream();
+                            icon.ToBitmap().Save(ms, ImageFormat.Png);
+                            Icon = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
                         }
-                        else
-                        {
-                            Debug.WriteLine("[MixerChannel] Module file is null or empty");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"[MixerChannel] Icon extraction failed: {ex.Message}");
-                    }
-                    finally
-                    {
-                        Icon = SigBase64;
-                        Debug.WriteLine($"[MixerChannel] Final Icon value: {(Icon == null ? "null" : $"{Icon.Length} chars")}");
                     }
                 }
-                else
+                catch
                 {
-                    Debug.WriteLine($"[MixerChannel] Process {session.GetProcessID} does not exist");
+                    // Extração de ícone é best-effort; fica sem ícone se falhar.
                 }
             }
+
             Volume = (int)(session.SimpleAudioVolume.Volume * masterVolume * 100);
             Mute = session.SimpleAudioVolume.Mute;
             this.session = session;

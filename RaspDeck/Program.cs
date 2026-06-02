@@ -113,20 +113,19 @@ namespace AnyDeck
                                         .AddEnvironmentVariables()
                                         .Build();
                             var enableDiscovery = cfg["EnableDiscovery"];
-                            Program.FileLog($"[Discovery] Config Check: EnableDiscovery='{enableDiscovery}'");
                             if (!string.IsNullOrEmpty(enableDiscovery) && enableDiscovery.ToLowerInvariant() == "true")
                             {
                                 services.AddHostedService<AnyDeck.Lib.DiscoveryServer>();
-                                Program.FileLog("[Discovery] Service REGISTERED.");
+                                Console.WriteLine("[Discovery] Serviço registrado.");
                             }
                             else
                             {
-                                Program.FileLog("[Discovery] Service SKIPPED (Disabled in config).");
+                                Console.WriteLine("[Discovery] Serviço desativado (config).");
                             }
                         }
                         catch (Exception ex)
                         {
-                            Program.FileLog($"[Discovery] Error reading config: {ex.Message}");
+                            Console.WriteLine($"[Discovery] Erro lendo config: {ex.Message}");
                         }
 
                         services.AddSwaggerGen(c =>
@@ -175,7 +174,6 @@ namespace AnyDeck
                         {
                             app.UseDeveloperExceptionPage();
                             app.UseSwagger();
-                            app.UseCors("_myAllowSpecificOrigins");
                             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{appName} {version}"));
                         }
 
@@ -184,6 +182,7 @@ namespace AnyDeck
                         app.UseStaticFiles();
 
                         app.UseRouting();
+                        app.UseCors("_myAllowSpecificOrigins"); // CORS em qualquer ambiente (web client)
                         app.UseAuthentication();
                         app.UseAuthorization();
                         app.UseEndpoints(endpoints =>
@@ -198,15 +197,6 @@ namespace AnyDeck
                         });
                     });
                 });
-        }
-
-        public static void FileLog(string message)
-        {
-            try
-            {
-                File.AppendAllText("discovery_debug.txt", $"{DateTime.Now}: {message}\n");
-            }
-            catch { }
         }
 
         private static async Task RunWebAppAsync(string[] args, CancellationToken token)

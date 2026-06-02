@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -39,7 +38,7 @@ namespace AnyDeck.Lib
             try
             {
                 udpServer = new UdpClient(DiscoveryPort);
-                Program.FileLog($"[Discovery] Server started on port {DiscoveryPort}");
+                _logger.LogInformation("[Discovery] Servidor iniciado na porta {Port}", DiscoveryPort);
                 string ipAddress = FindMyIP();
                 string computerName = Environment.MachineName;
 
@@ -58,7 +57,7 @@ namespace AnyDeck.Lib
 
                         var result = receiveTask.Result;
                         string dataReceived = Encoding.ASCII.GetString(result.Buffer);
-                        Program.FileLog($"[Discovery] Received '{dataReceived}' from {result.RemoteEndPoint}");
+                        _logger.LogDebug("[Discovery] Recebido '{Data}' de {Remote}", dataReceived, result.RemoteEndPoint);
 
                         if ("AnyDeckDiscoveryRequest".Equals(dataReceived))
                         {
@@ -67,7 +66,7 @@ namespace AnyDeck.Lib
                             responseMessage = responseMessage.Replace("COMPUTER_NAME", computerName);
                             byte[] sendBytes = Encoding.ASCII.GetBytes(responseMessage);
                             await udpServer.SendAsync(sendBytes, sendBytes.Length, result.RemoteEndPoint);
-                            Program.FileLog($"[Discovery] Sent response to {result.RemoteEndPoint}");
+                            _logger.LogDebug("[Discovery] Resposta enviada para {Remote}", result.RemoteEndPoint);
                         }
                     }
                     catch (ObjectDisposedException)
@@ -89,7 +88,6 @@ namespace AnyDeck.Lib
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error initializing Discovery server");
-                Debug.WriteLine($"Error: {ex.Message}");
             }
             finally
             {

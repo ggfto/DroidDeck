@@ -14,8 +14,8 @@ namespace AnyDeck.Services
     {
         private readonly ILogger<SystemMonitorService> _logger;
         private readonly IHubContext<DeckHub> _hubContext;
-        private PerformanceCounter _cpuCounter;
-        private PerformanceCounter _ramCounter;
+        private PerformanceCounter? _cpuCounter;
+        private PerformanceCounter? _ramCounter;
 
         public SystemMonitorService(ILogger<SystemMonitorService> logger, IHubContext<DeckHub> hubContext)
         {
@@ -70,11 +70,6 @@ namespace AnyDeck.Services
                     var cpu = _cpuCounter?.NextValue() ?? 0;
                     var ramAvailable = _ramCounter?.NextValue() ?? 0;
 
-                    // DEBUG LOG TO FILE
-                    try {
-                        File.AppendAllText("monitor_debug.txt", $"{DateTime.Now}: CPU={cpu}, RAM={ramAvailable}\n");
-                    } catch {}
-
                     // Simple Stats Object
                     var stats = new SystemStats
                     {
@@ -87,7 +82,6 @@ namespace AnyDeck.Services
                 }
                 catch (Exception ex)
                 {
-                    try { File.AppendAllText("monitor_debug.txt", $"{DateTime.Now}: ERROR {ex.Message}\n"); } catch {}
                     _logger.LogError(ex, "Error broadcasting system stats");
                 }
 
