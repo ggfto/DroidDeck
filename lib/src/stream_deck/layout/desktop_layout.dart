@@ -190,14 +190,20 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
   }
 
   Widget _buildDeckGrid(DeckProfile profile) {
-    final cols = profile.columns > 0 ? profile.columns : 5;
-    final rows = profile.rows > 0 ? profile.rows : 3;
+    // A grade é definida pelo celular (quantos botões cabem na tela) e reportada
+    // ao PC. Aqui só exibimos essa grade — não há seletor de tamanho.
+    final lay = Injector.get<SignalRService>().deckLayout.watch(context);
+    final cols = (lay['columns'] ?? 5);
+    final rows = (lay['rows'] ?? 3);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
         children: [
-          _buildGridSizeBar(profile, rows, cols),
-          const SizedBox(height: 24),
+          Text(
+            'Grade do celular: $cols × $rows (definida pelo aparelho)  ·  arraste para mover/trocar',
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
+          ),
+          const SizedBox(height: 16),
           Center(
             child: SizedBox(
               width: 800, // Constrain width for desktop
@@ -296,43 +302,6 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
           child: buttonWidget,
         );
       },
-    );
-  }
-
-  Widget _buildGridSizeBar(DeckProfile profile, int rows, int cols) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 16,
-      children: [
-        const Text('Grade:', style: TextStyle(color: Colors.white70)),
-        _stepper(
-            'Linhas', rows, (v) => widget.controller.setGridSize(v, cols)),
-        _stepper(
-            'Colunas', cols, (v) => widget.controller.setGridSize(rows, v)),
-        const Text('arraste um botão para mover/trocar',
-            style: TextStyle(color: Colors.white30, fontSize: 12)),
-      ],
-    );
-  }
-
-  Widget _stepper(String label, int value, ValueChanged<int> onChanged) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('$label ', style: const TextStyle(color: Colors.white54)),
-        IconButton(
-          icon: const Icon(Icons.remove_circle_outline, size: 20),
-          onPressed: value > 1 ? () => onChanged(value - 1) : null,
-        ),
-        Text('$value',
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold)),
-        IconButton(
-          icon: const Icon(Icons.add_circle_outline, size: 20),
-          onPressed: value < 10 ? () => onChanged(value + 1) : null,
-        ),
-      ],
     );
   }
 

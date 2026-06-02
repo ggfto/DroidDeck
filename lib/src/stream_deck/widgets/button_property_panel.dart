@@ -263,7 +263,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     }
     // 'back' não precisa de parâmetros.
 
-    final newAction = _selectedActionType == 'none'
+    // Monitor (dynamicType) e ação são exclusivos: botão-monitor não guarda ação.
+    final isDynamic = _dynamicType != null && _dynamicType!.isNotEmpty;
+    final newAction = (isDynamic || _selectedActionType == 'none')
         ? null
         : DeckAction(type: _selectedActionType, parameters: params);
 
@@ -344,6 +346,8 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                   onChanged: (val) {
                     setState(() {
                       _selectedActionType = val!;
+                      // Ação e monitor (dynamicType) são exclusivos.
+                      if (val != 'none') _dynamicType = null;
                     });
                   },
                 ),
@@ -698,9 +702,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                   onChanged: (val) {
                     setState(() {
                       _dynamicType = val;
-                      // If dynamic type is selected, we might want to auto-set label/icon?
-                      if (val != null) {
-                        // Optional: Clear label/icon to show dynamic content clearly
+                      // Monitor é só display: zera a ação (eram exclusivos).
+                      if (val != null && val.isNotEmpty) {
+                        _selectedActionType = 'none';
                       }
                     });
                   },

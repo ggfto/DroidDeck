@@ -29,6 +29,8 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
   void Function()? _deckSyncCleanup;
   final List<String> _navStack = []; // pilha de pastas (perfis) abertas
   DeckProfile? _rootProfile; // perfil-raiz antes de entrar em pastas
+  int? _reportedCols; // última grade reportada ao PC (evita reenvio)
+  int? _reportedRows;
 
   @override
   void initState() {
@@ -68,6 +70,8 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
 
   /// Trata o toque: abre pasta (open_profile), volta (back) ou executa a ação.
   void _handlePress(DeckButton b, List<DeckProfile> profiles) {
+    // Botão-monitor (CPU/GPU/RAM/Rede) é só display: não executa ação ao tocar.
+    if (b.dynamicType != null && b.dynamicType!.isNotEmpty) return;
     final type = b.action?.type;
     if (type == 'open_profile') {
       final targetId = b.action!.parameters['profileId'];
@@ -119,54 +123,97 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
     );
   }
 
-  Widget _buildButtonGrid(DeckProfile profile, List<DeckProfile> profiles) {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 110,
-        childAspectRatio: 1.0,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: 50,
-      itemBuilder: (context, index) {
-        final int cols = profile.columns > 0 ? profile.columns : 5;
-        final row = index ~/ cols;
-        final col = index % cols;
+  /// Calcula quantos botões (cols×rows) cabem INTEIROS no espaço disponível
+  /// (já dentro da SafeArea) e o tamanho de cada botão pra preencher sem rolagem.
+  _GridFit _computeGrid(double w, double h) {
+    const spacing = 8.0;
+    const target = 96.0; // tamanho-alvo do botão (confortável pra tocar)
+    int cols = ((w + spacing) / (target + spacing)).floor();
+    int rows = ((h + spacing) / (target + spacing)).floor();
+    if (cols < 1) cols = 1;
+    if (cols > 20) cols = 20;
+    if (rows < 1) rows = 1;
+    if (rows > 20) rows = 20;
+    final double cellW = (w - spacing * (cols - 1)) / cols;
+    final double cellH = (h - spacing * (rows - 1)) / rows;
+    double cell = cellW < cellH ? cellW : cellH;
+    if (cell < 1) cell = 1;
+    return _GridFit(cols: cols, rows: rows, cell: cell, spacing: spacing);
+  }
 
-        final existingButton = profile.buttons.firstWhereOrNull(
-          (b) => b.row == row && b.column == col,
-        );
+  /// O celular é a fonte da verdade da grade: reporta ao PC quando ela muda
+  /// (ex.: rotação). Só envia se mudou, fora do ciclo de build.
+  void _maybeReportLayout(_GridFit g) {
+    if (kIsWeb) return;
+    if (_reportedCols == g.cols && _reportedRows == g.rows) return;
+    _reportedCols = g.cols;
+    _reportedRows = g.rows;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        Injector.get<AnyDeckClient>().saveLayout(g.rows, g.cols);
+      } catch (_) {}
+    });
+  }
 
-        final buttonToEdit = existingButton ??
-            DeckButton(
-              id: '',
-              label: 'New Button',
-              row: row,
-              column: col,
-              action: DeckAction(type: 'none'),
-            );
-
-        if (existingButton == null) {
-          return InkWell(
-            onTap: () => _editButton(buttonToEdit),
-            onLongPress: () => _editButton(buttonToEdit),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[900],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[800]!),
-              ),
-              child: const Center(child: Icon(Icons.add, color: Colors.grey)),
+  /// Grade fixa cols×rows, centralizada, sem rolagem.
+  Widget _buildButtonGrid(
+      DeckProfile profile, List<DeckProfile> profiles, _GridFit g) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(g.rows, (row) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: row < g.rows - 1 ? g.spacing : 0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(g.cols, (col) {
+                final existing = profile.buttons.firstWhereOrNull(
+                  (b) => b.row == row && b.column == col,
+                );
+                return Padding(
+                  padding:
+                      EdgeInsets.only(right: col < g.cols - 1 ? g.spacing : 0),
+                  child: SizedBox(
+                    width: g.cell,
+                    height: g.cell,
+                    child: _buildCell(row, col, existing, profiles),
+                  ),
+                );
+              }),
             ),
           );
-        }
+        }),
+      ),
+    );
+  }
 
-        return DynamicDeckButton(
-          button: existingButton,
-          onTap: () => _handlePress(existingButton, profiles),
-          onLongPress: () => _editButton(existingButton),
-        );
-      },
+  Widget _buildCell(
+      int row, int col, DeckButton? existing, List<DeckProfile> profiles) {
+    if (existing == null) {
+      final novo = DeckButton(
+        id: '',
+        label: 'New Button',
+        row: row,
+        column: col,
+        action: DeckAction(type: 'none'),
+      );
+      return InkWell(
+        onTap: () => _editButton(novo),
+        onLongPress: () => _editButton(novo),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[800]!),
+          ),
+          child: const Center(child: Icon(Icons.add, color: Colors.grey)),
+        ),
+      );
+    }
+    return DynamicDeckButton(
+      button: existing,
+      onTap: () => _handlePress(existing, profiles),
+      onLongPress: () => _editButton(existing),
     );
   }
 
@@ -348,76 +395,92 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
                 ),
               ],
             ),
-      body: Stack(
-        children: [
-          PageView.builder(
-            controller: _pageController,
-            itemCount: profiles.length,
-            onPageChanged: (index) {
-              if (index >= 0 && index < profiles.length) {
-                controller.currentProfile.value = profiles[index];
-              }
-            },
-            itemBuilder: (context, pageIndex) {
-              return RefreshIndicator(
-                onRefresh: () async {
-                  await controller.loadProfiles();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: _buildButtonGrid(profiles[pageIndex], profiles),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // A grade é o que cabe na tela (dentro da SafeArea: sem câmera/barra).
+            final g = _computeGrid(constraints.maxWidth, constraints.maxHeight);
+            _maybeReportLayout(g);
+            return Stack(
+              children: [
+                PageView.builder(
+                  controller: _pageController,
+                  itemCount: profiles.length,
+                  onPageChanged: (index) {
+                    if (index >= 0 && index < profiles.length) {
+                      controller.currentProfile.value = profiles[index];
+                    }
+                  },
+                  itemBuilder: (context, pageIndex) {
+                    return _buildButtonGrid(profiles[pageIndex], profiles, g);
+                  },
                 ),
-              );
-            },
-          ),
-          if (error != null)
-            Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
-              child: Card(
-                color: Colors.redAccent.withValues(alpha: 0.9),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.wifi_off, color: Colors.white),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Offline: $error',
-                          style: const TextStyle(color: Colors.white),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                if (error != null)
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: Card(
+                      color: Colors.redAccent.withValues(alpha: 0.9),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.wifi_off, color: Colors.white),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Offline: $error',
+                                style: const TextStyle(color: Colors.white),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            IconButton(
+                              icon:
+                                  const Icon(Icons.refresh, color: Colors.white),
+                              onPressed: controller.loadProfiles,
+                            )
+                          ],
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white),
-                        onPressed: controller.loadProfiles,
-                      )
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ),
-          if (isLoading)
-            Container(
-              color: Colors.black.withValues(alpha: 0.5),
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
-          // Sobreposição da pasta aberta (perfil empilhado).
-          if (_navStack.isNotEmpty && _folderProfile(profiles) != null)
-            Positioned.fill(
-              child: Container(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                padding: const EdgeInsets.all(8.0),
-                child: _buildButtonGrid(_folderProfile(profiles)!, profiles),
-              ),
-            ),
-        ],
+                if (isLoading)
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                // Sobreposição da pasta aberta (perfil empilhado).
+                if (_navStack.isNotEmpty && _folderProfile(profiles) != null)
+                  Positioned.fill(
+                    child: Container(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      child: _buildButtonGrid(
+                          _folderProfile(profiles)!, profiles, g),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
+}
+
+/// Resultado do cálculo de encaixe da grade na tela.
+class _GridFit {
+  final int cols;
+  final int rows;
+  final double cell;
+  final double spacing;
+  const _GridFit({
+    required this.cols,
+    required this.rows,
+    required this.cell,
+    required this.spacing,
+  });
 }

@@ -73,6 +73,9 @@ class SignalRService {
   final discordState =
       signal<Map<String, dynamic>>({'connected': false, 'mute': false, 'deaf': false});
 
+  // Grade física do deck (rows/cols) reportada pelo celular; usada pelo configurador web.
+  final deckLayout = signal<Map<String, int>>({'rows': 3, 'columns': 5});
+
   SignalRService();
 
   Future<void> init(String baseUrl, {String? apiKey}) async {
@@ -203,6 +206,21 @@ class SignalRService {
               Map<String, dynamic>.from(arguments[0] as Map);
         } catch (e) {
           _logger.warning('Error parsing ReceiveDiscordState: $e');
+        }
+      }
+    });
+
+    // Grade física mudou (o celular reportou) → o configurador web reage.
+    _hubConnection?.on('ReceiveLayoutUpdate', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        try {
+          final m = arguments[0] as Map;
+          deckLayout.value = {
+            'rows': (m['rows'] as num).toInt(),
+            'columns': (m['columns'] as num).toInt(),
+          };
+        } catch (e) {
+          _logger.warning('Error parsing ReceiveLayoutUpdate: $e');
         }
       }
     });

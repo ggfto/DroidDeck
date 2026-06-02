@@ -164,4 +164,26 @@ class AnyDeckClient {
       data: action.toJson(),
     );
   }
+
+  /// Grade física do deck persistida no PC ({rows, columns}).
+  Future<Map<String, int>?> getLayout() async {
+    try {
+      final r = await _dio.get('/api/StreamDeck/layout');
+      final m = (r.data as Map);
+      return {
+        'rows': (m['rows'] as num).toInt(),
+        'columns': (m['columns'] as num).toInt(),
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// O celular reporta quantos botões cabem inteiros na tela.
+  Future<void> saveLayout(int rows, int columns) async {
+    await _dio.post(
+      '/api/StreamDeck/layout',
+      data: {'rows': rows, 'columns': columns},
+    );
+  }
 }
