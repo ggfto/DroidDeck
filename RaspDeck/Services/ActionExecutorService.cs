@@ -1,6 +1,8 @@
 using System;
 using System.Threading.Tasks;
+using AnyDeck.Hubs;
 using AnyDeck.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
 namespace AnyDeck.Services
@@ -12,19 +14,22 @@ namespace AnyDeck.Services
         private readonly MediaControlService _mediaService;
         private readonly MixerService _mixerService;
         private readonly IAudioControlService _audioControl;
+        private readonly IHubContext<DeckHub> _hubContext;
 
         public ActionExecutorService(
             ILogger<ActionExecutorService> logger,
             IAppActivator appActivator,
             MediaControlService mediaService,
             MixerService mixerService,
-            IAudioControlService audioControl)
+            IAudioControlService audioControl,
+            IHubContext<DeckHub> hubContext)
         {
             _logger = logger;
             _appActivator = appActivator;
             _mediaService = mediaService;
             _mixerService = mixerService;
             _audioControl = audioControl;
+            _hubContext = hubContext;
         }
 
         public async Task ExecuteActionAsync(DeckAction action)
@@ -53,7 +58,7 @@ namespace AnyDeck.Services
                         break;
 
                     case "mixer":
-                        ExecuteMixerAction(action);
+                        await ExecuteMixerAction(action);
                         break;
 
                     default:
@@ -124,7 +129,7 @@ namespace AnyDeck.Services
         ///   deviceId    : id do dispositivo -> controla o dispositivo inteiro
         ///   volume      : 0-100 (usado com setVolume em deviceId)
         /// </summary>
-        private void ExecuteMixerAction(DeckAction action)
+        private async Task ExecuteMixerAction(DeckAction action)
         {
             var p = action.Parameters;
 
@@ -153,7 +158,10 @@ namespace AnyDeck.Services
                         _audioControl.ToggleMuteByProcessName(processName);
                         break;
                 }
-                _logger.LogInformation("Mixer: '{Op}' no processo '{Proc}'", operation, processName);
+                var muted = _audioControl.GetMuteStateByProcessName(processName);
+                await _hubContext.Clients.All.SendAsync("ReceiveMuteState",
+                    new { processName, muted });
+                _logger.LogInformation("Mixer: '{Op}' no processo '{Proc}' (muted={Muted})", operation, processName, muted);
                 return;
             }
 

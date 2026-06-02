@@ -94,5 +94,13 @@ namespace AnyDeck.Controllers
             var newState = _audioControl.ToggleMuteByProcessName(processName);
             return Ok(new { process = processName, muted = newState });
         }
+
+        [HttpGet("mute-state/{process}")]
+        public IActionResult MuteState(string process)
+        {
+            if (_audioControl == null) return StatusCode(501, "Audio control not available");
+            var muted = _audioControl.GetMuteStateByProcessName(process);
+            return Ok(new { process, muted });
+        }
     }
 }
