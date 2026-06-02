@@ -21,7 +21,21 @@ class SplashPageState extends State<SplashPage> {
 
   Future<void> _checkConfig() async {
     if (kIsWeb) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      // O web é servido pelo próprio PC: pega a chave via loopback (sem QR).
+      final client = Injector.get<AnyDeckClient>();
+      final signalR = Injector.get<SignalRService>();
+      final origin = Uri.base.origin;
+      client.setBaseUrl(origin);
+      try {
+        final resp = await Dio().get('$origin/api/pairing/local-key');
+        final key = (resp.data is Map) ? resp.data['key'] as String? : null;
+        client.setApiKey(key);
+        await signalR.init(origin, apiKey: key);
+      } catch (_) {
+        // Aberto fora do localhost (LAN): sem chave automática.
+        await signalR.init(origin);
+      }
+      if (mounted) Navigator.of(context).pushReplacementNamed('/home');
       return;
     }
     final sp = await SharedPreferences.getInstance();

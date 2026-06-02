@@ -189,83 +189,141 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
   }
 
   Widget _buildDeckGrid(DeckProfile profile) {
+    final cols = profile.columns > 0 ? profile.columns : 5;
+    final rows = profile.rows > 0 ? profile.rows : 3;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
-      child: Center(
-        child: SizedBox(
-          width: 800, // Constrain width for desktop
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: profile.columns > 0 ? profile.columns : 5,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.0,
-            ),
-            itemCount: 50, // Fixed grid size for editor
-            itemBuilder: (context, index) {
-              final cols = profile.columns > 0 ? profile.columns : 5;
-              final row = index ~/ cols;
-              final col = index % cols;
-
-              final existingButton = profile.buttons.firstWhereOrNull(
-                (b) => b.row == row && b.column == col,
-              );
-
-              final isSelected = existingButton?.id == _selectedButton?.id &&
-                  (_selectedButton != null || existingButton != null);
-
-              // If selected button is a "new" button (not saved yet), we match by row/col
-              final isSelectedPos =
-                  _selectedButton?.row == row && _selectedButton?.column == col;
-
-              return InkWell(
-                onTap: () {
-                  final btn = existingButton ??
-                      DeckButton(
-                        id: '', // New button
-                        row: row,
-                        column: col,
-                        label: '',
-                        action: null,
-                      );
-                  setState(() {
-                    _selectedButton = btn;
-                  });
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: (isSelected || isSelectedPos)
-                        ? Border.all(color: Colors.blueAccent, width: 3)
-                        : null,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: existingButton != null
-                      ? DynamicDeckButton(
-                          button: existingButton,
-                          onTap: () {
-                            // In Editor Mode, usually we select.
-                            // But here we want to visualize.
-                            // Selection is handled by the parent InkWell onTap.
-                          },
-                          onLongPress: () {},
-                        )
-                      : Container(
-                          // Empty Slot
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.white10),
-                          ),
-                          child: Icon(Icons.add, color: Colors.white10),
-                        ),
+      child: Column(
+        children: [
+          _buildGridSizeBar(profile, rows, cols),
+          const SizedBox(height: 24),
+          Center(
+            child: SizedBox(
+              width: 800, // Constrain width for desktop
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.0,
                 ),
-              );
-            },
+                itemCount: rows * cols,
+                itemBuilder: (context, index) {
+                  final row = index ~/ cols;
+                  final col = index % cols;
+                  final existingButton = profile.buttons.firstWhereOrNull(
+                    (b) => b.row == row && b.column == col,
+                  );
+                  return _buildSlot(row, col, existingButton);
+                },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildSlot(int row, int col, DeckButton? existing) {
+    final isSelectedPos =
+        _selectedButton?.row == row && _selectedButton?.column == col;
+
+    return DragTarget<DeckButton>(
+      onWillAcceptWithDetails: (d) => d.data.row != row || d.data.column != col,
+      onAcceptWithDetails: (d) {
+        widget.controller.moveButton(d.data, row, col);
+        setState(() => _selectedButton = null);
+      },
+      builder: (context, candidate, rejected) {
+        final highlight = candidate.isNotEmpty;
+        final cell = InkWell(
+          onTap: () {
+            final btn = existing ??
+                DeckButton(
+                    id: '', row: row, column: col, label: '', action: null);
+            setState(() => _selectedButton = btn);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              border: (isSelectedPos || highlight)
+                  ? Border.all(
+                      color:
+                          highlight ? Colors.greenAccent : Colors.blueAccent,
+                      width: 3)
+                  : null,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: existing != null
+                ? DynamicDeckButton(
+                    button: existing, onTap: () {}, onLongPress: () {})
+                : Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white10),
+                  ),
+          ),
+        );
+
+        if (existing == null) return cell;
+
+        // Botão existente é arrastável (mover/trocar de posição).
+        return Draggable<DeckButton>(
+          data: existing,
+          feedback: SizedBox(
+            width: 90,
+            height: 90,
+            child: Opacity(
+              opacity: 0.85,
+              child: DynamicDeckButton(
+                  button: existing, onTap: () {}, onLongPress: () {}),
+            ),
+          ),
+          childWhenDragging: Opacity(opacity: 0.3, child: cell),
+          child: cell,
+        );
+      },
+    );
+  }
+
+  Widget _buildGridSizeBar(DeckProfile profile, int rows, int cols) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 16,
+      children: [
+        const Text('Grade:', style: TextStyle(color: Colors.white70)),
+        _stepper(
+            'Linhas', rows, (v) => widget.controller.setGridSize(v, cols)),
+        _stepper(
+            'Colunas', cols, (v) => widget.controller.setGridSize(rows, v)),
+        const Text('arraste um botão para mover/trocar',
+            style: TextStyle(color: Colors.white30, fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _stepper(String label, int value, ValueChanged<int> onChanged) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('$label ', style: const TextStyle(color: Colors.white54)),
+        IconButton(
+          icon: const Icon(Icons.remove_circle_outline, size: 20),
+          onPressed: value > 1 ? () => onChanged(value - 1) : null,
+        ),
+        Text('$value',
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline, size: 20),
+          onPressed: value < 10 ? () => onChanged(value + 1) : null,
+        ),
+      ],
     );
   }
 

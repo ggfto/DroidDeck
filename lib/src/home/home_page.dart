@@ -1,4 +1,5 @@
 import 'package:companion/core/core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -21,7 +22,8 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    controller.startPolling();
+    // No web o foco é configurar o deck; não precisa do polling de mixer.
+    if (!kIsWeb) controller.startPolling();
   }
 
   @override
@@ -33,6 +35,13 @@ class HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // No navegador (configurador no PC), abre direto no editor de deck.
+    if (kIsWeb) {
+      return StreamDeckPage(
+        onToggleFullscreen: () {},
+        isFullscreen: false,
+      );
+    }
     return Scaffold(
       body: Watch((context) {
         if (controller.isLoading.value && controller.outputs.value.isEmpty) {

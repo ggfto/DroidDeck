@@ -145,4 +145,60 @@ class StreamDeckController {
       isLoading.value = false;
     }
   }
+
+  /// Move um botão para (newRow,newCol); troca de lugar se o destino estiver ocupado.
+  Future<void> moveButton(DeckButton button, int newRow, int newCol) async {
+    final profile = currentProfile.value;
+    if (profile == null) return;
+    if (button.row == newRow && button.column == newCol) return;
+
+    final buttons = List<DeckButton>.from(profile.buttons);
+    final srcIdx = buttons
+        .indexWhere((b) => b.row == button.row && b.column == button.column);
+    if (srcIdx == -1) return;
+    final targetIdx =
+        buttons.indexWhere((b) => b.row == newRow && b.column == newCol);
+
+    if (targetIdx != -1 && targetIdx != srcIdx) {
+      // Troca: o botão que estava no destino vai para a posição de origem.
+      buttons[targetIdx] =
+          _copyWithPos(buttons[targetIdx], button.row, button.column);
+    }
+    buttons[srcIdx] = _copyWithPos(buttons[srcIdx], newRow, newCol);
+
+    await updateProfileFull(DeckProfile(
+      id: profile.id,
+      name: profile.name,
+      rows: profile.rows,
+      columns: profile.columns,
+      isDefault: profile.isDefault,
+      buttons: buttons,
+    ));
+  }
+
+  /// Ajusta as dimensões (linhas/colunas) do perfil atual.
+  Future<void> setGridSize(int rows, int columns) async {
+    final profile = currentProfile.value;
+    if (profile == null) return;
+    await updateProfileFull(DeckProfile(
+      id: profile.id,
+      name: profile.name,
+      rows: rows.clamp(1, 10),
+      columns: columns.clamp(1, 10),
+      isDefault: profile.isDefault,
+      buttons: profile.buttons,
+    ));
+  }
+
+  DeckButton _copyWithPos(DeckButton b, int row, int col) => DeckButton(
+        id: b.id,
+        row: row,
+        column: col,
+        label: b.label,
+        iconBase64: b.iconBase64,
+        iconName: b.iconName,
+        backgroundColor: b.backgroundColor,
+        action: b.action,
+        dynamicType: b.dynamicType,
+      );
 }

@@ -43,6 +43,9 @@ class SignalRService {
   final volumeUpdates = signal<Map<String, dynamic>>({});
   final mediaStateUpdates = signal<Map<String, dynamic>?>(null);
 
+  // Incrementa quando o backend avisa que um perfil do deck mudou (sync ao vivo).
+  final deckUpdated = signal<int>(0);
+
   SignalRService();
 
   Future<void> init(String baseUrl, {String? apiKey}) async {
@@ -139,6 +142,12 @@ class SignalRService {
           _logger.warning('Error parsing ReceiveMediaState: $e');
         }
       }
+    });
+
+    // Deck mudou em outro cliente (ex.: editor no PC) → sinaliza para recarregar.
+    _hubConnection?.on('ReceiveDeckUpdate', (arguments) {
+      deckUpdated.value = deckUpdated.value + 1;
+      _logger.info('Deck update recebido');
     });
 
     _hubConnection?.onclose(({error}) {

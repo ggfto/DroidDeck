@@ -25,19 +25,31 @@ class StreamDeckPage extends StatefulWidget {
 class _StreamDeckPageState extends State<StreamDeckPage> {
   final StreamDeckController controller = StreamDeckController();
   late PageController _pageController;
+  void Function()? _deckSyncCleanup;
 
   @override
   void initState() {
     super.initState();
     controller.loadProfiles();
-    // SignalR is initialized in SplashPage/ConfigPage after IP configuration
-    // No need to init here - it's already connected if IP was configured
+
+    // Sync ao vivo: recarrega os perfis quando o backend avisa que o deck mudou
+    // (ex.: alguém editou no configurador web do PC).
+    final signalR = Injector.get<SignalRService>();
+    var lastSeen = signalR.deckUpdated.value;
+    _deckSyncCleanup = effect(() {
+      final v = signalR.deckUpdated.value;
+      if (v != lastSeen) {
+        lastSeen = v;
+        controller.loadProfiles();
+      }
+    });
 
     _pageController = PageController();
   }
 
   @override
   void dispose() {
+    _deckSyncCleanup?.call();
     _pageController.dispose();
     super.dispose();
   }
