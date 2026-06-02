@@ -230,6 +230,8 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
     final isSelectedPos =
         _selectedButton?.row == row && _selectedButton?.column == col;
 
+    void select(DeckButton b) => setState(() => _selectedButton = b);
+
     return DragTarget<DeckButton>(
       onWillAcceptWithDetails: (d) => d.data.row != row || d.data.column != col,
       onAcceptWithDetails: (d) {
@@ -238,40 +240,46 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
       },
       builder: (context, candidate, rejected) {
         final highlight = candidate.isNotEmpty;
-        final cell = InkWell(
-          onTap: () {
-            final btn = existing ??
-                DeckButton(
-                    id: '', row: row, column: col, label: '', action: null);
-            setState(() => _selectedButton = btn);
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              border: (isSelectedPos || highlight)
-                  ? Border.all(
-                      color:
-                          highlight ? Colors.greenAccent : Colors.blueAccent,
-                      width: 3)
-                  : null,
-              borderRadius: BorderRadius.circular(10),
+        final decoration = BoxDecoration(
+          border: Border.all(
+            color: highlight
+                ? Colors.greenAccent
+                : (isSelectedPos ? Colors.blueAccent : Colors.transparent),
+            width: 3,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        );
+
+        // Slot vazio: a própria célula (InkWell) seleciona/cria um botão novo.
+        if (existing == null) {
+          return InkWell(
+            onTap: () => select(
+                DeckButton(id: '', row: row, column: col, label: '', action: null)),
+            child: Container(
+              decoration: decoration,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: const Icon(Icons.add, color: Colors.white24),
+              ),
             ),
-            child: existing != null
-                ? DynamicDeckButton(
-                    button: existing, onTap: () {}, onLongPress: () {})
-                : Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white10),
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white10),
-                  ),
+          );
+        }
+
+        // Botão existente: o PRÓPRIO botão trata o toque (seleciona para editar),
+        // já que ele tem gesto interno. Fica arrastável para mover/trocar.
+        final buttonWidget = Container(
+          decoration: decoration,
+          child: DynamicDeckButton(
+            button: existing,
+            onTap: () => select(existing),
+            onLongPress: () => select(existing),
           ),
         );
 
-        if (existing == null) return cell;
-
-        // Botão existente é arrastável (mover/trocar de posição).
         return Draggable<DeckButton>(
           data: existing,
           feedback: SizedBox(
@@ -283,8 +291,8 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
                   button: existing, onTap: () {}, onLongPress: () {}),
             ),
           ),
-          childWhenDragging: Opacity(opacity: 0.3, child: cell),
-          child: cell,
+          childWhenDragging: Opacity(opacity: 0.3, child: buttonWidget),
+          child: buttonWidget,
         );
       },
     );
