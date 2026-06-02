@@ -4,6 +4,7 @@ import 'package:companion/src/stream_deck/stream_deck_controller.dart';
 import 'package:companion/src/stream_deck/widgets/dynamic_deck_button.dart';
 import 'package:companion/src/stream_deck/widgets/button_editor_dialog.dart';
 import 'package:companion/core/core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:collection/collection.dart';
@@ -171,8 +172,9 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Desktop / Web Layout
-    if (MediaQuery.of(context).size.width > 800) {
+    // Só o configurador web (PC) usa o layout de 3 painéis (perfis | grade | props).
+    // No celular mostramos sempre a grade de blocos — deitado ou em pé.
+    if (kIsWeb) {
       return SteamDeckDesktopLayout(
         controller: controller,
         onToggleFullscreen: widget.onToggleFullscreen,
