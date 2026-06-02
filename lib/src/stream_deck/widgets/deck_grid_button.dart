@@ -31,28 +31,55 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     return null;
   }
 
+  // 'mute' | 'deaf' se for um botão de Discord; senão null.
+  String? get _discordOp {
+    final a = widget.button.action;
+    if (a == null || a.type != 'discord') return null;
+    final op = (a.parameters['operation'] ?? 'toggleMute').toLowerCase();
+    return op.contains('deaf') ? 'deaf' : 'mute';
+  }
+
   @override
   void initState() {
     super.initState();
     final p = _muteProcess;
-    if (p == null) return;
-    // Consulta o estado de mute inicial uma vez (se ainda não conhecido).
-    try {
-      final sr = Injector.get<SignalRService>();
-      if (!sr.muteStates.value.containsKey(p)) {
-        Injector.get<AnyDeckClient>().getMuteState(p).then((m) {
-          if (m != null && mounted) {
-            final cur = Map<String, bool>.from(sr.muteStates.value);
-            cur[p] = m;
-            sr.muteStates.value = cur;
+    if (p != null) {
+      // Consulta o estado de mute inicial uma vez (se ainda não conhecido).
+      try {
+        final sr = Injector.get<SignalRService>();
+        if (!sr.muteStates.value.containsKey(p)) {
+          Injector.get<AnyDeckClient>().getMuteState(p).then((m) {
+            if (m != null && mounted) {
+              final cur = Map<String, bool>.from(sr.muteStates.value);
+              cur[p] = m;
+              sr.muteStates.value = cur;
+            }
+          }).catchError((_) {});
+        }
+      } catch (_) {}
+    }
+    if (_discordOp != null) {
+      try {
+        final sr = Injector.get<SignalRService>();
+        Injector.get<AnyDeckClient>().getDiscordState().then((s) {
+          if (s != null && mounted) {
+            sr.discordState.value = Map<String, dynamic>.from(s);
           }
         }).catchError((_) {});
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final dop = _discordOp;
+    if (dop != null) {
+      return Watch((context) {
+        final ds = Injector.get<SignalRService>().discordState.watch(context);
+        final active = (dop == 'deaf' ? ds['deaf'] : ds['mute']) == true;
+        return _renderDiscord(dop, active);
+      });
+    }
     final p = _muteProcess;
     if (p == null) return _render(null);
     // Reage ao estado de mute vindo do backend (toque ou mudança externa).
@@ -98,6 +125,50 @@ class _DeckGridButtonState extends State<DeckGridButton> {
                 maxLines: 2,
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _renderDiscord(String op, bool active) {
+    final baseColor =
+        _parseColor(widget.button.backgroundColor) ?? Colors.grey[850];
+    final bg = active ? Colors.red[900] : baseColor;
+    final icon = op == 'deaf'
+        ? (active ? Icons.headset_off : Icons.headset_mic)
+        : (active ? Icons.mic_off : Icons.mic);
+    final label =
+        (widget.button.label != null && widget.button.label!.isNotEmpty)
+            ? widget.button.label!
+            : (op == 'deaf' ? 'Deafen' : 'Mute');
+    return GestureDetector(
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
+      child: Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: Colors.white),
+            const SizedBox(height: 4),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    overflow: TextOverflow.ellipsis),
+                maxLines: 2),
           ],
         ),
       ),

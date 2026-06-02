@@ -104,6 +104,16 @@ class AnyDeckClient {
     return null;
   }
 
+  /// Estado atual do Discord ({connected, mute, deaf}) ou null se indisponível.
+  Future<Map<String, dynamic>?> getDiscordState() async {
+    try {
+      final response = await _dio.get('/api/discord/state');
+      return (response.data as Map).cast<String, dynamic>();
+    } catch (_) {
+      return null;
+    }
+  }
+
   // Media Control methods
   Future<List<MediaSession>> getMediaSessions() async {
     final response = await _dio.get('/api/v1/Media/sessions');

@@ -26,6 +26,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   late TextEditingController _actionParamController;
   String _selectedActionType = 'none';
   String _mixerOperation = 'toggleMute';
+  String _discordOp = 'toggleMute';
   String? _targetProfileId;
   // Passos da multi-ação: cada item = {type, param, delayMs, _k(chave estável)}.
   List<Map<String, dynamic>> _multiSteps = [];
@@ -40,6 +41,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     'open_profile',
     'back',
     'multi',
+    'discord',
   ];
   final List<Color> _colors = [
     Colors.grey[800]!,
@@ -101,6 +103,10 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       } else if (_selectedActionType == 'multi') {
         _actionParamController = TextEditingController();
         _multiSteps = _decodeSteps(widget.button.action!.parameters['steps']);
+      } else if (_selectedActionType == 'discord') {
+        _actionParamController = TextEditingController();
+        _discordOp =
+            widget.button.action!.parameters['operation'] ?? 'toggleMute';
       } else {
         _actionParamController = TextEditingController();
       }
@@ -242,6 +248,8 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       if (_targetProfileId != null) params['profileId'] = _targetProfileId!;
     } else if (_selectedActionType == 'multi') {
       params['steps'] = _encodeSteps(_multiSteps);
+    } else if (_selectedActionType == 'discord') {
+      params['operation'] = _discordOp;
     }
     // 'back' não precisa de parâmetros.
 
@@ -467,6 +475,32 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                           })),
                       icon: const Icon(Icons.add),
                       label: const Text('Adicionar passo'),
+                    ),
+                  ),
+                ],
+                if (_selectedActionType == 'discord') ...[
+                  DropdownButtonFormField<String>(
+                    value: _discordOp,
+                    decoration: const InputDecoration(
+                      labelText: 'Ação do Discord',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'toggleMute',
+                          child: Text('Alternar microfone (mute)')),
+                      DropdownMenuItem(
+                          value: 'toggleDeafen',
+                          child: Text('Alternar ensurdecer (deafen)')),
+                    ],
+                    onChanged: (v) =>
+                        setState(() => _discordOp = v ?? 'toggleMute'),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Requer o Discord conectado no PC (config do AnyDeck).',
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ),
                 ],

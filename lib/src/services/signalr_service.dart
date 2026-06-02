@@ -69,6 +69,10 @@ class SignalRService {
   // Estado de mute por processo (para botões toggle refletirem a realidade).
   final muteStates = signal<Map<String, bool>>({});
 
+  // Estado do Discord (connected/mute/deaf) para botões de Discord refletirem.
+  final discordState =
+      signal<Map<String, dynamic>>({'connected': false, 'mute': false, 'deaf': false});
+
   SignalRService();
 
   Future<void> init(String baseUrl, {String? apiKey}) async {
@@ -187,6 +191,18 @@ class SignalRService {
           }
         } catch (e) {
           _logger.warning('Error parsing ReceiveMuteState: $e');
+        }
+      }
+    });
+
+    // Estado do Discord mudou (mute/deaf) → atualiza para os botões de Discord.
+    _hubConnection?.on('ReceiveDiscordState', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        try {
+          discordState.value =
+              Map<String, dynamic>.from(arguments[0] as Map);
+        } catch (e) {
+          _logger.warning('Error parsing ReceiveDiscordState: $e');
         }
       }
     });
