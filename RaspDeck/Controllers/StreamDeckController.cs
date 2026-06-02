@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AnyDeck.Hubs;
 using AnyDeck.Models;
 using AnyDeck.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
 namespace AnyDeck.Controllers
@@ -14,15 +16,18 @@ namespace AnyDeck.Controllers
         private readonly StreamDeckConfigService _configService;
         private readonly ActionExecutorService _executorService;
         private readonly ILogger<StreamDeckController> _logger;
+        private readonly IHubContext<DeckHub> _hubContext;
 
         public StreamDeckController(
             StreamDeckConfigService configService,
             ActionExecutorService executorService,
-            ILogger<StreamDeckController> logger)
+            ILogger<StreamDeckController> logger,
+            IHubContext<DeckHub> hubContext)
         {
             _configService = configService;
             _executorService = executorService;
             _logger = logger;
+            _hubContext = hubContext;
         }
 
         [HttpGet("profiles")]
@@ -40,17 +45,20 @@ namespace AnyDeck.Controllers
         }
 
         [HttpPost("profiles")]
-        public ActionResult SaveProfile([FromBody] DeckProfile profile)
+        public async Task<ActionResult> SaveProfile([FromBody] DeckProfile profile)
         {
             if (profile == null) return BadRequest();
             _configService.SaveProfile(profile);
+            // Notifica clientes (ex.: celular) que o deck mudou, para recarregarem na hora.
+            await _hubContext.Clients.All.SendAsync("ReceiveDeckUpdate", new { profileId = profile.Id });
             return Ok();
         }
 
         [HttpDelete("profiles/{id}")]
-        public ActionResult DeleteProfile(string id)
+        public async Task<ActionResult> DeleteProfile(string id)
         {
             _configService.DeleteProfile(id);
+            await _hubContext.Clients.All.SendAsync("ReceiveDeckUpdate", new { profileId = id });
             return Ok();
         }
 

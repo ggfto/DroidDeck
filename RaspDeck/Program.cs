@@ -192,6 +192,16 @@ namespace AnyDeck
                                 Microsoft.AspNetCore.Http.Results.Ok(new { ok = true, name = Environment.MachineName }))
                                 .AllowAnonymous();
 
+                            // Entrega a API key APENAS para quem acessa via loopback (o próprio PC).
+                            // Deixa o configurador web (servido pelo PC) autenticar sem QR.
+                            endpoints.MapGet("/api/pairing/local-key", (Microsoft.AspNetCore.Http.HttpContext ctx) =>
+                            {
+                                var ip = ctx.Connection.RemoteIpAddress;
+                                if (ip == null || !System.Net.IPAddress.IsLoopback(ip))
+                                    return Microsoft.AspNetCore.Http.Results.StatusCode(403);
+                                return Microsoft.AspNetCore.Http.Results.Ok(new { key = AnyDeck.Auth.ApiKeyProvider.GetKey() });
+                            }).AllowAnonymous();
+
                             endpoints.MapControllers();
                             endpoints.MapHub<AnyDeck.Hubs.DeckHub>("/deckHub");
                         });
