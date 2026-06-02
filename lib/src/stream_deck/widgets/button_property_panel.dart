@@ -27,6 +27,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   String _selectedActionType = 'none';
   String _mixerOperation = 'toggleMute';
   String? _targetProfileId;
+  // Passos da multi-ação: cada item = {type, param, delayMs, _k(chave estável)}.
+  List<Map<String, dynamic>> _multiSteps = [];
+  int _stepSeq = 0;
   Color _selectedColor = Colors.grey[800]!;
 
   final List<String> _actionTypes = [
@@ -36,6 +39,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     'mixer',
     'open_profile',
     'back',
+    'multi',
   ];
   final List<Color> _colors = [
     Colors.grey[800]!,
@@ -94,6 +98,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       } else if (_selectedActionType == 'open_profile') {
         _actionParamController = TextEditingController();
         _targetProfileId = widget.button.action!.parameters['profileId'];
+      } else if (_selectedActionType == 'multi') {
+        _actionParamController = TextEditingController();
+        _multiSteps = _decodeSteps(widget.button.action!.parameters['steps']);
       } else {
         _actionParamController = TextEditingController();
       }
@@ -145,6 +152,76 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
   }
 
+  // ---- Multi-ação: codec entre os passos do editor e o JSON do backend ----
+  // Editor step: {'type': hotkey|launch_app|mute, 'param': String, 'delayMs': int}
+  List<Map<String, dynamic>> _decodeSteps(String? json) {
+    if (json == null || json.isEmpty) return [];
+    try {
+      final list = jsonDecode(json) as List;
+      return list.map<Map<String, dynamic>>((e) {
+        final m = e as Map<String, dynamic>;
+        final t = m['type'] as String? ?? 'hotkey';
+        final p = (m['parameters'] as Map?)?.cast<String, dynamic>() ?? {};
+        String editorType = t;
+        String param = '';
+        if (t == 'hotkey') {
+          param = p['keys']?.toString() ?? '';
+        } else if (t == 'launch_app') {
+          param = p['path']?.toString() ?? '';
+        } else if (t == 'mixer') {
+          editorType = 'mute';
+          param = p['processName']?.toString() ?? '';
+        }
+        return {
+          'type': editorType,
+          'param': param,
+          'delayMs': (m['delayMs'] as num?)?.toInt() ?? 0,
+          '_k': _stepSeq++,
+        };
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  String _encodeSteps(List<Map<String, dynamic>> steps) {
+    final out = steps.map((s) {
+      final type = s['type'] as String? ?? 'hotkey';
+      final param = (s['param'] as String? ?? '').trim();
+      final delayMs = (s['delayMs'] as int?) ?? 0;
+      if (type == 'mute') {
+        return {
+          'type': 'mixer',
+          'parameters': {'operation': 'toggleMute', 'processName': param},
+          'delayMs': delayMs,
+        };
+      } else if (type == 'launch_app') {
+        return {
+          'type': 'launch_app',
+          'parameters': {'path': param},
+          'delayMs': delayMs,
+        };
+      }
+      return {
+        'type': 'hotkey',
+        'parameters': {'keys': param},
+        'delayMs': delayMs,
+      };
+    }).toList();
+    return jsonEncode(out);
+  }
+
+  String _stepParamLabel(String type) {
+    switch (type) {
+      case 'launch_app':
+        return 'Caminho do app (.exe)';
+      case 'mute':
+        return 'Nome do app (processo)';
+      default:
+        return 'Teclas (ex.: ^C = Ctrl+C)';
+    }
+  }
+
   @override
   void dispose() {
     _labelController.dispose();
@@ -163,6 +240,8 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       params['processName'] = _actionParamController.text.trim();
     } else if (_selectedActionType == 'open_profile') {
       if (_targetProfileId != null) params['profileId'] = _targetProfileId!;
+    } else if (_selectedActionType == 'multi') {
+      params['steps'] = _encodeSteps(_multiSteps);
     }
     // 'back' não precisa de parâmetros.
 
@@ -301,6 +380,93 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                     child: Text(
                       'Botão de voltar: retorna para a pasta/perfil anterior.',
                       style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
+                if (_selectedActionType == 'multi') ...[
+                  const Text('Passos (executados em sequência):',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  ..._multiSteps.map((step) {
+                    final k = step['_k'];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: step['type'] as String,
+                                    isDense: true,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Tipo',
+                                        border: OutlineInputBorder()),
+                                    items: const [
+                                      DropdownMenuItem(
+                                          value: 'hotkey', child: Text('Hotkey')),
+                                      DropdownMenuItem(
+                                          value: 'launch_app',
+                                          child: Text('Abrir app')),
+                                      DropdownMenuItem(
+                                          value: 'mute',
+                                          child: Text('Mutar app')),
+                                    ],
+                                    onChanged: (v) => setState(
+                                        () => step['type'] = v ?? 'hotkey'),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline,
+                                      color: Colors.redAccent),
+                                  onPressed: () =>
+                                      setState(() => _multiSteps.remove(step)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              key: ValueKey('p$k'),
+                              initialValue: step['param'] as String? ?? '',
+                              decoration: InputDecoration(
+                                labelText:
+                                    _stepParamLabel(step['type'] as String),
+                                isDense: true,
+                                border: const OutlineInputBorder(),
+                              ),
+                              onChanged: (v) => step['param'] = v,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              key: ValueKey('d$k'),
+                              initialValue: (step['delayMs'] as int).toString(),
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Esperar antes (ms)',
+                                isDense: true,
+                                border: OutlineInputBorder(),
+                              ),
+                              onChanged: (v) =>
+                                  step['delayMs'] = int.tryParse(v) ?? 0,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _multiSteps.add({
+                            'type': 'hotkey',
+                            'param': '',
+                            'delayMs': 0,
+                            '_k': _stepSeq++,
+                          })),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Adicionar passo'),
                     ),
                   ),
                 ],
