@@ -8,12 +8,18 @@ class SystemStats {
   final double ramUsage; // % usada (0-100)
   final double ramTotal; // MB
   final double ramAvailable; // MB
+  final double netUp; // KB/s
+  final double netDown; // KB/s
+  final double gpuUsage; // % (0-100)
 
   SystemStats({
     this.cpuUsage = 0,
     this.ramUsage = 0,
     this.ramTotal = 0,
     this.ramAvailable = 0,
+    this.netUp = 0,
+    this.netDown = 0,
+    this.gpuUsage = 0,
   });
 
   /// % de RAM em uso (usa o valor do backend; se faltar, calcula de total/disponível).
@@ -36,6 +42,9 @@ class SystemStats {
       ramUsage: parseDouble(json['ramUsage'] ?? json['RamUsage']),
       ramTotal: parseDouble(json['ramTotal'] ?? json['RamTotal']),
       ramAvailable: parseDouble(json['ramAvailable'] ?? json['RamAvailable']),
+      netUp: parseDouble(json['netUpKBps'] ?? json['NetUpKBps']),
+      netDown: parseDouble(json['netDownKBps'] ?? json['NetDownKBps']),
+      gpuUsage: parseDouble(json['gpuUsage'] ?? json['GpuUsage']),
     );
   }
 }

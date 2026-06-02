@@ -74,6 +74,10 @@ class DynamicDeckButton extends StatelessWidget {
         return _buildCpuMonitor(stats);
       case 'memory_monitor':
         return _buildMemoryMonitor(stats);
+      case 'gpu_monitor':
+        return _buildGpuMonitor(stats);
+      case 'network_monitor':
+        return _buildNetworkMonitor(stats);
       default:
         return Center(
             child:
@@ -104,6 +108,44 @@ class DynamicDeckButton extends StatelessWidget {
       value: '${pct.toStringAsFixed(0)}%',
       label: detail,
     );
+  }
+
+  Widget _buildGpuMonitor(SystemStats stats) {
+    double pct = stats.gpuUsage;
+    if (pct.isNaN || pct.isInfinite) pct = 0;
+    return _gauge(
+      percent: pct,
+      icon: Icons.videogame_asset,
+      value: '${pct.toStringAsFixed(0)}%',
+      label: 'GPU',
+    );
+  }
+
+  Widget _buildNetworkMonitor(SystemStats stats) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.swap_vert, color: Colors.white, size: 18),
+          Text('↓ ${_fmtRate(stats.netDown)}',
+              style: const TextStyle(
+                  color: Colors.greenAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12)),
+          Text('↑ ${_fmtRate(stats.netUp)}',
+              style: const TextStyle(
+                  color: Colors.lightBlueAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12)),
+          const Text('NET', style: TextStyle(color: Colors.white70, fontSize: 9)),
+        ],
+      ),
+    );
+  }
+
+  String _fmtRate(double kbps) {
+    if (kbps >= 1024) return '${(kbps / 1024).toStringAsFixed(1)}M';
+    return '${kbps.toStringAsFixed(0)}K';
   }
 
   Color _usageColor(double pct) {

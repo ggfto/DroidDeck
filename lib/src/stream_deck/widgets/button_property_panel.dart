@@ -393,6 +393,10 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                         value: 'cpu_monitor', child: Text('CPU Monitor')),
                     DropdownMenuItem(
                         value: 'memory_monitor', child: Text('Memory Monitor')),
+                    DropdownMenuItem(
+                        value: 'gpu_monitor', child: Text('GPU Monitor')),
+                    DropdownMenuItem(
+                        value: 'network_monitor', child: Text('Network Monitor')),
                   ],
                   onChanged: (val) {
                     setState(() {
