@@ -1,0 +1,121 @@
+name: Release
+
+# Dispara ao publicar uma tag vX.Y.Z (ex.: git tag v1.0.0 && git push origin v1.0.0)
+# ou manualmente em Actions -> Release -> Run workflow (informando a tag).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag da release (ex.: v1.0.0)'
+        required: true
+
+permissions:
+  contents: write   # necessário para criar a Release
+
+jobs:
+  backend:
+    name: Backend (Windows .exe)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build do configurador web
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build web --release
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish self-contained (win-x64)
+        run: dotnet publish RaspDeck/DroidDeck.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o publish
+
+      - name: Embute o web no publish (wwwroot ao lado do exe)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force publish/wwwroot | Out-Null
+          Copy-Item app/build/web/* publish/wwwroot -Recurse -Force
+
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path publish/* -DestinationPath DroidDeck-win-x64.zip -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend
+          path: DroidDeck-win-x64.zip
+
+  app:
+    name: App (Android APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Restaura assinatura de release (se os secrets existirem)
+        working-directory: app/android
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > app/release.jks
+            printf 'storeFile=release.jks\nstorePassword=%s\nkeyPassword=%s\nkeyAlias=%s\n' \
+              "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > key.properties
+            echo "Assinatura: chave de release"
+          else
+            echo "Assinatura: debug (sem secrets)"
+          fi
+
+      - name: Build do APK
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build apk --release --build-number=${{ github.run_number }}
+
+      - name: Renomeia o APK
+        run: cp app/build/app/outputs/flutter-apk/app-release.apk DroidDeck.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app
+          path: DroidDeck.apk
+
+  release:
+    name: Publica a Release
+    needs: [backend, app]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Cria a Release no GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: DroidDeck ${{ github.event.inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/backend/DroidDeck-win-x64.zip
+            dist/app/DroidDeck.apk

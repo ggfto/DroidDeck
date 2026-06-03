@@ -57,6 +57,21 @@ Requer um app no Discord Developer Portal (Client ID + Secret) com o redirect
 `POST /api/discord/config`; o token fica em `%LocalAppData%\DroidDeck\discord.json` e reconecta
 sozinho no startup. Câmera/compartilhar tela não são possíveis (RPC privado da Discord).
 
+## Releases (download pronto pro usuário)
+
+CI em `.github/workflows/release.yml`. Para publicar uma versão:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0     # dispara o workflow
+```
+
+O GitHub Actions builda e cria uma **Release** com dois anexos:
+- **`DroidDeck-win-x64.zip`** — backend self-contained (não precisa instalar .NET). Descompacte e rode `DroidDeck.exe`.
+- **`DroidDeck.apk`** — app Android assinado (instale no celular; "fontes desconhecidas").
+
+Também dá pra disparar manualmente em **Actions → Release → Run workflow** (informando a tag). A assinatura do APK usa os secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `ANDROID_STORE_PASSWORD` (já configurados no repo); sem eles, cai pra assinatura debug.
+
 ## Histórico
 
 `app/` foi incorporado a partir do antigo repositório `companion` via `git subtree`
