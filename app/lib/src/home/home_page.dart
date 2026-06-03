@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'home_controller.dart';
-import 'mixer_page.dart';
+import 'audio_page.dart';
 import '../stream_deck/stream_deck_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -76,21 +76,8 @@ class HomePageState extends State<HomePage> {
             });
           },
           children: [
-            MixerPage(
-              title: 'Outputs',
-              devices: controller.outputs.value,
-              onRefresh: controller.fetchOutputs,
+            AudioPage(
               controller: controller,
-              isInput: false,
-              isFullscreen: controller.isFullscreen.value,
-              onToggleFullscreen: controller.toggleFullscreen,
-            ),
-            MixerPage(
-              title: 'Inputs',
-              devices: controller.inputs.value,
-              onRefresh: controller.fetchInputs,
-              controller: controller,
-              isInput: true,
               isFullscreen: controller.isFullscreen.value,
               onToggleFullscreen: controller.toggleFullscreen,
             ),
@@ -108,12 +95,8 @@ class HomePageState extends State<HomePage> {
         return BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              icon: Icon(Icons.volume_up),
-              label: 'Outputs',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.mic),
-              label: 'Inputs',
+              icon: Icon(Icons.tune),
+              label: 'Áudio',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.grid_view),

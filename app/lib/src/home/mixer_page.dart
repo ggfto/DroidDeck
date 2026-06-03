@@ -4,178 +4,158 @@ import 'package:companion/core/core.dart';
 import 'package:flutter/material.dart';
 import 'home_controller.dart';
 
-class MixerPage extends StatelessWidget {
-  final String title;
+/// Lista de dispositivos de áudio (saídas OU entradas) com volume, mute,
+/// controle de mídia e volume por app. Sem Scaffold — usada dentro da AudioPage.
+class MixerList extends StatelessWidget {
   final List<MixerEntity> devices;
-  final Future<void> Function() onRefresh;
   final HomeController controller;
   final bool isInput;
-  final bool isFullscreen;
-  final VoidCallback onToggleFullscreen;
+  final Future<void> Function() onRefresh;
 
-  const MixerPage({
+  const MixerList({
     super.key,
-    required this.title,
     required this.devices,
-    required this.onRefresh,
     required this.controller,
     required this.isInput,
-    required this.isFullscreen,
-    required this.onToggleFullscreen,
+    required this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: onToggleFullscreen,
-        mini: true,
-        backgroundColor: Colors.black45,
-        child: Icon(
-          isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-          color: Colors.white,
-        ),
-      ),
-      appBar: isFullscreen
-          ? null
-          : AppBar(
-              title: Text(title),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.settings),
-                  tooltip: 'Configurações',
-                  onPressed: () {
-                    Navigator.of(context).pushNamed('/config');
-                  },
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: devices.isEmpty
+          ? ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Center(
+                    child: Text(isInput
+                        ? 'Nenhum dispositivo de entrada encontrado.'
+                        : 'Nenhum dispositivo de saída encontrado.'),
+                  ),
                 ),
               ],
-            ),
-      body: RefreshIndicator(
-        onRefresh: onRefresh,
-        child: devices.isEmpty
-            ? Center(
-                child: Text(isInput
-                    ? 'Nenhum dispositivo de entrada encontrado.'
-                    : 'Nenhum dispositivo de saída encontrado.'),
-              )
-            : ListView.builder(
-                itemCount: devices.length,
-                itemBuilder: (context, index) {
-                  final item = devices[index];
-                  final device = item.device;
-                  final channels = device.channels ?? [];
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.only(bottom: 80),
+              itemCount: devices.length,
+              itemBuilder: (context, index) {
+                final item = devices[index];
+                final device = item.device;
+                final channels = device.channels ?? [];
 
-                  // Find media session
-                  MediaSession? deviceMediaSession;
-                  for (final channel in channels) {
-                    String? appName = channel.description;
-                    if (appName != null && appName.contains(':')) {
-                      appName = appName.split(':')[0].trim();
-                    }
-
-                    var session = controller.mediaSessions.value[appName ?? ''];
-
-                    if (session == null && appName != null) {
-                      final appLower = appName.toLowerCase();
-                      session =
-                          controller.mediaSessions.value.values.firstWhere(
-                        (s) => s.id?.toLowerCase().contains(appLower) ?? false,
-                        orElse: () => MediaSession(),
-                      );
-                      if (session.id == null) session = null;
-                    }
-
-                    if (session != null) {
-                      deviceMediaSession = session;
-                      break;
-                    }
+                // Find media session
+                MediaSession? deviceMediaSession;
+                for (final channel in channels) {
+                  String? appName = channel.description;
+                  if (appName != null && appName.contains(':')) {
+                    appName = appName.split(':')[0].trim();
                   }
 
-                  return Card(
-                    margin:
-                        const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    child: ExpansionTile(
-                      leading: device.icon != null && device.icon!.isNotEmpty
-                          ? _buildDeviceIcon(device.icon!)
-                          : const Icon(Icons.speaker),
-                      title: Row(
-                        children: [
-                          Expanded(
-                            child:
-                                Text(device.title ?? item.id ?? 'Desconhecido'),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              device.mute ? Icons.volume_off : Icons.volume_up,
-                              color: device.mute ? Colors.red : null,
-                            ),
-                            onPressed: () =>
-                                controller.toggleMute(item.id!, device.mute),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                      subtitle: _ResponsiveSlider(
-                        initialVolume: device.volume,
-                        isMuted: device.mute,
-                        onVolumeChange: (val) =>
-                            controller.setVolume(item.id!, val),
-                        showLabel: false,
-                      ),
+                  var session = controller.mediaSessions.value[appName ?? ''];
+
+                  if (session == null && appName != null) {
+                    final appLower = appName.toLowerCase();
+                    session = controller.mediaSessions.value.values.firstWhere(
+                      (s) => s.id?.toLowerCase().contains(appLower) ?? false,
+                      orElse: () => MediaSession(),
+                    );
+                    if (session.id == null) session = null;
+                  }
+
+                  if (session != null) {
+                    deviceMediaSession = session;
+                    break;
+                  }
+                }
+
+                return Card(
+                  margin:
+                      const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                  child: ExpansionTile(
+                    leading: device.icon != null && device.icon!.isNotEmpty
+                        ? _buildDeviceIcon(device.icon!)
+                        : Icon(isInput ? Icons.mic : Icons.speaker),
+                    title: Row(
                       children: [
-                        if (deviceMediaSession != null &&
-                            deviceMediaSession.id != null)
-                          Builder(
-                            builder: (context) {
-                              final session = deviceMediaSession!;
-                              return MediaControlWidget(
-                                session: session,
-                                onCommand: (command) =>
-                                    controller.sendMediaCommand(
-                                  session.id!,
-                                  command,
-                                ),
-                              );
-                            },
+                        Expanded(
+                          child:
+                              Text(device.title ?? item.id ?? 'Desconhecido'),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            device.mute
+                                ? (isInput ? Icons.mic_off : Icons.volume_off)
+                                : (isInput ? Icons.mic : Icons.volume_up),
+                            color: device.mute ? Colors.red : null,
                           ),
-                        if (channels.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Text('Nenhum app reproduzindo áudio'),
-                          )
-                        else
-                          ...channels.map((channel) {
-                            return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: VolumeControl(
-                                label:
-                                    channel.description ?? 'App ${channel.id}',
-                                volume: channel.volume,
-                                isMuted: channel.mute,
-                                iconBase64: channel.icon,
-                                onVolumeChanged: (val) =>
-                                    controller.setChannelVolume(
-                                  item.id!,
-                                  channel.id,
-                                  val,
-                                ),
-                                onMuteToggle: () =>
-                                    controller.toggleChannelMute(
-                                  item.id!,
-                                  channel.id,
-                                  channel.mute,
-                                ),
-                              ),
-                            );
-                          }),
+                          onPressed: () =>
+                              controller.toggleMute(item.id!, device.mute),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
                       ],
                     ),
-                  );
-                },
-              ),
-      ),
+                    subtitle: _ResponsiveSlider(
+                      initialVolume: device.volume,
+                      isMuted: device.mute,
+                      onVolumeChange: (val) =>
+                          controller.setVolume(item.id!, val),
+                      showLabel: false,
+                    ),
+                    children: [
+                      if (deviceMediaSession != null &&
+                          deviceMediaSession.id != null)
+                        Builder(
+                          builder: (context) {
+                            final session = deviceMediaSession!;
+                            return MediaControlWidget(
+                              session: session,
+                              onCommand: (command) =>
+                                  controller.sendMediaCommand(
+                                session.id!,
+                                command,
+                              ),
+                            );
+                          },
+                        ),
+                      if (channels.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('Nenhum app reproduzindo áudio'),
+                        )
+                      else
+                        ...channels.map((channel) {
+                          return Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: VolumeControl(
+                              label:
+                                  channel.description ?? 'App ${channel.id}',
+                              volume: channel.volume,
+                              isMuted: channel.mute,
+                              iconBase64: channel.icon,
+                              onVolumeChanged: (val) =>
+                                  controller.setChannelVolume(
+                                item.id!,
+                                channel.id,
+                                val,
+                              ),
+                              onMuteToggle: () =>
+                                  controller.toggleChannelMute(
+                                item.id!,
+                                channel.id,
+                                channel.mute,
+                              ),
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 
@@ -192,11 +172,11 @@ class MixerPage extends StatelessWidget {
         width: 32,
         height: 32,
         errorBuilder: (context, error, stackTrace) {
-          return const Icon(Icons.speaker, size: 32);
+          return Icon(isInput ? Icons.mic : Icons.speaker, size: 32);
         },
       );
     } catch (e) {
-      return const Icon(Icons.speaker, size: 32);
+      return Icon(isInput ? Icons.mic : Icons.speaker, size: 32);
     }
   }
 }
