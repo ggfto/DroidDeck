@@ -11,20 +11,18 @@ namespace DroidDeck.Services
     public class MediaControlService
     {
         private readonly ILogger<MediaControlService> _logger;
-        private GlobalSystemMediaTransportControlsSessionManager? _sessionManager;
 
         public MediaControlService(ILogger<MediaControlService> logger)
         {
             _logger = logger;
         }
 
+        // NÃO cachear o manager: o objeto WinRT tem afinidade de thread (STA). Cachear e
+        // reusar entre threads (poller + requests) dá COMException 0x8001010E
+        // (RPC_E_WRONG_THREAD) e o comando falha. Pedir fresco em cada operação resolve.
         private async Task<GlobalSystemMediaTransportControlsSessionManager> GetSessionManagerAsync()
         {
-            if (_sessionManager == null)
-            {
-                _sessionManager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
-            }
-            return _sessionManager;
+            return await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
         }
 
         public async Task<List<MediaSessionInfo>> GetAllSessionsAsync()
