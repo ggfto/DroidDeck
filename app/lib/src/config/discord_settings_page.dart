@@ -83,10 +83,13 @@ class _DiscordSettingsPageState extends State<DiscordSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Discord')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _statusCard(),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _statusCard(),
           const SizedBox(height: 16),
           _guideCard(),
           const SizedBox(height: 16),
@@ -142,7 +145,7 @@ class _DiscordSettingsPageState extends State<DiscordSettingsPage> {
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
-      ),
+      ))),
     );
   }
 

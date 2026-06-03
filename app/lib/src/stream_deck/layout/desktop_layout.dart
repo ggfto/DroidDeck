@@ -154,6 +154,14 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
                           }),
                         ),
                         IconButton(
+                          icon: const Icon(Icons.headset_mic),
+                          tooltip: 'Configurar Discord',
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const DiscordSettingsPage()),
+                          ),
+                        ),
+                        IconButton(
                           icon: Icon(Icons.edit),
                           tooltip: 'Rename Profile',
                           onPressed: () => _renameProfile(currentProfile),
