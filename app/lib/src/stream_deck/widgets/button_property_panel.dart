@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:companion/core/core.dart';
+import 'package:companion/src/services/signalr_service.dart';
+import 'package:companion/src/config/discord_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -753,10 +755,61 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
 
   // ---- Discord: carregamento de servidores/canais/participantes ----
   void _loadDiscordDataFor(String op) {
+    // Atualiza configured/connected (pro aviso) no signal compartilhado.
+    Injector.get<DroidDeckClient>().getDiscordState().then((s) {
+      if (s != null && mounted) {
+        Injector.get<SignalRService>().discordState.value =
+            Map<String, dynamic>.from(s);
+      }
+    }).catchError((_) {});
     if (op == 'joinChannel' && _dcGuilds.isEmpty) _loadGuilds();
     if ((op == 'userMute' || op == 'userVolume') && _dcParticipants.isEmpty) {
       _loadParticipants();
     }
+  }
+
+  /// Aviso quando a ação Discord depende de algo ainda não pronto
+  /// (app não configurado, ou configurado mas desconectado).
+  Widget _discordWarning() {
+    return Watch((context) {
+      final ds = Injector.get<SignalRService>().discordState.value;
+      final configured = ds['configured'] == true;
+      final connected = ds['connected'] == true;
+      if (configured && connected) return const SizedBox.shrink();
+
+      final c = configured ? Colors.blueGrey : Colors.orange;
+      final msg = configured
+          ? 'Discord configurado, mas desconectado. Abra o Discord no PC e conecte.'
+          : 'Discord não configurado — esta ação não vai funcionar até configurar o app do Discord.';
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: c.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: c.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+                configured
+                    ? Icons.link_off
+                    : Icons.warning_amber_rounded,
+                color: c,
+                size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(msg, style: const TextStyle(fontSize: 12))),
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const DiscordSettingsPage()),
+              ),
+              child: const Text('Configurar'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Future<void> _loadGuilds() async {
@@ -782,6 +835,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   List<Widget> _buildDiscordFields() {
     final op = _discordOp;
     final fields = <Widget>[
+      _discordWarning(),
       DropdownButtonFormField<String>(
         value: _discordOp,
         isExpanded: true,

@@ -51,9 +51,21 @@ namespace DroidDeck.Services
         private volatile List<object> _participants = new();
         private readonly ConcurrentDictionary<string, bool> _userMute = new();
 
+        /// <summary>True quando há Client ID + Secret salvos (app Discord configurado).</summary>
+        public bool Configured
+        {
+            get
+            {
+                var c = LoadConfig();
+                return !string.IsNullOrWhiteSpace(c.ClientId) &&
+                       !string.IsNullOrWhiteSpace(c.ClientSecret);
+            }
+        }
+
         /// <summary>Estado completo do Discord enviado aos clientes (SignalR/REST).</summary>
         public object GetStatePayload() => new
         {
+            configured = Configured,
             connected = Connected,
             mute = SelfMute,
             deaf = SelfDeaf,

@@ -52,10 +52,18 @@ adb install -r build\app\outputs\flutter-apk\app-debug.apk
 
 ## Discord
 
-Requer um app no Discord Developer Portal (Client ID + Secret) com o redirect
-`http://localhost:5000/discord` salvo em OAuth2 → Redirects. Configurado via
-`POST /api/discord/config`; o token fica em `%LocalAppData%\DroidDeck\discord.json` e reconecta
-sozinho no startup. Câmera/compartilhar tela não são possíveis (RPC privado da Discord).
+**Cada usuário usa o próprio app do Discord** — o RPC só libera o dono do app (sem precisar de
+aprovação da Discord), e o Client Secret não pode ser compartilhado. Setup (1 vez, ~2 min):
+
+1. discord.com/developers/applications → **New Application**
+2. Em **OAuth2**, copie o **Client ID** e o **Client Secret**
+3. Em **OAuth2 → Redirects**, adicione `http://localhost:5000/discord` e **Salve**
+
+No app/configurador: **Configurações → Plugin do Discord** (ou o botão "Configurar Discord" na
+sidebar do configurador web). Cole Client ID + Secret → **Salvar** → **Conectar** (aprove o
+popup que abre no Discord do PC). O token fica em `%LocalAppData%\DroidDeck\discord.json` e
+reconecta sozinho no startup. No editor, ações de Discord mostram um **aviso** se ainda não
+estiver configurado/conectado. Câmera/compartilhar tela não são possíveis (RPC privado da Discord).
 
 ## Releases (download pronto pro usuário)
 

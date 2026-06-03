@@ -141,6 +141,27 @@ class DroidDeckClient {
     }
   }
 
+  /// Salva as credenciais do app Discord (Client ID + Secret) no PC.
+  Future<void> setDiscordConfig(String clientId, String clientSecret) async {
+    await _dio.post('/api/discord/config',
+        data: {'clientId': clientId, 'clientSecret': clientSecret});
+  }
+
+  /// Conecta ao Discord (abre o popup de autorização no PC na 1ª vez).
+  /// Lança [Exception] com mensagem legível em caso de erro.
+  Future<Map<String, dynamic>> connectDiscord() async {
+    try {
+      final r = await _dio.post('/api/discord/connect');
+      return (r.data as Map).cast<String, dynamic>();
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final msg = (data is Map && data['error'] != null)
+          ? '${data['error']}'
+          : 'Falha ao conectar — o Discord está aberto no PC?';
+      throw Exception(msg);
+    }
+  }
+
   // Media Control methods
   Future<List<MediaSession>> getMediaSessions() async {
     final response = await _dio.get('/api/v1/Media/sessions');

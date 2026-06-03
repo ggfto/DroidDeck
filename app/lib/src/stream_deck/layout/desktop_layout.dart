@@ -2,6 +2,7 @@ import 'package:companion/src/stream_deck/stream_deck_controller.dart';
 import 'package:companion/src/stream_deck/widgets/button_property_panel.dart';
 import 'package:companion/src/stream_deck/widgets/dynamic_deck_button.dart';
 import 'package:companion/src/services/signalr_service.dart';
+import 'package:companion/src/config/discord_settings_page.dart';
 import 'package:companion/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
@@ -89,6 +90,21 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
                     label: Text('New Profile'),
                     style: ElevatedButton.styleFrom(
                       minimumSize: Size(double.infinity, 40),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const DiscordSettingsPage()),
+                    ),
+                    icon: const Icon(Icons.headset_mic, size: 18),
+                    label: const Text('Configurar Discord'),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 36),
+                      foregroundColor: Colors.white70,
                     ),
                   ),
                 ),
