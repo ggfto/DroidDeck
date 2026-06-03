@@ -76,6 +76,9 @@ class SignalRService {
   // Grade física do deck (rows/cols) reportada pelo celular; usada pelo configurador web.
   final deckLayout = signal<Map<String, int>>({'rows': 3, 'columns': 5});
 
+  // Mídia tocando agora no PC (pra botões play/pause do deck refletirem o estado).
+  final mediaPlaying = signal<bool>(false);
+
   SignalRService();
 
   Future<void> init(String baseUrl, {String? apiKey}) async {
@@ -221,6 +224,18 @@ class SignalRService {
           };
         } catch (e) {
           _logger.warning('Error parsing ReceiveLayoutUpdate: $e');
+        }
+      }
+    });
+
+    // Estado de reprodução de mídia (tocando?) → botões play/pause do deck refletem.
+    _hubConnection?.on('ReceiveMediaStatus', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        try {
+          final m = arguments[0] as Map;
+          mediaPlaying.value = m['playing'] == true;
+        } catch (e) {
+          _logger.warning('Error parsing ReceiveMediaStatus: $e');
         }
       }
     });

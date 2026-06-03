@@ -18,6 +18,7 @@ namespace DroidDeck.Services
     {
         private readonly ILogger<SystemMonitorService> _logger;
         private readonly IHubContext<DeckHub> _hubContext;
+        private readonly MediaControlService _media;
         private PerformanceCounter? _cpuCounter;
 
         // Estado para throughput de rede (deltas por segundo).
@@ -28,10 +29,11 @@ namespace DroidDeck.Services
         // Counters de GPU (uso) por instância de engine 3D; cacheados entre ticks.
         private readonly Dictionary<string, PerformanceCounter> _gpuCounters = new();
 
-        public SystemMonitorService(ILogger<SystemMonitorService> logger, IHubContext<DeckHub> hubContext)
+        public SystemMonitorService(ILogger<SystemMonitorService> logger, IHubContext<DeckHub> hubContext, MediaControlService media)
         {
             _logger = logger;
             _hubContext = hubContext;
+            _media = media;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -94,6 +96,15 @@ namespace DroidDeck.Services
 
                     // Broadcast to clients listening on "ReceiveSystemStats"
                     await _hubContext.Clients.All.SendAsync("ReceiveSystemStats", stats, cancellationToken: stoppingToken);
+
+                    // Estado de reprodução de mídia (pra botões play/pause refletirem).
+                    try
+                    {
+                        var playing = await _media.IsAnythingPlayingAsync();
+                        await _hubContext.Clients.All.SendAsync("ReceiveMediaStatus",
+                            new { playing }, cancellationToken: stoppingToken);
+                    }
+                    catch { }
                 }
                 catch (Exception ex)
                 {

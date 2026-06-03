@@ -120,6 +120,14 @@ class _DeckGridButtonState extends State<DeckGridButton> {
         return _renderDiscord(dop, ds);
       });
     }
+    // Botão de mídia Play/Pause: reflete o estado de reprodução ao vivo.
+    final mc = _mediaCommand;
+    if (mc == 'playpause' || mc == 'toggle') {
+      return Watch((context) {
+        Injector.get<SignalRService>().mediaPlaying.value; // assina o estado
+        return _render(null);
+      });
+    }
     final p = _muteProcess;
     if (p == null) return _render(null);
     // Reage ao estado de mute vindo do backend (toque ou mudança externa).
@@ -157,15 +165,20 @@ class _DeckGridButtonState extends State<DeckGridButton> {
         }
         sr.discordState.value = cur;
       } else {
-        final p = _muteProcess;
-        if (p != null) {
-          final op =
-              (widget.button.action?.parameters['operation'] ?? 'toggleMute')
-                  .toLowerCase();
-          final cur = Map<String, bool>.from(sr.muteStates.value);
-          final now = cur[p] == true;
-          cur[p] = op == 'mute' ? true : (op == 'unmute' ? false : !now);
-          sr.muteStates.value = cur;
+        final mc = _mediaCommand;
+        if (mc == 'playpause' || mc == 'toggle') {
+          sr.mediaPlaying.value = !sr.mediaPlaying.value; // otimista
+        } else {
+          final p = _muteProcess;
+          if (p != null) {
+            final op =
+                (widget.button.action?.parameters['operation'] ?? 'toggleMute')
+                    .toLowerCase();
+            final cur = Map<String, bool>.from(sr.muteStates.value);
+            final now = cur[p] == true;
+            cur[p] = op == 'mute' ? true : (op == 'unmute' ? false : !now);
+            sr.muteStates.value = cur;
+          }
         }
       }
     } catch (_) {}
@@ -320,6 +333,12 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     // Botão de mídia sem ícone custom: usa o ícone do comando.
     final mc = _mediaCommand;
     if (mc != null) {
+      if (mc == 'playpause' || mc == 'toggle') {
+        // Reativo: pause quando tocando, play quando pausado (dentro do Watch do build).
+        final playing = Injector.get<SignalRService>().mediaPlaying.value;
+        return Icon(playing ? Icons.pause : Icons.play_arrow,
+            size: 32, color: Colors.white);
+      }
       return Icon(_mediaIconData(mc), size: 32, color: Colors.white);
     }
     return const Icon(Icons.touch_app, size: 32, color: Colors.white54);

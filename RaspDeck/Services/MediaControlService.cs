@@ -115,6 +115,28 @@ namespace DroidDeck.Services
             }
         }
 
+        /// <summary>True se há mídia TOCANDO (sessão atual ou qualquer uma). Leve — sem thumbnail/props.</summary>
+        public async Task<bool> IsAnythingPlayingAsync()
+        {
+            try
+            {
+                var manager = await GetSessionManagerAsync();
+                var current = manager.GetCurrentSession();
+                if (current != null &&
+                    current.GetPlaybackInfo().PlaybackStatus ==
+                        GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                    return true;
+                foreach (var s in manager.GetSessions())
+                {
+                    if (s.GetPlaybackInfo().PlaybackStatus ==
+                        GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                        return true;
+                }
+                return false;
+            }
+            catch { return false; }
+        }
+
         public async Task<bool> SendCommandAsync(string sessionId, string command)
         {
             try
