@@ -6,7 +6,8 @@ $wwwroot = Join-Path $root 'RaspDeck\wwwroot'
 
 Write-Host "Building Flutter web in $app ..."
 Push-Location $app
-flutter build web --release          # flutter writes warnings to stderr; check the exit code, not stderr
+# Sem service worker é tratado no web/index.html (não registra + desregistra SW antigo).
+flutter build web --release   # warnings vão pro stderr; checamos o exit code
 $code = $LASTEXITCODE
 Pop-Location
 if ($code -ne 0) { Write-Error "flutter build web failed (exit $code)"; exit 1 }
