@@ -1,0 +1,11 @@
+{
+  "name": "droiddeck-release",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Ferramentas de CI (semantic-release) do DroidDeck. Não é um pacote publicável — só versiona/release.",
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "semantic-release": "^24.2.0"
+  }
+}

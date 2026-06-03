@@ -133,8 +133,11 @@ $RECYCLE.BIN/
 _NCrunch*
 
 # =========================
-# AnyDeck-specific
+# DroidDeck-specific
 # =========================
+
+# Node (ferramentas de CI: semantic-release)
+node_modules/
 
 # Flutter Web build output served by the backend (regenerável via `flutter build web`)
 wwwroot/

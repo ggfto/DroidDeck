@@ -59,18 +59,16 @@ sozinho no startup. Câmera/compartilhar tela não são possíveis (RPC privado 
 
 ## Releases (download pronto pro usuário)
 
-CI em `.github/workflows/release.yml`. Para publicar uma versão:
-
-```powershell
-git tag v1.0.0
-git push origin v1.0.0     # dispara o workflow
-```
-
-O GitHub Actions builda e cria uma **Release** com dois anexos:
+CI em `.github/workflows/release.yml`, disparo **manual** em **Actions → Release → Run workflow**.
+Usa **semantic-release**: a versão sai dos commits (Conventional Commits) — `feat:` → minor,
+`fix:`/`perf:` → patch, `BREAKING CHANGE`/`feat!:` → major. Ele gera o `CHANGELOG.md`, cria a
+tag + a Release e anexa:
 - **`DroidDeck-win-x64.zip`** — backend self-contained (não precisa instalar .NET). Descompacte e rode `DroidDeck.exe`.
 - **`DroidDeck.apk`** — app Android assinado (instale no celular; "fontes desconhecidas").
 
-Também dá pra disparar manualmente em **Actions → Release → Run workflow** (informando a tag). A assinatura do APK usa os secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `ANDROID_STORE_PASSWORD` (já configurados no repo); sem eles, cai pra assinatura debug.
+Se não houver commit releasable (só `chore:`/`ci:`/`docs:`…) desde a última versão, ele não publica nada.
+A assinatura do APK usa os secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS`,
+`ANDROID_KEY_PASSWORD`, `ANDROID_STORE_PASSWORD` (já configurados); sem eles, cai pra debug.
 
 ## Histórico
 

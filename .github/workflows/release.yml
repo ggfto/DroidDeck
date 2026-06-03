@@ -1,18 +1,15 @@
 name: Release
 
-# Dispara ao publicar uma tag vX.Y.Z (ex.: git tag v1.0.0 && git push origin v1.0.0)
-# ou manualmente em Actions -> Release -> Run workflow (informando a tag).
+# Disparo MANUAL (Actions -> Release -> Run workflow). O semantic-release decide a
+# versão a partir dos commits (feat -> minor, fix -> patch, BREAKING -> major),
+# gera o CHANGELOG, cria a tag + a Release e anexa o backend (.zip) e o app (.apk).
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag da release (ex.: v1.0.0)'
-        required: true
 
 permissions:
-  contents: write   # necessário para criar a Release
+  contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   backend:
@@ -102,20 +99,32 @@ jobs:
           path: DroidDeck.apk
 
   release:
-    name: Publica a Release
+    name: semantic-release
     needs: [backend, app]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # semantic-release precisa do histórico + tags
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instala o semantic-release
+        run: npm install
+
       - uses: actions/download-artifact@v4
         with:
+          name: backend
           path: dist
 
-      - name: Cria a Release no GitHub
-        uses: softprops/action-gh-release@v2
+      - uses: actions/download-artifact@v4
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: DroidDeck ${{ github.event.inputs.tag || github.ref_name }}
-          generate_release_notes: true
-          files: |
-            dist/backend/DroidDeck-win-x64.zip
-            dist/app/DroidDeck.apk
+          name: app
+          path: dist
+
+      - name: semantic-release (decide versão, cria tag/release, anexa binários)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
