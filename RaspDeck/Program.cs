@@ -68,12 +68,13 @@ namespace DroidDeck
 
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
-            // No .exe publicado o wwwroot fica ao lado do executável; em dev (dotnet run),
-            // na pasta do projeto. Escolhe a raiz de conteúdo certa nos dois casos.
-            var exeDir = AppContext.BaseDirectory;
-            var contentRoot = File.Exists(Path.Combine(exeDir, "wwwroot", "index.html"))
-                ? exeDir
-                : Directory.GetCurrentDirectory();
+            // Em dev (dotnet run a partir de RaspDeck/) o wwwroot fonte está no diretório
+            // atual; no .exe publicado, ao lado do executável. Preferir o diretório atual
+            // evita servir uma cópia velha de bin/ (que o build cria ao copiar o wwwroot).
+            var cwd = Directory.GetCurrentDirectory();
+            var contentRoot = File.Exists(Path.Combine(cwd, "wwwroot", "index.html"))
+                ? cwd
+                : AppContext.BaseDirectory;
             return Host.CreateDefaultBuilder(args)
                 .UseContentRoot(contentRoot)
                 .ConfigureLogging(logging =>
