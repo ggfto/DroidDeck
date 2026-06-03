@@ -29,6 +29,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   String _selectedActionType = 'none';
   String _mixerOperation = 'toggleMute';
   String _discordOp = 'toggleMute';
+  String _mediaCommand = 'playpause';
   // Discord avançado (canal de voz / usuário / volume)
   List<Map<String, String>> _dcGuilds = [];
   List<Map<String, String>> _dcChannels = [];
@@ -55,6 +56,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     'none',
     'hotkey',
     'launch_app',
+    'media',
     'mixer',
     'open_profile',
     'back',
@@ -110,6 +112,10 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       } else if (_selectedActionType == 'launch_app') {
         _actionParamController = TextEditingController(
             text: widget.button.action!.parameters['path'] ?? '');
+      } else if (_selectedActionType == 'media') {
+        _actionParamController = TextEditingController();
+        _mediaCommand =
+            widget.button.action!.parameters['command'] ?? 'playpause';
       } else if (_selectedActionType == 'mixer') {
         _actionParamController = TextEditingController(
             text: widget.button.action!.parameters['processName'] ?? '');
@@ -271,6 +277,8 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       params['keys'] = _actionParamController.text;
     } else if (_selectedActionType == 'launch_app') {
       params['path'] = _actionParamController.text;
+    } else if (_selectedActionType == 'media') {
+      params['command'] = _mediaCommand;
     } else if (_selectedActionType == 'mixer') {
       params['operation'] = _mixerOperation;
       params['processName'] = _actionParamController.text.trim();
@@ -401,6 +409,36 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                       labelText: 'Application Path (.exe)',
                       hintText: 'C:\\Windows\\System32\\notepad.exe',
                       border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+                if (_selectedActionType == 'media') ...[
+                  DropdownButtonFormField<String>(
+                    value: _mediaCommand,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Comando de mídia',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'playpause', child: Text('Play / Pause')),
+                      DropdownMenuItem(
+                          value: 'next', child: Text('Próxima faixa')),
+                      DropdownMenuItem(
+                          value: 'previous', child: Text('Faixa anterior')),
+                      DropdownMenuItem(value: 'stop', child: Text('Parar')),
+                      DropdownMenuItem(value: 'play', child: Text('Play')),
+                      DropdownMenuItem(value: 'pause', child: Text('Pause')),
+                    ],
+                    onChanged: (v) =>
+                        setState(() => _mediaCommand = v ?? 'playpause'),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Controla a mídia que está tocando no PC (Spotify, YouTube, navegador…).',
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ),
                 ],

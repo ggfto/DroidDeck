@@ -38,6 +38,47 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     return (a.parameters['operation'] ?? 'toggleMute').toLowerCase();
   }
 
+  // Comando de mídia (play/pause/next/...) se for um botão de mídia; senão null.
+  String? get _mediaCommand {
+    final a = widget.button.action;
+    if (a == null || a.type != 'media') return null;
+    return (a.parameters['command'] ?? 'playpause').toLowerCase();
+  }
+
+  IconData _mediaIconData(String cmd) {
+    switch (cmd) {
+      case 'next':
+        return Icons.skip_next;
+      case 'previous':
+        return Icons.skip_previous;
+      case 'stop':
+        return Icons.stop;
+      case 'pause':
+        return Icons.pause;
+      case 'play':
+        return Icons.play_arrow;
+      default: // playpause / toggle
+        return Icons.play_arrow;
+    }
+  }
+
+  String _mediaDefaultLabel(String cmd) {
+    switch (cmd) {
+      case 'next':
+        return 'Próxima';
+      case 'previous':
+        return 'Anterior';
+      case 'stop':
+        return 'Parar';
+      case 'pause':
+        return 'Pause';
+      case 'play':
+        return 'Play';
+      default:
+        return 'Play/Pause';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +175,10 @@ class _DeckGridButtonState extends State<DeckGridButton> {
   Widget _render(bool? muted) {
     final baseColor = _parseColor(widget.button.backgroundColor) ?? Colors.grey[850];
     final bg = muted == true ? _activeColor() : baseColor;
+    // Label: o do botão; se vazio e for mídia, usa o rótulo padrão do comando.
+    final label = (widget.button.label != null && widget.button.label!.isNotEmpty)
+        ? widget.button.label!
+        : (_mediaCommand != null ? _mediaDefaultLabel(_mediaCommand!) : null);
 
     return GestureDetector(
       onTap: _handleTap,
@@ -154,10 +199,10 @@ class _DeckGridButtonState extends State<DeckGridButton> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildIcon(muted),
-            if (widget.button.label != null && widget.button.label!.isNotEmpty) ...[
+            if (label != null) ...[
               const SizedBox(height: 4),
               Text(
-                widget.button.label!,
+                label,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -271,6 +316,11 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     if (widget.button.iconName != null && widget.button.iconName!.isNotEmpty) {
       return Icon(_getIconData(widget.button.iconName!),
           size: 32, color: Colors.white);
+    }
+    // Botão de mídia sem ícone custom: usa o ícone do comando.
+    final mc = _mediaCommand;
+    if (mc != null) {
+      return Icon(_mediaIconData(mc), size: 32, color: Colors.white);
     }
     return const Icon(Icons.touch_app, size: 32, color: Colors.white54);
   }

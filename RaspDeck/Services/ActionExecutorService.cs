@@ -118,12 +118,20 @@ namespace DroidDeck.Services
 
                 if (string.IsNullOrEmpty(sessionId))
                 {
-                    // Fallback: try to find any active session or use system default if available
-                    // For now, we need a sessionId for the service
+                    // Sem sessão específica: controla a que está TOCANDO (como as teclas de mídia);
+                    // se nenhuma estiver tocando, usa a primeira disponível.
                     var sessions = await _mediaService.GetAllSessionsAsync();
                     if (sessions.Count > 0)
                     {
                         sessionId = sessions[0].Id!;
+                        foreach (var s in sessions)
+                        {
+                            if (string.Equals(s.PlaybackStatus, "Playing", StringComparison.OrdinalIgnoreCase))
+                            {
+                                sessionId = s.Id!;
+                                break;
+                            }
+                        }
                     }
                 }
 
