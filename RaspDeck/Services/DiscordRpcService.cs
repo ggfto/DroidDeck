@@ -43,6 +43,27 @@ namespace AnyDeck.Services
         public bool Connected { get; private set; }
         public bool SelfMute { get; private set; }
         public bool SelfDeaf { get; private set; }
+        public string? VoiceChannelId { get; private set; }
+        public string? VoiceChannelName { get; private set; }
+        public int InputVolume { get; private set; }
+        public int OutputVolume { get; private set; }
+        public string VoiceMode { get; private set; } = ""; // PUSH_TO_TALK | VOICE_ACTIVITY
+        private volatile List<object> _participants = new();
+        private readonly ConcurrentDictionary<string, bool> _userMute = new();
+
+        /// <summary>Estado completo do Discord enviado aos clientes (SignalR/REST).</summary>
+        public object GetStatePayload() => new
+        {
+            connected = Connected,
+            mute = SelfMute,
+            deaf = SelfDeaf,
+            channelId = VoiceChannelId,
+            channelName = VoiceChannelName,
+            inputVolume = InputVolume,
+            outputVolume = OutputVolume,
+            voiceMode = VoiceMode,
+            participants = _participants,
+        };
 
         public DiscordRpcService(ILogger<DiscordRpcService> logger, IHubContext<DeckHub> hub)
         {
@@ -123,12 +144,14 @@ namespace AnyDeck.Services
             }
 
             await SendCommandAsync("SUBSCRIBE", null, evt: "VOICE_SETTINGS_UPDATE");
+            try { await SendCommandAsync("SUBSCRIBE", null, evt: "VOICE_CHANNEL_SELECT"); } catch { }
             var vs = await SendCommandAsync("GET_VOICE_SETTINGS", null);
             if (vs.TryGetProperty("data", out var data)) UpdateVoiceFromData(data);
 
             Connected = true;
-            await BroadcastStateAsync();
-            _logger.LogInformation("Discord RPC conectado (mute={Mute}, deaf={Deaf})", SelfMute, SelfDeaf);
+            await RefreshVoiceChannelAsync(); // canal atual + participantes (também faz o broadcast)
+            _logger.LogInformation("Discord RPC conectado (mute={Mute}, deaf={Deaf}, canal={Ch})",
+                SelfMute, SelfDeaf, VoiceChannelName);
         }
 
         private async Task<string> AuthorizeAndGetTokenAsync(DiscordConfig cfg)
@@ -174,6 +197,139 @@ namespace AnyDeck.Services
             SelfDeaf = target;
             await BroadcastStateAsync();
         }
+
+        // ---- Servidores / canais de voz ----
+        public async Task<object> GetGuildsAsync()
+        {
+            EnsureConnected();
+            var r = await SendCommandAsync("GET_GUILDS", null);
+            var list = new List<object>();
+            if (r.TryGetProperty("data", out var d) && d.TryGetProperty("guilds", out var gs)
+                && gs.ValueKind == JsonValueKind.Array)
+                foreach (var g in gs.EnumerateArray())
+                    list.Add(new
+                    {
+                        id = g.TryGetProperty("id", out var id) ? id.GetString() : null,
+                        name = g.TryGetProperty("name", out var n) ? n.GetString() : null,
+                    });
+            return list;
+        }
+
+        public async Task<object> GetChannelsAsync(string guildId)
+        {
+            EnsureConnected();
+            var r = await SendCommandAsync("GET_CHANNELS", new { guild_id = guildId });
+            var list = new List<object>();
+            if (r.TryGetProperty("data", out var d) && d.TryGetProperty("channels", out var cs)
+                && cs.ValueKind == JsonValueKind.Array)
+                foreach (var c in cs.EnumerateArray())
+                {
+                    // type 2 = GUILD_VOICE, 13 = STAGE_VOICE
+                    int type = c.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.Number
+                        ? t.GetInt32() : -1;
+                    if (type != 2 && type != 13) continue;
+                    list.Add(new
+                    {
+                        id = c.TryGetProperty("id", out var id) ? id.GetString() : null,
+                        name = c.TryGetProperty("name", out var n) ? n.GetString() : null,
+                    });
+                }
+            return list;
+        }
+
+        /// <summary>Entra no canal (ou desconecta se channelId for nulo/vazio).</summary>
+        public async Task SelectVoiceChannelAsync(string? channelId)
+        {
+            EnsureConnected();
+            await SendCommandAsync("SELECT_VOICE_CHANNEL",
+                new { channel_id = string.IsNullOrEmpty(channelId) ? null : channelId, force = true });
+            await RefreshVoiceChannelAsync();
+        }
+
+        /// <summary>Lê o canal de voz atual e os participantes; atualiza estado + broadcast.</summary>
+        public async Task RefreshVoiceChannelAsync()
+        {
+            try
+            {
+                var r = await SendCommandAsync("GET_SELECTED_VOICE_CHANNEL", null);
+                if (r.TryGetProperty("data", out var d) && d.ValueKind == JsonValueKind.Object)
+                {
+                    VoiceChannelId = d.TryGetProperty("id", out var id) ? id.GetString() : null;
+                    VoiceChannelName = d.TryGetProperty("name", out var nm) ? nm.GetString() : null;
+                    var parts = new List<object>();
+                    if (d.TryGetProperty("voice_states", out var vss) && vss.ValueKind == JsonValueKind.Array)
+                        foreach (var v in vss.EnumerateArray())
+                        {
+                            if (!v.TryGetProperty("user", out var u)) continue;
+                            parts.Add(new
+                            {
+                                id = u.TryGetProperty("id", out var uid) ? uid.GetString() : null,
+                                username = u.TryGetProperty("username", out var un) ? un.GetString() : "",
+                                nick = v.TryGetProperty("nick", out var nk) ? nk.GetString() : null,
+                            });
+                        }
+                    _participants = parts;
+                }
+                else
+                {
+                    VoiceChannelId = null;
+                    VoiceChannelName = null;
+                    _participants = new();
+                }
+            }
+            catch
+            {
+                VoiceChannelId = null;
+                VoiceChannelName = null;
+                _participants = new();
+            }
+            await BroadcastStateAsync();
+        }
+
+        // ---- Volume de entrada (mic, 0-100) e saída (0-200) ----
+        public async Task SetInputVolumeAsync(double volume)
+        {
+            EnsureConnected();
+            volume = Math.Clamp(volume, 0, 100);
+            var r = await SendCommandAsync("SET_VOICE_SETTINGS", new { input = new { volume } });
+            if (r.TryGetProperty("data", out var d)) UpdateVoiceFromData(d);
+        }
+
+        public async Task SetOutputVolumeAsync(double volume)
+        {
+            EnsureConnected();
+            volume = Math.Clamp(volume, 0, 200);
+            var r = await SendCommandAsync("SET_VOICE_SETTINGS", new { output = new { volume } });
+            if (r.TryGetProperty("data", out var d)) UpdateVoiceFromData(d);
+        }
+
+        public Task NudgeInputVolumeAsync(double delta) => SetInputVolumeAsync(InputVolume + delta);
+        public Task NudgeOutputVolumeAsync(double delta) => SetOutputVolumeAsync(OutputVolume + delta);
+
+        // ---- Modo de voz: PUSH_TO_TALK | VOICE_ACTIVITY ----
+        public async Task SetVoiceModeAsync(string type)
+        {
+            EnsureConnected();
+            var r = await SendCommandAsync("SET_VOICE_SETTINGS", new { mode = new { type } });
+            if (r.TryGetProperty("data", out var d)) UpdateVoiceFromData(d);
+        }
+
+        public Task ToggleVoiceModeAsync() =>
+            SetVoiceModeAsync(VoiceMode == "PUSH_TO_TALK" ? "VOICE_ACTIVITY" : "PUSH_TO_TALK");
+
+        // ---- Por usuário (mute/volume local na call) ----
+        public async Task SetUserVoiceAsync(string userId, bool? mute, double? volume)
+        {
+            EnsureConnected();
+            var args = new Dictionary<string, object?> { ["user_id"] = userId };
+            if (mute.HasValue) args["mute"] = mute.Value;
+            if (volume.HasValue) args["volume"] = Math.Clamp(volume.Value, 0, 200);
+            await SendCommandAsync("SET_USER_VOICE_SETTINGS", args);
+            if (mute.HasValue) _userMute[userId] = mute.Value;
+        }
+
+        public Task ToggleUserMuteAsync(string userId) =>
+            SetUserVoiceAsync(userId, !(_userMute.TryGetValue(userId, out var m) && m), null);
 
         private void EnsureConnected()
         {
@@ -295,6 +451,8 @@ namespace AnyDeck.Services
                     if (evt == "READY") _readyTcs?.TrySetResult(true);
                     else if (evt == "VOICE_SETTINGS_UPDATE" && root.TryGetProperty("data", out var vd))
                         UpdateVoiceFromData(vd);
+                    else if (evt == "VOICE_CHANNEL_SELECT")
+                        _ = RefreshVoiceChannelAsync();
                 }
             }
             catch (Exception ex) { _logger.LogDebug(ex, "Discord: frame inválido"); }
@@ -306,6 +464,12 @@ namespace AnyDeck.Services
                 SelfMute = m.GetBoolean();
             if (data.TryGetProperty("deaf", out var d) && (d.ValueKind == JsonValueKind.True || d.ValueKind == JsonValueKind.False))
                 SelfDeaf = d.GetBoolean();
+            if (data.TryGetProperty("input", out var inp) && inp.TryGetProperty("volume", out var iv) && iv.ValueKind == JsonValueKind.Number)
+                InputVolume = (int)Math.Round(iv.GetDouble());
+            if (data.TryGetProperty("output", out var outp) && outp.TryGetProperty("volume", out var ov) && ov.ValueKind == JsonValueKind.Number)
+                OutputVolume = (int)Math.Round(ov.GetDouble());
+            if (data.TryGetProperty("mode", out var mode) && mode.TryGetProperty("type", out var mt) && mt.ValueKind == JsonValueKind.String)
+                VoiceMode = mt.GetString() ?? "";
             _ = BroadcastStateAsync();
         }
 
@@ -313,8 +477,7 @@ namespace AnyDeck.Services
         {
             try
             {
-                await _hub.Clients.All.SendAsync("ReceiveDiscordState",
-                    new { connected = Connected, mute = SelfMute, deaf = SelfDeaf });
+                await _hub.Clients.All.SendAsync("ReceiveDiscordState", GetStatePayload());
             }
             catch { }
         }
@@ -325,6 +488,9 @@ namespace AnyDeck.Services
             try { _pipe?.Dispose(); } catch { }
             _pipe = null;
             Connected = false;
+            VoiceChannelId = null;
+            VoiceChannelName = null;
+            _participants = new();
             foreach (var kv in _pending) kv.Value.TrySetCanceled();
             _pending.Clear();
         }

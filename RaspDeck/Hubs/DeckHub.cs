@@ -26,8 +26,7 @@ namespace AnyDeck.Hubs
             {
                 try
                 {
-                    await Clients.Caller.SendAsync("ReceiveDiscordState",
-                        new { connected = discord.Connected, mute = discord.SelfMute, deaf = discord.SelfDeaf });
+                    await Clients.Caller.SendAsync("ReceiveDiscordState", discord.GetStatePayload());
                 }
                 catch { }
             }

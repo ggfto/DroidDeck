@@ -48,8 +48,28 @@ namespace AnyDeck.Controllers
         }
 
         [HttpGet("state")]
-        public IActionResult State() =>
-            Ok(new { connected = _discord.Connected, mute = _discord.SelfMute, deaf = _discord.SelfDeaf });
+        public IActionResult State() => Ok(_discord.GetStatePayload());
+
+        [HttpGet("guilds")]
+        public async Task<IActionResult> Guilds()
+        {
+            try { return Ok(await _discord.GetGuildsAsync()); }
+            catch (System.Exception ex) { return StatusCode(502, new { error = ex.Message }); }
+        }
+
+        [HttpGet("channels/{guildId}")]
+        public async Task<IActionResult> Channels(string guildId)
+        {
+            try { return Ok(await _discord.GetChannelsAsync(guildId)); }
+            catch (System.Exception ex) { return StatusCode(502, new { error = ex.Message }); }
+        }
+
+        [HttpGet("voice-channel")]
+        public async Task<IActionResult> VoiceChannel()
+        {
+            try { await _discord.RefreshVoiceChannelAsync(); return Ok(_discord.GetStatePayload()); }
+            catch (System.Exception ex) { return StatusCode(502, new { error = ex.Message }); }
+        }
 
         [HttpPost("mute")]
         public async Task<IActionResult> Mute([FromBody] MuteDto? dto)

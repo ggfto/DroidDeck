@@ -247,7 +247,11 @@ namespace AnyDeck.Services
 
         private async Task ExecuteDiscordAction(DeckAction action)
         {
-            action.Parameters.TryGetValue("operation", out var op);
+            var p = action.Parameters;
+            p.TryGetValue("operation", out var op);
+            string Get(string k) => p.TryGetValue(k, out var v) ? v : "";
+            double Num(string k, double def) => double.TryParse(Get(k), out var v) ? v : def;
+
             switch ((op ?? "toggleMute").Trim().ToLowerInvariant())
             {
                 case "toggledeafen":
@@ -260,6 +264,58 @@ namespace AnyDeck.Services
                 case "unmute":
                     await _discord.SetMuteAsync(false);
                     break;
+
+                // Canal de voz
+                case "joinchannel":
+                    if (!string.IsNullOrEmpty(Get("channelId")))
+                        await _discord.SelectVoiceChannelAsync(Get("channelId"));
+                    break;
+                case "leavechannel":
+                case "disconnect":
+                    await _discord.SelectVoiceChannelAsync(null);
+                    break;
+
+                // Volume de mic / saída
+                case "inputvolumeup":
+                    await _discord.NudgeInputVolumeAsync(Num("delta", 10));
+                    break;
+                case "inputvolumedown":
+                    await _discord.NudgeInputVolumeAsync(-Num("delta", 10));
+                    break;
+                case "outputvolumeup":
+                    await _discord.NudgeOutputVolumeAsync(Num("delta", 10));
+                    break;
+                case "outputvolumedown":
+                    await _discord.NudgeOutputVolumeAsync(-Num("delta", 10));
+                    break;
+                case "setinputvolume":
+                    await _discord.SetInputVolumeAsync(Num("value", 100));
+                    break;
+                case "setoutputvolume":
+                    await _discord.SetOutputVolumeAsync(Num("value", 100));
+                    break;
+
+                // Modo de voz
+                case "togglevoicemode":
+                case "toggleptt":
+                    await _discord.ToggleVoiceModeAsync();
+                    break;
+                case "setvoicemode":
+                    await _discord.SetVoiceModeAsync(
+                        string.IsNullOrEmpty(Get("mode")) ? "VOICE_ACTIVITY" : Get("mode"));
+                    break;
+
+                // Por usuário
+                case "usermute":
+                case "usermutetoggle":
+                    if (!string.IsNullOrEmpty(Get("userId")))
+                        await _discord.ToggleUserMuteAsync(Get("userId"));
+                    break;
+                case "uservolume":
+                    if (!string.IsNullOrEmpty(Get("userId")))
+                        await _discord.SetUserVoiceAsync(Get("userId"), null, Num("value", 100));
+                    break;
+
                 default: // toggleMute
                     await _discord.SetMuteAsync(null);
                     break;
