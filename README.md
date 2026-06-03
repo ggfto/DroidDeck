@@ -1,43 +1,63 @@
 # AnyDeck
 
-Small notes to build and run the project locally (Windows).
+Transforma um celular Android num **Stream Deck** para o PC Windows: atalhos, macros,
+monitores ao vivo (CPU/GPU/RAM/Rede), **controle de volume por app**, controle de **mídia**
+e um **plugin de Discord** (mute/deafen, entrar em canal de voz, volume, modo de voz, por-usuário).
 
-## Build
+Monorepo com as duas metades do projeto, que evoluem juntas.
 
-From a PowerShell prompt in repository root:
+## Estrutura
 
-```powershell
-Set-Location -Path 'G:\ggfto\AnyDeck\RaspDeck'
-dotnet build -c Debug
+```
+AnyDeck/
+  RaspDeck/      Backend C# (.NET 8 / WinForms tray + ASP.NET Core + SignalR). Serve a API e o web.
+  app/           App Flutter (companion): runtime no celular + configurador web (mesmo código).
+  tests/         Testes do backend.
+  scripts/       Utilitários (deploy do web para o wwwroot).
 ```
 
-## Run
+O app e o backend compartilham um contrato: **REST** (`/api/...`), **SignalR** (`/deckHub`) e
+**discovery UDP** (porta 7573). Autenticação por API key (`X-API-KEY` no REST, `access_token`
+na query do SignalR), com a chave em `%LocalAppData%\AnyDeck\apikey`. Pareamento por QR.
+
+## Backend (RaspDeck)
 
 ```powershell
-dotnet run -c Debug
+# rodar (app de bandeja + servidor web em http://localhost:5000)
+Set-Location 'G:\ggfto\AnyDeck\RaspDeck'; dotnet run
+
+# build
+dotnet build 'G:\ggfto\AnyDeck\AnyDeck.sln' -c Debug
 ```
 
-- The application is a WinForms desktop app that also starts an embedded ASP.NET Core web server.
-- The web API runs in the same process and, in development, is reachable at `http://localhost:5000` (default Kestrel endpoints).
+Modos: padrão (bandeja), `--headless` (só servidor), `--print-pairing` (imprime a URI/QR e sai).
 
-## Shutdown
+## App (Flutter, em `app/`)
 
-- The web host observes a `CancellationToken` which is triggered when the WinForms `Application.Run` ends. The `DiscoveryServer` is registered as a hosted background service and will stop gracefully on cancellation.
+```powershell
+Set-Location 'G:\ggfto\AnyDeck\app'
 
-## Logging
+# Web (configurador) -> deploya no wwwroot que o backend serve:
+..\scripts\deploy-web.ps1            # flutter build web + copia para RaspDeck/wwwroot
 
-- NLog configuration lives in `RaspDeck/NLog.config` and controls file logging (default path: LocalApplicationData/AnyDeck.log).
-- The application also uses `Microsoft.Extensions.Logging` (ILogger<T>) across hosted services and controllers; the host is configured to use console logging and will attempt to wire NLog as a provider when `NLog.Extensions.Logging` is available.
+# APK (celular):
+flutter build apk --debug --target-platform android-arm64
+adb install -r build\app\outputs\flutter-apk\app-debug.apk
+```
 
-## Tests
+- No **navegador** (servido pelo PC) o app abre direto no **configurador** (edição de perfis,
+  drag-and-drop, propriedades). No **celular** ele é o **runtime** (a grade de botões que cabe
+  na tela; o celular reporta as dimensões da grade ao PC).
+- O configurador autentica sem QR via `/api/pairing/local-key` (só em loopback).
 
-- A test project skeleton `AnyDeck.Tests` exists. Expand tests to cover services and controllers. The current unit test is a simple placeholder.
+## Discord
 
-## Next steps
+Requer um app no Discord Developer Portal (Client ID + Secret) com o redirect
+`http://localhost:5000/discord` salvo em OAuth2 → Redirects. Configurado via
+`POST /api/discord/config`; o token fica em `%LocalAppData%\AnyDeck\discord.json` e reconecta
+sozinho no startup. Câmera/compartilhar tela não são possíveis (RPC privado da Discord).
 
-- Add unit tests for `MixerService` using abstractions for NAudio to allow mocking.
-- Protect sensitive endpoints (e.g., `SoftwareController`) with authentication/authorization.
-- Consider serving static files via ASP.NET Core `UseStaticFiles()` instead of `PostBuild` copy.
+## Histórico
 
----
-Created/updated by automation.
+`app/` foi incorporado a partir do antigo repositório `companion` via `git subtree`
+(histórico preservado). O repo `companion` foi arquivado.
