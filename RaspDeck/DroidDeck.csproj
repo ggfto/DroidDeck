@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <Compile Remove="AnyDeck.Tests\**" />
+    <Compile Remove="DroidDeck.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>

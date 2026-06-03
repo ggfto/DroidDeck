@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using AnyDeck.Hubs;
-using AnyDeck.Models;
-using AnyDeck.Services;
+using DroidDeck.Hubs;
+using DroidDeck.Models;
+using DroidDeck.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
-namespace AnyDeck.Controllers
+namespace DroidDeck.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

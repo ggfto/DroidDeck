@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using AnyDeck.Models;
+using DroidDeck.Models;
 using Microsoft.Extensions.Logging;
 
-namespace AnyDeck.Services
+namespace DroidDeck.Services
 {
     public class StreamDeckConfigService
     {
@@ -32,7 +32,7 @@ namespace AnyDeck.Services
 
             var baseDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "AnyDeck"
+                "DroidDeck"
             );
             _profilesDirectory = Path.Combine(baseDir, "Profiles");
             _layoutPath = Path.Combine(baseDir, "layout.json");

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace AnyDeck.Services
+namespace DroidDeck.Services
 {
     /// <summary>
     /// No startup, tenta reconectar ao Discord usando o token já salvo (sem popup).

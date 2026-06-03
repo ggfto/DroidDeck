@@ -4,7 +4,7 @@ import 'package:companion/core/core.dart';
 import 'package:companion/src/services/signalr_service.dart';
 
 class HomeController {
-  final AnyDeckClient _client = Injector.get<AnyDeckClient>();
+  final DroidDeckClient _client = Injector.get<DroidDeckClient>();
   final SignalRService _signalR = Injector.get<SignalRService>();
 
   late final outputs = signal<List<MixerEntity>>([]);

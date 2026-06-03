@@ -1,5 +1,5 @@
-using AnyDeck.Hubs;
-using AnyDeck.Models;
+using DroidDeck.Hubs;
+using DroidDeck.Models;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AnyDeck.Services
+namespace DroidDeck.Services
 {
     public class SystemMonitorService : BackgroundService
     {

@@ -1,9 +1,9 @@
-using AnyDeck.Software;
+using DroidDeck.Software;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using Xunit;
 
-namespace AnyDeck.Tests
+namespace DroidDeck.Tests
 {
     public class SoftwareDataTests
     {

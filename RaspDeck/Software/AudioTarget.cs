@@ -1,4 +1,4 @@
-namespace AnyDeck.Software
+namespace DroidDeck.Software
 {
     public class AudioTarget
     {

@@ -1,7 +1,7 @@
-﻿using Hanssens.Net;
+using Hanssens.Net;
 using System;
 
-namespace AnyDeck.Lib
+namespace DroidDeck.Lib
 {
     public class DBHelper
     {

@@ -5,15 +5,15 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
-using AnyDeck.Audio;
+using DroidDeck.Audio;
 
-namespace AnyDeck.Tests
+namespace DroidDeck.Tests
 {
-    public class IntegrationTests : IClassFixture<WebApplicationFactory<AnyDeck.Program>>
+    public class IntegrationTests : IClassFixture<WebApplicationFactory<DroidDeck.Program>>
     {
-        private readonly WebApplicationFactory<AnyDeck.Program> _factory;
+        private readonly WebApplicationFactory<DroidDeck.Program> _factory;
 
-        public IntegrationTests(WebApplicationFactory<AnyDeck.Program> factory)
+        public IntegrationTests(WebApplicationFactory<DroidDeck.Program> factory)
         {
             _factory = factory;
         }

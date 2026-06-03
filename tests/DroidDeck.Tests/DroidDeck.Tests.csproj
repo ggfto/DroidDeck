@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\RaspDeck\AnyDeck.csproj" />
+    <ProjectReference Include="..\..\RaspDeck\DroidDeck.csproj" />
   </ItemGroup>
 
 </Project>

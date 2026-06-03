@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace AnyDeck.Lib
+namespace DroidDeck.Lib
 {
     public class Log
     {
@@ -134,7 +134,7 @@ namespace AnyDeck.Lib
             {
                 target = new NLog.Targets.FileTarget("logfile")
                 {
-                    FileName = Path.Combine(logpath, "AnyDeck.log"),
+                    FileName = Path.Combine(logpath, "DroidDeck.log"),
                     Layout = "${longdate}|${level}|${message}|${exception:format=tostring}"
                 };
             }
@@ -155,9 +155,9 @@ namespace AnyDeck.Lib
         private static string GetPlaformFolder()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                return "${specialfolder:folder=UserProfile}/Library/Preferences/AnyDeck.log";
+                return "${specialfolder:folder=UserProfile}/Library/Preferences/DroidDeck.log";
 
-            return "${specialfolder:folder=LocalApplicationData}/AnyDeck.log";
+            return "${specialfolder:folder=LocalApplicationData}/DroidDeck.log";
         }
         #endregion
     }

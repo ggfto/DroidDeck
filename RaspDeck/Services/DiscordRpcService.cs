@@ -8,11 +8,11 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using AnyDeck.Hubs;
+using DroidDeck.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
-namespace AnyDeck.Services
+namespace DroidDeck.Services
 {
     public class DiscordConfig
     {
@@ -71,13 +71,13 @@ namespace AnyDeck.Services
             _hub = hub;
         }
 
-        // ---- Config persistida em %LocalAppData%\AnyDeck\discord.json ----
+        // ---- Config persistida em %LocalAppData%\DroidDeck\discord.json ----
         private static string ConfigPath
         {
             get
             {
                 var dir = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AnyDeck");
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DroidDeck");
                 Directory.CreateDirectory(dir);
                 return Path.Combine(dir, "discord.json");
             }

@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace AnyDeck.Services
+namespace DroidDeck.Services
 {
     public class AppActivator : IAppActivator
     {

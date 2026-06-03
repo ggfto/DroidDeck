@@ -1,9 +1,9 @@
-using AnyDeck.Audio;
+using DroidDeck.Audio;
 using NAudio.CoreAudioApi;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AnyDeck.Audio
+namespace DroidDeck.Audio
 {
     internal class NAudioSessionAdapter : IAudioSession
     {

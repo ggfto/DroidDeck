@@ -2,7 +2,7 @@ using System;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 
-namespace AnyDeck.Hubs
+namespace DroidDeck.Hubs
 {
     public class DeckHub : Hub
     {

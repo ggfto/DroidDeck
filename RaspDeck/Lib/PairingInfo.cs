@@ -1,7 +1,7 @@
-using AnyDeck.Auth;
+using DroidDeck.Auth;
 using QRCoder;
 
-namespace AnyDeck.Lib
+namespace DroidDeck.Lib
 {
     /// <summary>
     /// Monta os dados de pareamento (URI + QR) compartilhados pela janela de bandeja
@@ -11,12 +11,12 @@ namespace AnyDeck.Lib
     {
         public const int Port = 5000;
 
-        /// <summary>URI escaneada pelo app: anydeck://pair?ip=..&port=..&key=..</summary>
+        /// <summary>URI escaneada pelo app: droiddeck://pair?ip=..&port=..&key=..</summary>
         public static string BuildUri()
         {
             var ip = NetworkInfo.GetLanIp();
             var key = ApiKeyProvider.GetKey();
-            return $"anydeck://pair?ip={ip}&port={Port}&key={key}";
+            return $"droiddeck://pair?ip={ip}&port={Port}&key={key}";
         }
 
         public static byte[] BuildQrPng(string uri, int pixelsPerModule = 10)

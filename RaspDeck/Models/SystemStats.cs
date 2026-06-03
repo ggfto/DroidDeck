@@ -1,4 +1,4 @@
-namespace AnyDeck.Models
+namespace DroidDeck.Models
 {
     public class SystemStats
     {

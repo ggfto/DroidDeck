@@ -2,10 +2,10 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
-using AnyDeck.Auth;
-using AnyDeck.Lib;
+using DroidDeck.Auth;
+using DroidDeck.Lib;
 
-namespace AnyDeck
+namespace DroidDeck
 {
     /// <summary>
     /// Janela de pareamento: exibe um QR com ip+porta+chave para o app escanear.
@@ -15,7 +15,7 @@ namespace AnyDeck
     {
         public frmPairing()
         {
-            Text = "AnyDeck — Parear dispositivo";
+            Text = "DroidDeck — Parear dispositivo";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -28,7 +28,7 @@ namespace AnyDeck
 
             var info = new Label
             {
-                Text = "No app AnyDeck, vá em Configurar → Parear (QR)\ne escaneie este código para conectar com segurança.",
+                Text = "No app DroidDeck, vá em Configurar → Parear (QR)\ne escaneie este código para conectar com segurança.",
                 Location = new Point(10, 8),
                 Size = new Size(340, 40),
                 TextAlign = ContentAlignment.MiddleCenter,

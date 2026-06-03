@@ -1,15 +1,15 @@
-﻿using AnyDeck.Mixer;
+using DroidDeck.Mixer;
 using NAudio.CoreAudioApi;
 using Microsoft.Extensions.Logging;
 
-namespace AnyDeck.Services
+namespace DroidDeck.Services
 {
     public class MixerService
     {
         private readonly ILogger<MixerService> _logger;
-        private readonly AnyDeck.Audio.IAudioDeviceEnumerator _enumerator;
+        private readonly DroidDeck.Audio.IAudioDeviceEnumerator _enumerator;
 
-        public MixerService(ILogger<MixerService> logger, AnyDeck.Audio.IAudioDeviceEnumerator enumerator)
+        public MixerService(ILogger<MixerService> logger, DroidDeck.Audio.IAudioDeviceEnumerator enumerator)
         {
             _logger = logger;
             _enumerator = enumerator;

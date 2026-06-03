@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using NAudio.CoreAudioApi;
 
-namespace AnyDeck.Services
+namespace DroidDeck.Services
 {
     public class AudioControlService : IAudioControlService
     {
-        private readonly AnyDeck.Audio.IAudioDeviceEnumerator _enumerator;
+        private readonly DroidDeck.Audio.IAudioDeviceEnumerator _enumerator;
 
-        public AudioControlService(AnyDeck.Audio.IAudioDeviceEnumerator enumerator)
+        public AudioControlService(DroidDeck.Audio.IAudioDeviceEnumerator enumerator)
         {
             _enumerator = enumerator;
         }

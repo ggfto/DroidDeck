@@ -1,4 +1,4 @@
-name: AnyDeck Tests
+name: DroidDeck Tests
 
 on:
   push:

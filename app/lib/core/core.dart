@@ -14,18 +14,18 @@ export 'package:dio/dio.dart';
 export 'package:signals_flutter/signals_flutter.dart'
     hide AsyncState, AsyncStateBuilder;
 
-export 'anydeck_client/anydeck_client.dart';
-export 'anydeck_client/models/mixer_data.dart';
-export 'anydeck_client/models/software_data.dart';
-export 'anydeck_client/models/audio_target.dart';
-export 'anydeck_client/models/mixer_entity.dart';
-export 'anydeck_client/models/mixer_master.dart';
-export 'anydeck_client/models/mixer_config.dart';
-export 'anydeck_client/models/mixer_channel.dart';
-export 'anydeck_client/models/media_session.dart';
-export 'anydeck_client/models/deck_profile.dart';
-export 'anydeck_client/models/deck_button.dart';
-export 'anydeck_client/models/deck_action.dart';
+export 'droiddeck_client/droiddeck_client.dart';
+export 'droiddeck_client/models/mixer_data.dart';
+export 'droiddeck_client/models/software_data.dart';
+export 'droiddeck_client/models/audio_target.dart';
+export 'droiddeck_client/models/mixer_entity.dart';
+export 'droiddeck_client/models/mixer_master.dart';
+export 'droiddeck_client/models/mixer_config.dart';
+export 'droiddeck_client/models/mixer_channel.dart';
+export 'droiddeck_client/models/media_session.dart';
+export 'droiddeck_client/models/deck_profile.dart';
+export 'droiddeck_client/models/deck_button.dart';
+export 'droiddeck_client/models/deck_action.dart';
 
 export 'ui/molecules/volume_control.dart';
 export 'ui/molecules/media_control_widget.dart';

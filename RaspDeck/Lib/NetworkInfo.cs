@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace AnyDeck.Lib
+namespace DroidDeck.Lib
 {
     public static class NetworkInfo
     {

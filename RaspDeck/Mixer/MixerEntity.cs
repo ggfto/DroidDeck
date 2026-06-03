@@ -1,6 +1,6 @@
-﻿using AnyDeck.Lib;
+using DroidDeck.Lib;
 
-namespace AnyDeck.Mixer
+namespace DroidDeck.Mixer
 {
     public class MixerEntity
     {

@@ -1,19 +1,19 @@
-namespace AnyDeck
+namespace DroidDeck
 {
     public class MixerData
     {
         /// <summary>
-        /// ID da sessão de áudio (processo). Se -1, aplica ao dispositivo inteiro.
+        /// ID da sessï¿½o de ï¿½udio (processo). Se -1, aplica ao dispositivo inteiro.
         /// </summary>
         public int Session { get; set; } = -1;
 
         /// <summary>
-        /// Volume em percentual (0 a 100). Null significa "não alterar".
+        /// Volume em percentual (0 a 100). Null significa "nï¿½o alterar".
         /// </summary>
         public int? Volume { get; set; }
 
         /// <summary>
-        /// True = mudo, False = não mudo, Null = "não alterar"
+        /// True = mudo, False = nï¿½o mudo, Null = "nï¿½o alterar"
         /// </summary>
         public bool? Mute { get; set; }
 

@@ -2,21 +2,21 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using AnyDeck.Controllers;
-using AnyDeck.Services;
+using DroidDeck.Controllers;
+using DroidDeck.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AnyDeck.Tests
+namespace DroidDeck.Tests
 {
     public class MixerControllerTests
     {
         [Fact]
         public void GetAllOutputs_ReturnsOk()
         {
-                var mockEnum = new Mock<AnyDeck.Audio.IAudioDeviceEnumerator>();
+                var mockEnum = new Mock<DroidDeck.Audio.IAudioDeviceEnumerator>();
                 var mockLoggerSvc = new Mock<ILogger<MixerService>>();
                 mockEnum.Setup(e => e.EnumerateAudioEndPoints(It.IsAny<NAudio.CoreAudioApi.DataFlow>(), It.IsAny<NAudio.CoreAudioApi.DeviceState>()))
-                    .Returns(new List<AnyDeck.Audio.IAudioDevice>());
+                    .Returns(new List<DroidDeck.Audio.IAudioDevice>());
 
                 var service = new MixerService(mockLoggerSvc.Object, mockEnum.Object);
                 var mockLogger = new Mock<ILogger<MixerController>>();

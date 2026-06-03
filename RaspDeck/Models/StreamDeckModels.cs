@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace AnyDeck.Models
+namespace DroidDeck.Models
 {
     public class DeckProfile
     {

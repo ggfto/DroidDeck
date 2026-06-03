@@ -2,7 +2,7 @@ using NAudio.CoreAudioApi;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AnyDeck
+namespace DroidDeck
 {
     public class MixerMaster
     {
@@ -17,7 +17,7 @@ namespace AnyDeck
             newMaster(device);
         }
 
-        public MixerMaster(AnyDeck.Audio.IAudioDevice device)
+        public MixerMaster(DroidDeck.Audio.IAudioDevice device)
         {
             // construct from abstraction
             Id = device.Id;
@@ -96,7 +96,7 @@ namespace AnyDeck
             return devices;
         }
 
-        public static List<MixerMaster> GetAllMixers(AnyDeck.Audio.IAudioDeviceEnumerator enumerator, DataFlow dataFlow, DeviceState deviceState)
+        public static List<MixerMaster> GetAllMixers(DroidDeck.Audio.IAudioDeviceEnumerator enumerator, DataFlow dataFlow, DeviceState deviceState)
         {
             var devices = new List<MixerMaster>();
             foreach (var d in enumerator.EnumerateAudioEndPoints(dataFlow, deviceState))

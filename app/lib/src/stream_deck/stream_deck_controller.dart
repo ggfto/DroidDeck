@@ -1,8 +1,8 @@
-import 'package:companion/core/core.dart'; // Contains AnyDeckClient, DeckProfile, etc.
+import 'package:companion/core/core.dart'; // Contains DroidDeckClient, DeckProfile, etc.
 import 'package:flutter/foundation.dart';
 
 class StreamDeckController {
-  final AnyDeckClient _client = Injector.get<AnyDeckClient>();
+  final DroidDeckClient _client = Injector.get<DroidDeckClient>();
 
   // Signals state
   final isLoading = signal(false);

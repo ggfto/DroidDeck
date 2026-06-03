@@ -760,17 +760,17 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   }
 
   Future<void> _loadGuilds() async {
-    final g = await Injector.get<AnyDeckClient>().getDiscordGuilds();
+    final g = await Injector.get<DroidDeckClient>().getDiscordGuilds();
     if (mounted) setState(() => _dcGuilds = g);
   }
 
   Future<void> _loadChannels(String guildId) async {
-    final c = await Injector.get<AnyDeckClient>().getDiscordChannels(guildId);
+    final c = await Injector.get<DroidDeckClient>().getDiscordChannels(guildId);
     if (mounted) setState(() => _dcChannels = c);
   }
 
   Future<void> _loadParticipants() async {
-    final s = await Injector.get<AnyDeckClient>().getDiscordState();
+    final s = await Injector.get<DroidDeckClient>().getDiscordState();
     final list = (s?['participants'] as List?) ?? [];
     if (mounted) {
       setState(() => _dcParticipants =
@@ -934,7 +934,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
 
     fields.add(const Padding(
       padding: EdgeInsets.only(top: 6),
-      child: Text('Requer o Discord conectado no PC (config do AnyDeck).',
+      child: Text('Requer o Discord conectado no PC (config do DroidDeck).',
           style: TextStyle(fontSize: 11, color: Colors.grey)),
     ));
     return fields;

@@ -8,11 +8,11 @@ import 'models/media_session.dart';
 import 'models/deck_profile.dart';
 import 'models/deck_action.dart';
 
-class AnyDeckClient {
+class DroidDeckClient {
   final Dio _dio;
   final String baseUrl;
 
-  AnyDeckClient({
+  DroidDeckClient({
     required String baseUrl,
     Dio? dio,
   })  : _dio = dio ?? Dio(),

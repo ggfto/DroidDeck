@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace AnyDeck.Lib
+namespace DroidDeck.Lib
 {
     internal class DiscoveryServer : BackgroundService
     {
@@ -59,7 +59,7 @@ namespace AnyDeck.Lib
                         string dataReceived = Encoding.ASCII.GetString(result.Buffer);
                         _logger.LogDebug("[Discovery] Recebido '{Data}' de {Remote}", dataReceived, result.RemoteEndPoint);
 
-                        if ("AnyDeckDiscoveryRequest".Equals(dataReceived))
+                        if ("DroidDeckDiscoveryRequest".Equals(dataReceived))
                         {
                             string responseMessage = "{\"ip\": \"IP_ADDR\", \"name\": \"COMPUTER_NAME\"}";
                             responseMessage = responseMessage.Replace("IP_ADDR", ipAddress);

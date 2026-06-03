@@ -1,5 +1,5 @@
 
-namespace AnyDeck
+namespace DroidDeck
 {
   partial class frmPrincipal
   {
@@ -36,9 +36,9 @@ namespace AnyDeck
             // 
             // ntiTray
             // 
-            this.ntiTray.BalloonTipTitle = "AnyDeck";
+            this.ntiTray.BalloonTipTitle = "DroidDeck";
             this.ntiTray.Icon = ((System.Drawing.Icon)(resources.GetObject("ntiTray.Icon")));
-            this.ntiTray.Text = "AnyDeck";
+            this.ntiTray.Text = "DroidDeck";
             // 
             // frmPrincipal
             // 
@@ -48,7 +48,7 @@ namespace AnyDeck
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "frmPrincipal";
-            this.Text = "AnyDeck";
+            this.Text = "DroidDeck";
             this.ResumeLayout(false);
 
         }

@@ -150,7 +150,7 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
     _reportedRows = g.rows;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        Injector.get<AnyDeckClient>().saveLayout(g.rows, g.cols);
+        Injector.get<DroidDeckClient>().saveLayout(g.rows, g.cols);
       } catch (_) {}
     });
   }

@@ -22,7 +22,7 @@ class SplashPageState extends State<SplashPage> {
   Future<void> _checkConfig() async {
     if (kIsWeb) {
       // O web é servido pelo próprio PC: pega a chave via loopback (sem QR).
-      final client = Injector.get<AnyDeckClient>();
+      final client = Injector.get<DroidDeckClient>();
       final signalR = Injector.get<SignalRService>();
       final origin = Uri.base.origin;
       client.setBaseUrl(origin);
@@ -45,7 +45,7 @@ class SplashPageState extends State<SplashPage> {
     if (ip != null && ip.isNotEmpty && mounted) {
       final baseUrl = 'http://$ip:5000';
 
-      final client = Injector.get<AnyDeckClient>();
+      final client = Injector.get<DroidDeckClient>();
       client.setBaseUrl(baseUrl);
       client.setApiKey(apiKey);
 

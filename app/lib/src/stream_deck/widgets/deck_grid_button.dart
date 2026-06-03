@@ -47,7 +47,7 @@ class _DeckGridButtonState extends State<DeckGridButton> {
       try {
         final sr = Injector.get<SignalRService>();
         if (!sr.muteStates.value.containsKey(p)) {
-          Injector.get<AnyDeckClient>().getMuteState(p).then((m) {
+          Injector.get<DroidDeckClient>().getMuteState(p).then((m) {
             if (m != null && mounted) {
               final cur = Map<String, bool>.from(sr.muteStates.value);
               cur[p] = m;
@@ -60,7 +60,7 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     if (_discordOp != null) {
       try {
         final sr = Injector.get<SignalRService>();
-        Injector.get<AnyDeckClient>().getDiscordState().then((s) {
+        Injector.get<DroidDeckClient>().getDiscordState().then((s) {
           if (s != null && mounted) {
             sr.discordState.value = Map<String, dynamic>.from(s);
           }

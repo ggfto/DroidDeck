@@ -2,16 +2,33 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
-using AnyDeck.Controllers;
-using AnyDeck.Software;
-using AnyDeck.Services;
+using DroidDeck.Controllers;
+using DroidDeck.Software;
+using DroidDeck.Services;
 
-namespace AnyDeck.Tests
+namespace DroidDeck.Tests
 {
-    public class SoftwareAudioControllerTests
+    public class SoftwareControllerTests
     {
         [Fact]
-        public void Mute_ReturnsBadRequest_WhenNoProcess()
+        public void Activate_ReturnsForbid_WhenFeatureDisabled()
+        {
+            var inMemory = new System.Collections.Generic.Dictionary<string, string?>
+            {
+                { "EnableSoftwareActivation", "false" }
+            };
+            var cfg = new ConfigurationBuilder().AddInMemoryCollection(inMemory).Build();
+            var mockActivator = new Mock<IAppActivator>();
+            var mockAudio = new Mock<DroidDeck.Services.IAudioControlService>();
+            var controller = new SoftwareController(cfg, mockActivator.Object, mockAudio.Object);
+
+            var result = controller.Activate(new SoftwareData { Name = "SomeApp", Action = "" });
+
+            Assert.IsType<ForbidResult>(result);
+        }
+
+        [Fact]
+        public void Activate_ReturnsBadRequest_WhenModelInvalid()
         {
             var inMemory = new System.Collections.Generic.Dictionary<string, string?>
             {
@@ -19,31 +36,13 @@ namespace AnyDeck.Tests
             };
             var cfg = new ConfigurationBuilder().AddInMemoryCollection(inMemory).Build();
             var mockActivator = new Mock<IAppActivator>();
-            var mockAudio = new Mock<IAudioControlService>();
+            var mockAudio = new Mock<DroidDeck.Services.IAudioControlService>();
             var controller = new SoftwareController(cfg, mockActivator.Object, mockAudio.Object);
+            controller.ModelState.AddModelError("Name", "Required");
 
-            var result = controller.Mute(null);
+            var result = controller.Activate(new SoftwareData());
 
-            Assert.IsType<BadRequestResult>(result);
-        }
-
-        [Fact]
-        public void ToggleMute_ReturnsForbid_WhenNotAllowed()
-        {
-            var inMemory = new System.Collections.Generic.Dictionary<string, string?>
-            {
-                { "EnableSoftwareActivation", "true" },
-                { "AllowedTargets", "OtherApp" }
-            };
-            var cfg = new ConfigurationBuilder().AddInMemoryCollection(inMemory).Build();
-            var mockActivator = new Mock<IAppActivator>();
-            var mockAudio = new Mock<IAudioControlService>();
-            var controller = new SoftwareController(cfg, mockActivator.Object, mockAudio.Object);
-
-            var payload = new AnyDeck.Software.AudioTarget { ProcessName = "Discord" };
-            var result = controller.ToggleMute(payload);
-
-            Assert.IsType<ForbidResult>(result);
+            Assert.IsType<BadRequestObjectResult>(result);
         }
     }
 }

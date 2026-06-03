@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Windows.Storage.Streams;
 using Microsoft.Extensions.Logging;
 
-namespace AnyDeck.Services
+namespace DroidDeck.Services
 {
     public class MediaControlService
     {

@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using AnyDeck.Software;
+using DroidDeck.Software;
 using System;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace AnyDeck.Controllers
+namespace DroidDeck.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

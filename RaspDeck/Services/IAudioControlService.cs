@@ -1,4 +1,4 @@
-namespace AnyDeck.Services
+namespace DroidDeck.Services
 {
     public interface IAudioControlService
     {

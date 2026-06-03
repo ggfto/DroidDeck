@@ -1,11 +1,11 @@
-using AnyDeck.Services;
-using AnyDeck.Hubs;
+using DroidDeck.Services;
+using DroidDeck.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using NAudio.CoreAudioApi;
 using Microsoft.Extensions.Logging;
 
-namespace AnyDeck.Controllers
+namespace DroidDeck.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]

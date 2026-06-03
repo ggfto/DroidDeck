@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Diagnostics;
 using System.IO;
-using AnyDeck.Lib;
+using DroidDeck.Lib;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +12,7 @@ using Microsoft.Extensions.Configuration.Json;
 using NLog.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 
-namespace AnyDeck
+namespace DroidDeck
 {
     public class Program
     {
@@ -29,7 +29,7 @@ namespace AnyDeck
             {
                 var uri = Lib.PairingInfo.BuildUri();
                 Console.WriteLine(uri);
-                var pngPath = Path.Combine(Path.GetTempPath(), "anydeck-pair.png");
+                var pngPath = Path.Combine(Path.GetTempPath(), "droiddeck-pair.png");
                 File.WriteAllBytes(pngPath, Lib.PairingInfo.BuildQrPng(uri));
                 Console.WriteLine("QR_PNG=" + pngPath);
                 return;
@@ -93,7 +93,7 @@ namespace AnyDeck
 
                         // Authentication: API Key
                         services.AddAuthentication("ApiKey")
-                                .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AnyDeck.Auth.ApiKeyAuthenticationHandler>("ApiKey", null);
+                                .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, DroidDeck.Auth.ApiKeyAuthenticationHandler>("ApiKey", null);
                         services.AddAuthorization(options =>
                         {
                             // Exige a API key em TODOS os endpoints, exceto os marcados [AllowAnonymous].
@@ -102,8 +102,8 @@ namespace AnyDeck
                                 .Build();
                         });
 
-                        services.AddSingleton<AnyDeck.Audio.IAudioDeviceEnumerator, AnyDeck.Audio.NAudioDeviceEnumerator>();
-                        services.AddSingleton<AnyDeck.Services.MixerService>();
+                        services.AddSingleton<DroidDeck.Audio.IAudioDeviceEnumerator, DroidDeck.Audio.NAudioDeviceEnumerator>();
+                        services.AddSingleton<DroidDeck.Services.MixerService>();
 
                         // Conditional Discovery registration (respects env/config)
                         try
@@ -115,7 +115,7 @@ namespace AnyDeck
                             var enableDiscovery = cfg["EnableDiscovery"];
                             if (!string.IsNullOrEmpty(enableDiscovery) && enableDiscovery.ToLowerInvariant() == "true")
                             {
-                                services.AddHostedService<AnyDeck.Lib.DiscoveryServer>();
+                                services.AddHostedService<DroidDeck.Lib.DiscoveryServer>();
                                 Console.WriteLine("[Discovery] Serviço registrado.");
                             }
                             else
@@ -154,7 +154,7 @@ namespace AnyDeck
                         // Register the activator service only on Windows (it uses Win32 APIs)
                         if (System.OperatingSystem.IsWindows())
                         {
-                            services.AddSingleton<AnyDeck.Services.IAppActivator, AnyDeck.Services.AppActivator>();
+                            services.AddSingleton<DroidDeck.Services.IAppActivator, DroidDeck.Services.AppActivator>();
                             services.AddSingleton<Services.MediaControlService>();
                             services.AddSingleton<Services.StreamDeckConfigService>();
                             services.AddSingleton<Services.DiscordRpcService>();
@@ -201,11 +201,11 @@ namespace AnyDeck
                                 var ip = ctx.Connection.RemoteIpAddress;
                                 if (ip == null || !System.Net.IPAddress.IsLoopback(ip))
                                     return Microsoft.AspNetCore.Http.Results.StatusCode(403);
-                                return Microsoft.AspNetCore.Http.Results.Ok(new { key = AnyDeck.Auth.ApiKeyProvider.GetKey() });
+                                return Microsoft.AspNetCore.Http.Results.Ok(new { key = DroidDeck.Auth.ApiKeyProvider.GetKey() });
                             }).AllowAnonymous();
 
                             endpoints.MapControllers();
-                            endpoints.MapHub<AnyDeck.Hubs.DeckHub>("/deckHub");
+                            endpoints.MapHub<DroidDeck.Hubs.DeckHub>("/deckHub");
                         });
                     });
                 });

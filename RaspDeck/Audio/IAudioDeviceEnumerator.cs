@@ -1,7 +1,7 @@
 using NAudio.CoreAudioApi;
 using System.Collections.Generic;
 
-namespace AnyDeck.Audio
+namespace DroidDeck.Audio
 {
     public interface IAudioDeviceEnumerator
     {

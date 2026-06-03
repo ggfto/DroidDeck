@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 
-namespace AnyDeck
+namespace DroidDeck
 {
     class Startup
     {
@@ -17,7 +17,7 @@ namespace AnyDeck
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-            AppName = Assembly.GetExecutingAssembly().GetName().Name ?? "AnyDeck";
+            AppName = Assembly.GetExecutingAssembly().GetName().Name ?? "DroidDeck";
             Version = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0");
         }
 

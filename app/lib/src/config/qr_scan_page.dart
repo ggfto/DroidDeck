@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// Tela de leitura do QR de pareamento. Retorna (via Navigator.pop) a string
-/// crua do QR (ex.: "anydeck://pair?ip=..&port=..&key=..") quando reconhece um.
+/// crua do QR (ex.: "droiddeck://pair?ip=..&port=..&key=..") quando reconhece um.
 class QrScanPage extends StatefulWidget {
   const QrScanPage({super.key});
 
@@ -17,7 +17,7 @@ class _QrScanPageState extends State<QrScanPage> {
     if (_handled) return;
     for (final barcode in capture.barcodes) {
       final value = barcode.rawValue;
-      if (value != null && value.startsWith('anydeck://')) {
+      if (value != null && value.startsWith('droiddeck://')) {
         _handled = true;
         Navigator.of(context).pop(value);
         return;

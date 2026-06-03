@@ -1,8 +1,8 @@
 using System.Threading.Tasks;
-using AnyDeck.Services;
+using DroidDeck.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AnyDeck.Controllers
+namespace DroidDeck.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

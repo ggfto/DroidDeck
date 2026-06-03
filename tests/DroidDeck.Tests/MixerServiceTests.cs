@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using AnyDeck.Services;
-using AnyDeck.Audio;
-using AnyDeck.Mixer;
+using DroidDeck.Services;
+using DroidDeck.Audio;
+using DroidDeck.Mixer;
 
-namespace AnyDeck.Tests
+namespace DroidDeck.Tests
 {
     public class MixerServiceTests
     {

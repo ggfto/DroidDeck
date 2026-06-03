@@ -83,7 +83,7 @@ class ConfigPageState extends State<ConfigPage> {
     final apiKey = prefs.getString(Constants.apiKeyKey); // mantém a chave do pareamento
 
     // Update Singletons immediately
-    final client = Injector.get<AnyDeckClient>();
+    final client = Injector.get<DroidDeckClient>();
     client.setBaseUrl(baseUrl);
     client.setApiKey(apiKey);
 
@@ -107,7 +107,7 @@ class ConfigPageState extends State<ConfigPage> {
     final key = uri?.queryParameters['key'];
 
     if (uri == null ||
-        uri.scheme != 'anydeck' ||
+        uri.scheme != 'droiddeck' ||
         ip == null ||
         ip.isEmpty ||
         key == null ||
@@ -123,7 +123,7 @@ class ConfigPageState extends State<ConfigPage> {
     await prefs.setString(Constants.ipAddrKey, ip);
     await prefs.setString(Constants.apiKeyKey, key);
 
-    final client = Injector.get<AnyDeckClient>();
+    final client = Injector.get<DroidDeckClient>();
     client.setBaseUrl(baseUrl);
     client.setApiKey(key);
     final signalR = Injector.get<SignalRService>();

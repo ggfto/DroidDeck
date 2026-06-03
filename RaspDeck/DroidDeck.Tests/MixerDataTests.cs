@@ -1,7 +1,7 @@
-using AnyDeck;
+using DroidDeck;
 using Xunit;
 
-namespace AnyDeck.Tests
+namespace DroidDeck.Tests
 {
     public class MixerDataTests
     {

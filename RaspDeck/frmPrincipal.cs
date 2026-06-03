@@ -3,17 +3,17 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace AnyDeck
+namespace DroidDeck
 {
     /// <summary>
     /// Janela invisível que serve apenas de host para o ícone de bandeja (NotifyIcon).
-    /// O AnyDeck roda como app de bandeja: o servidor web sobe em paralelo (ver Program.cs)
+    /// O DroidDeck roda como app de bandeja: o servidor web sobe em paralelo (ver Program.cs)
     /// e o usuário interage pelo menu do ícone. Não há janela visível.
     /// </summary>
     public partial class frmPrincipal : Form
     {
         private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-        private const string AppRunName = "AnyDeck";
+        private const string AppRunName = "DroidDeck";
         private const string WebUrl = "http://localhost:5000/";
 
         private ToolStripMenuItem _autoStartItem = null!;
@@ -40,7 +40,7 @@ namespace AnyDeck
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
-            ntiTray.ShowBalloonTip(3000, "AnyDeck", "Rodando na bandeja — servidor em " + WebUrl, ToolTipIcon.Info);
+            ntiTray.ShowBalloonTip(3000, "DroidDeck", "Rodando na bandeja — servidor em " + WebUrl, ToolTipIcon.Info);
         }
 
         private void BuildTrayMenu()

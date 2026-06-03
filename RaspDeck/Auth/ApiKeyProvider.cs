@@ -2,11 +2,11 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 
-namespace AnyDeck.Auth
+namespace DroidDeck.Auth
 {
     /// <summary>
     /// Carrega (ou gera na primeira vez) a chave de API forte usada para autenticar o app.
-    /// Persistida em %LocalAppData%\AnyDeck\apikey — fora do código e do repositório.
+    /// Persistida em %LocalAppData%\DroidDeck\apikey — fora do código e do repositório.
     /// Substitui a antiga chave fixa "changeme".
     /// </summary>
     public static class ApiKeyProvider
@@ -20,7 +20,7 @@ namespace AnyDeck.Auth
             {
                 var dir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AnyDeck");
+                    "DroidDeck");
                 Directory.CreateDirectory(dir);
                 return Path.Combine(dir, "apikey");
             }

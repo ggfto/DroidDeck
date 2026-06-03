@@ -40,7 +40,7 @@ class ServerDiscoveryService {
     for (var target in targets) {
       try {
         debugPrint('Discovery: Sending packet to $target:$serverPort');
-        socket.send(utf8.encode('AnyDeckDiscoveryRequest'),
+        socket.send(utf8.encode('DroidDeckDiscoveryRequest'),
             InternetAddress(target), serverPort);
       } catch (e) {
         debugPrint('Discovery: Error sending packet to $target: $e');
