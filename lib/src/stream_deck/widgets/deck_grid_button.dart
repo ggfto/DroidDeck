@@ -31,12 +31,11 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     return null;
   }
 
-  // 'mute' | 'deaf' se for um botão de Discord; senão null.
+  // Operação do Discord (crua, minúscula) se for um botão de Discord; senão null.
   String? get _discordOp {
     final a = widget.button.action;
     if (a == null || a.type != 'discord') return null;
-    final op = (a.parameters['operation'] ?? 'toggleMute').toLowerCase();
-    return op.contains('deaf') ? 'deaf' : 'mute';
+    return (a.parameters['operation'] ?? 'toggleMute').toLowerCase();
   }
 
   @override
@@ -77,8 +76,7 @@ class _DeckGridButtonState extends State<DeckGridButton> {
       // .value (não .watch(context)) é o idiomático dentro de Watch — garante rebuild.
       return Watch((context) {
         final ds = Injector.get<SignalRService>().discordState.value;
-        final active = (dop == 'deaf' ? ds['deaf'] : ds['mute']) == true;
-        return _renderDiscord(dop, active);
+        return _renderDiscord(dop, ds);
       });
     }
     final p = _muteProcess;
@@ -99,19 +97,30 @@ class _DeckGridButtonState extends State<DeckGridButton> {
   void _handleTap() {
     try {
       final sr = Injector.get<SignalRService>();
-      final op = (widget.button.action?.parameters['operation'] ?? 'toggleMute')
-          .toLowerCase();
       final dop = _discordOp;
       if (dop != null) {
-        if (op.startsWith('toggle')) {
-          final cur = Map<String, dynamic>.from(sr.discordState.value);
-          final key = dop == 'deaf' ? 'deaf' : 'mute';
-          cur[key] = !(cur[key] == true);
-          sr.discordState.value = cur;
+        // Otimismo só para toggles (mute/deaf/modo). Os demais (entrar canal,
+        // volume, etc.) atualizam pelo broadcast do backend.
+        final cur = Map<String, dynamic>.from(sr.discordState.value);
+        if (dop == 'togglemute') {
+          cur['mute'] = !(cur['mute'] == true);
+        } else if (dop.contains('deaf')) {
+          cur['deaf'] = !(cur['deaf'] == true);
+        } else if (dop.contains('voicemode') || dop.contains('ptt')) {
+          cur['voiceMode'] = cur['voiceMode'] == 'PUSH_TO_TALK'
+              ? 'VOICE_ACTIVITY'
+              : 'PUSH_TO_TALK';
+        } else {
+          widget.onTap();
+          return;
         }
+        sr.discordState.value = cur;
       } else {
         final p = _muteProcess;
         if (p != null) {
+          final op =
+              (widget.button.action?.parameters['operation'] ?? 'toggleMute')
+                  .toLowerCase();
           final cur = Map<String, bool>.from(sr.muteStates.value);
           final now = cur[p] == true;
           cur[p] = op == 'mute' ? true : (op == 'unmute' ? false : !now);
@@ -164,17 +173,58 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     );
   }
 
-  Widget _renderDiscord(String op, bool active) {
+  Widget _renderDiscord(String op, Map<String, dynamic> ds) {
+    final params = widget.button.action?.parameters ?? const <String, String>{};
+    IconData icon;
+    bool active = false;
+    String defLabel;
+
+    if (op.contains('deaf')) {
+      active = ds['deaf'] == true;
+      icon = active ? Icons.headset_off : Icons.headset_mic;
+      defLabel = 'Deafen';
+    } else if (op == 'joinchannel') {
+      final ch = params['channelId'];
+      active = ch != null && ch.isNotEmpty && ds['channelId'] == ch;
+      icon = active ? Icons.headset : Icons.login;
+      defLabel = (params['channelName']?.isNotEmpty ?? false)
+          ? params['channelName']!
+          : 'Canal';
+    } else if (op == 'disconnect' || op == 'leavechannel') {
+      icon = Icons.call_end;
+      defLabel = 'Sair';
+    } else if (op.contains('inputvolume')) {
+      icon = op.contains('up') ? Icons.mic : Icons.mic_none;
+      defLabel = op.contains('up') ? 'Mic +' : 'Mic −';
+    } else if (op.contains('outputvolume')) {
+      icon = op.contains('up') ? Icons.volume_up : Icons.volume_down;
+      defLabel = op.contains('up') ? 'Som +' : 'Som −';
+    } else if (op.contains('voicemode') || op.contains('ptt')) {
+      active = ds['voiceMode'] == 'PUSH_TO_TALK';
+      icon = active ? Icons.record_voice_over : Icons.graphic_eq;
+      defLabel = active ? 'PTT' : 'Voz';
+    } else if (op.startsWith('usermute')) {
+      icon = Icons.person_off;
+      defLabel =
+          (params['userName']?.isNotEmpty ?? false) ? params['userName']! : 'Mutar';
+    } else if (op == 'uservolume') {
+      icon = Icons.person;
+      defLabel =
+          (params['userName']?.isNotEmpty ?? false) ? params['userName']! : 'Vol';
+    } else {
+      // toggleMute (padrão)
+      active = ds['mute'] == true;
+      icon = active ? Icons.mic_off : Icons.mic;
+      defLabel = 'Mute';
+    }
+
     final baseColor =
         _parseColor(widget.button.backgroundColor) ?? Colors.grey[850];
     final bg = active ? _activeColor() : baseColor;
-    final icon = op == 'deaf'
-        ? (active ? Icons.headset_off : Icons.headset_mic)
-        : (active ? Icons.mic_off : Icons.mic);
     final label =
         (widget.button.label != null && widget.button.label!.isNotEmpty)
             ? widget.button.label!
-            : (op == 'deaf' ? 'Deafen' : 'Mute');
+            : defLabel;
     return GestureDetector(
       onTap: _handleTap,
       onLongPress: widget.onLongPress,
@@ -193,7 +243,7 @@ class _DeckGridButtonState extends State<DeckGridButton> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 32, color: Colors.white),
+            Icon(icon, size: 30, color: Colors.white),
             const SizedBox(height: 4),
             Text(label,
                 textAlign: TextAlign.center,

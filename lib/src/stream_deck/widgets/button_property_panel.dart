@@ -27,6 +27,17 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   String _selectedActionType = 'none';
   String _mixerOperation = 'toggleMute';
   String _discordOp = 'toggleMute';
+  // Discord avançado (canal de voz / usuário / volume)
+  List<Map<String, String>> _dcGuilds = [];
+  List<Map<String, String>> _dcChannels = [];
+  List<Map<String, dynamic>> _dcParticipants = [];
+  String? _dcGuildId;
+  String? _dcChannelId;
+  String? _dcChannelName;
+  String? _dcUserId;
+  String? _dcUserName;
+  int _dcDelta = 10;
+  int _dcValue = 100;
   String? _targetProfileId;
   // Passos da multi-ação: cada item = {type, param, delayMs, _k(chave estável)}.
   List<Map<String, dynamic>> _multiSteps = [];
@@ -110,8 +121,15 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
         _multiSteps = _decodeSteps(widget.button.action!.parameters['steps']);
       } else if (_selectedActionType == 'discord') {
         _actionParamController = TextEditingController();
-        _discordOp =
-            widget.button.action!.parameters['operation'] ?? 'toggleMute';
+        final dp = widget.button.action!.parameters;
+        _discordOp = dp['operation'] ?? 'toggleMute';
+        _dcChannelId = dp['channelId'];
+        _dcChannelName = dp['channelName'];
+        _dcUserId = dp['userId'];
+        _dcUserName = dp['userName'];
+        _dcDelta = int.tryParse(dp['delta'] ?? '') ?? 10;
+        _dcValue = int.tryParse(dp['value'] ?? '') ?? 100;
+        _loadDiscordDataFor(_discordOp);
       } else {
         _actionParamController = TextEditingController();
       }
@@ -260,6 +278,16 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       params['steps'] = _encodeSteps(_multiSteps);
     } else if (_selectedActionType == 'discord') {
       params['operation'] = _discordOp;
+      if (_discordOp == 'joinChannel') {
+        if (_dcChannelId != null) params['channelId'] = _dcChannelId!;
+        if (_dcChannelName != null) params['channelName'] = _dcChannelName!;
+      } else if (_discordOp == 'userMute' || _discordOp == 'userVolume') {
+        if (_dcUserId != null) params['userId'] = _dcUserId!;
+        if (_dcUserName != null) params['userName'] = _dcUserName!;
+        if (_discordOp == 'userVolume') params['value'] = '$_dcValue';
+      } else if (_discordOp.toLowerCase().contains('volume')) {
+        params['delta'] = '$_dcDelta';
+      }
     }
     // 'back' não precisa de parâmetros.
 
@@ -494,30 +522,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                   ),
                 ],
                 if (_selectedActionType == 'discord') ...[
-                  DropdownButtonFormField<String>(
-                    value: _discordOp,
-                    decoration: const InputDecoration(
-                      labelText: 'Ação do Discord',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'toggleMute',
-                          child: Text('Alternar microfone (mute)')),
-                      DropdownMenuItem(
-                          value: 'toggleDeafen',
-                          child: Text('Alternar ensurdecer (deafen)')),
-                    ],
-                    onChanged: (v) =>
-                        setState(() => _discordOp = v ?? 'toggleMute'),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Text(
-                      'Requer o Discord conectado no PC (config do AnyDeck).',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                  ),
+                  ..._buildDiscordFields(),
                 ],
                 if (_selectedActionType == 'mixer') ...[
                   DropdownButtonFormField<String>(
@@ -744,6 +749,195 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
         ),
       ],
     );
+  }
+
+  // ---- Discord: carregamento de servidores/canais/participantes ----
+  void _loadDiscordDataFor(String op) {
+    if (op == 'joinChannel' && _dcGuilds.isEmpty) _loadGuilds();
+    if ((op == 'userMute' || op == 'userVolume') && _dcParticipants.isEmpty) {
+      _loadParticipants();
+    }
+  }
+
+  Future<void> _loadGuilds() async {
+    final g = await Injector.get<AnyDeckClient>().getDiscordGuilds();
+    if (mounted) setState(() => _dcGuilds = g);
+  }
+
+  Future<void> _loadChannels(String guildId) async {
+    final c = await Injector.get<AnyDeckClient>().getDiscordChannels(guildId);
+    if (mounted) setState(() => _dcChannels = c);
+  }
+
+  Future<void> _loadParticipants() async {
+    final s = await Injector.get<AnyDeckClient>().getDiscordState();
+    final list = (s?['participants'] as List?) ?? [];
+    if (mounted) {
+      setState(() => _dcParticipants =
+          list.map((e) => Map<String, dynamic>.from(e as Map)).toList());
+    }
+  }
+
+  /// Campos da ação de Discord (operação + sub-campos conforme a operação).
+  List<Widget> _buildDiscordFields() {
+    final op = _discordOp;
+    final fields = <Widget>[
+      DropdownButtonFormField<String>(
+        value: _discordOp,
+        isExpanded: true,
+        decoration: const InputDecoration(
+            labelText: 'Ação do Discord', border: OutlineInputBorder()),
+        items: const [
+          DropdownMenuItem(
+              value: 'toggleMute', child: Text('Microfone (mute on/off)')),
+          DropdownMenuItem(
+              value: 'toggleDeafen', child: Text('Ensurdecer (deafen on/off)')),
+          DropdownMenuItem(
+              value: 'joinChannel', child: Text('Entrar em canal de voz')),
+          DropdownMenuItem(
+              value: 'disconnect', child: Text('Desconectar da voz')),
+          DropdownMenuItem(
+              value: 'inputVolumeUp', child: Text('Volume do mic  +')),
+          DropdownMenuItem(
+              value: 'inputVolumeDown', child: Text('Volume do mic  −')),
+          DropdownMenuItem(
+              value: 'outputVolumeUp', child: Text('Volume de saída  +')),
+          DropdownMenuItem(
+              value: 'outputVolumeDown', child: Text('Volume de saída  −')),
+          DropdownMenuItem(
+              value: 'toggleVoiceMode', child: Text('Alternar PTT / Voz')),
+          DropdownMenuItem(
+              value: 'userMute', child: Text('Mutar usuário (toggle)')),
+          DropdownMenuItem(
+              value: 'userVolume', child: Text('Volume de usuário')),
+        ],
+        onChanged: (v) {
+          setState(() => _discordOp = v ?? 'toggleMute');
+          _loadDiscordDataFor(_discordOp);
+        },
+      ),
+      const SizedBox(height: 12),
+    ];
+
+    if (op == 'joinChannel') {
+      fields.addAll([
+        DropdownButtonFormField<String>(
+          value: _dcGuilds.any((g) => g['id'] == _dcGuildId) ? _dcGuildId : null,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: 'Servidor',
+            border: const OutlineInputBorder(),
+            helperText: _dcGuilds.isEmpty ? 'Carregando…' : null,
+          ),
+          items: _dcGuilds
+              .map((g) => DropdownMenuItem(
+                  value: g['id'],
+                  child: Text(g['name'] ?? '', overflow: TextOverflow.ellipsis)))
+              .toList(),
+          onChanged: (v) {
+            setState(() {
+              _dcGuildId = v;
+              _dcChannels = [];
+            });
+            if (v != null) _loadChannels(v);
+          },
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          value:
+              _dcChannels.any((c) => c['id'] == _dcChannelId) ? _dcChannelId : null,
+          isExpanded: true,
+          decoration: const InputDecoration(
+              labelText: 'Canal de voz', border: OutlineInputBorder()),
+          items: _dcChannels
+              .map((c) => DropdownMenuItem(
+                  value: c['id'],
+                  child: Text(c['name'] ?? '', overflow: TextOverflow.ellipsis)))
+              .toList(),
+          onChanged: (v) => setState(() {
+            _dcChannelId = v;
+            _dcChannelName = _dcChannels
+                .firstWhere((c) => c['id'] == v, orElse: () => {})['name'];
+          }),
+        ),
+        if (_dcChannelName != null && _dcChannelName!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text('Canal salvo: ${_dcChannelName!}',
+                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          ),
+      ]);
+    } else if (op == 'userMute' || op == 'userVolume') {
+      fields.addAll([
+        DropdownButtonFormField<String>(
+          value: _dcParticipants.any((p) => '${p['id']}' == _dcUserId)
+              ? _dcUserId
+              : null,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: 'Usuário na call',
+            border: const OutlineInputBorder(),
+            helperText:
+                _dcParticipants.isEmpty ? 'Entre numa call pra listar' : null,
+          ),
+          items: _dcParticipants.map((p) {
+            final name = (p['nick'] ?? p['username'] ?? p['id']).toString();
+            return DropdownMenuItem(
+                value: '${p['id']}',
+                child: Text(name, overflow: TextOverflow.ellipsis));
+          }).toList(),
+          onChanged: (v) => setState(() {
+            _dcUserId = v;
+            final pp = _dcParticipants
+                .firstWhere((p) => '${p['id']}' == v, orElse: () => {});
+            _dcUserName = (pp['nick'] ?? pp['username'])?.toString();
+          }),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: _loadParticipants,
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Atualizar lista'),
+          ),
+        ),
+        if (op == 'userVolume') ...[
+          Text('Volume: $_dcValue%'),
+          Slider(
+            value: _dcValue.clamp(0, 200).toDouble(),
+            min: 0,
+            max: 200,
+            divisions: 40,
+            label: '$_dcValue%',
+            onChanged: (v) => setState(() => _dcValue = v.round()),
+          ),
+        ],
+      ]);
+    } else if (op.toLowerCase().contains('volume')) {
+      fields.add(Row(
+        children: [
+          const Text('Passo: '),
+          Expanded(
+            child: Slider(
+              value: _dcDelta.clamp(1, 50).toDouble(),
+              min: 1,
+              max: 50,
+              divisions: 49,
+              label: '$_dcDelta%',
+              onChanged: (v) => setState(() => _dcDelta = v.round()),
+            ),
+          ),
+          Text('$_dcDelta%'),
+        ],
+      ));
+    }
+
+    fields.add(const Padding(
+      padding: EdgeInsets.only(top: 6),
+      child: Text('Requer o Discord conectado no PC (config do AnyDeck).',
+          style: TextStyle(fontSize: 11, color: Colors.grey)),
+    ));
+    return fields;
   }
 
   /// Mostra lado a lado como o botão fica desligado x ativo (com a cor escolhida).

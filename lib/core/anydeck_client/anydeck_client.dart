@@ -104,13 +104,40 @@ class AnyDeckClient {
     return null;
   }
 
-  /// Estado atual do Discord ({connected, mute, deaf}) ou null se indisponível.
+  /// Estado atual do Discord (connected/mute/deaf/channelId/channelName/
+  /// inputVolume/outputVolume/voiceMode/participants) ou null se indisponível.
   Future<Map<String, dynamic>?> getDiscordState() async {
     try {
       final response = await _dio.get('/api/discord/state');
       return (response.data as Map).cast<String, dynamic>();
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Servidores do Discord do usuário ([{id, name}]).
+  Future<List<Map<String, String>>> getDiscordGuilds() async {
+    try {
+      final r = await _dio.get('/api/discord/guilds');
+      return (r.data as List)
+          .map<Map<String, String>>(
+              (e) => {'id': '${e['id']}', 'name': '${e['name'] ?? ''}'})
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Canais de voz de um servidor ([{id, name}]).
+  Future<List<Map<String, String>>> getDiscordChannels(String guildId) async {
+    try {
+      final r = await _dio.get('/api/discord/channels/$guildId');
+      return (r.data as List)
+          .map<Map<String, String>>(
+              (e) => {'id': '${e['id']}', 'name': '${e['name'] ?? ''}'})
+          .toList();
+    } catch (_) {
+      return [];
     }
   }
 
