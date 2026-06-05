@@ -176,17 +176,6 @@ namespace DroidDeck.Services
                             if (profile != null)
                             {
                                 _cache.Add(profile);
-
-                                // DEBUG LOGGING
-                                try {
-                                    var debugPath = Path.Combine(_profilesDirectory, "debug_status.txt");
-                                    var lines = new List<string>();
-                                    lines.Add($"Profile {profile.Id} ({profile.Name}) loaded:");
-                                    foreach(var btn in profile.Buttons) {
-                                        lines.Add($" - Button {btn.Row},{btn.Column}: DynamicType='{btn.DynamicType}'");
-                                    }
-                                    File.AppendAllLines(debugPath, lines);
-                                } catch {}
                             }
                         }
                         catch (Exception ex)

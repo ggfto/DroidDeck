@@ -162,6 +162,38 @@ class DroidDeckClient {
     }
   }
 
+  // ---- OBS ----
+  /// Estado do OBS (connected/currentScene/recording/streaming/virtualCam/
+  /// replayBuffer/scenes/audioInputs) ou null se indisponível.
+  Future<Map<String, dynamic>?> getObsState() async {
+    try {
+      final r = await _dio.get('/api/obs/state');
+      return (r.data as Map).cast<String, dynamic>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Salva a config do OBS (host/porta/senha do obs-websocket).
+  Future<void> setObsConfig(String host, int port, String? password) async {
+    await _dio.post('/api/obs/config',
+        data: {'host': host, 'port': port, 'password': password});
+  }
+
+  /// Conecta no OBS (obs-websocket). Lança [Exception] legível em caso de erro.
+  Future<Map<String, dynamic>> connectObs() async {
+    try {
+      final r = await _dio.post('/api/obs/connect');
+      return (r.data as Map).cast<String, dynamic>();
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final msg = (data is Map && data['error'] != null)
+          ? '${data['error']}'
+          : 'Falha ao conectar no OBS (obs-websocket ativo?)';
+      throw Exception(msg);
+    }
+  }
+
   // Media Control methods
   Future<List<MediaSession>> getMediaSessions() async {
     final response = await _dio.get('/api/v1/Media/sessions');

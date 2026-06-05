@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-/// Tela de leitura do QR de pareamento. Retorna (via Navigator.pop) a string
-/// crua do QR (ex.: "droiddeck://pair?ip=..&port=..&key=..") quando reconhece um.
+/// Tela genérica de leitura de QR. Retorna (via Navigator.pop) a string crua do
+/// primeiro QR cujo conteúdo começa com um dos [acceptPrefixes]. Usada tanto pro
+/// pareamento (`droiddeck://...`) quanto pra ler o QR do OBS (`obsws://...`).
 class QrScanPage extends StatefulWidget {
-  const QrScanPage({super.key});
+  /// Prefixos aceitos (case-insensitive). Padrão: QR de pareamento.
+  final List<String> acceptPrefixes;
+  final String title;
+  final String hint;
+
+  const QrScanPage({
+    super.key,
+    this.acceptPrefixes = const ['droiddeck://'],
+    this.title = 'Parear — aponte para o QR',
+    this.hint = 'Abra "Parear dispositivo (QR)" na bandeja do PC',
+  });
 
   @override
   State<QrScanPage> createState() => _QrScanPageState();
@@ -17,7 +28,10 @@ class _QrScanPageState extends State<QrScanPage> {
     if (_handled) return;
     for (final barcode in capture.barcodes) {
       final value = barcode.rawValue;
-      if (value != null && value.startsWith('droiddeck://')) {
+      if (value == null) continue;
+      final lower = value.toLowerCase();
+      final ok = widget.acceptPrefixes.any((p) => lower.startsWith(p.toLowerCase()));
+      if (ok) {
         _handled = true;
         Navigator.of(context).pop(value);
         return;
@@ -28,7 +42,7 @@ class _QrScanPageState extends State<QrScanPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Parear — aponte para o QR')),
+      appBar: AppBar(title: Text(widget.title)),
       body: Stack(
         alignment: Alignment.center,
         children: [
@@ -42,13 +56,15 @@ class _QrScanPageState extends State<QrScanPage> {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          const Positioned(
+          Positioned(
             bottom: 40,
-            child: Text(
-              'Abra "Parear dispositivo (QR)" na bandeja do PC',
-              style: TextStyle(
-                color: Colors.white,
-                backgroundColor: Colors.black54,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              color: Colors.black54,
+              child: Text(
+                widget.hint,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ),

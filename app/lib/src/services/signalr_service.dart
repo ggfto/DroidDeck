@@ -79,6 +79,9 @@ class SignalRService {
   // Mídia tocando agora no PC (pra botões play/pause do deck refletirem o estado).
   final mediaPlaying = signal<bool>(false);
 
+  // Estado do OBS (connected/currentScene/recording/streaming/...) pros botões refletirem.
+  final obsState = signal<Map<String, dynamic>>({'connected': false});
+
   SignalRService();
 
   Future<void> init(String baseUrl, {String? apiKey}) async {
@@ -236,6 +239,17 @@ class SignalRService {
           mediaPlaying.value = m['playing'] == true;
         } catch (e) {
           _logger.warning('Error parsing ReceiveMediaStatus: $e');
+        }
+      }
+    });
+
+    // Estado do OBS mudou (cena/gravando/transmitindo) → botões do deck refletem.
+    _hubConnection?.on('ReceiveObsState', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        try {
+          obsState.value = Map<String, dynamic>.from(arguments[0] as Map);
+        } catch (e) {
+          _logger.warning('Error parsing ReceiveObsState: $e');
         }
       }
     });

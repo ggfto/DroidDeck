@@ -21,6 +21,15 @@ namespace DroidDeck
         [STAThread]
         public static void Main(string[] args)
         {
+            // Bind em todas as interfaces — senão o celular na mesma rede recebe "connection
+            // refused" (Kestrel sozinho escuta só em localhost). Em dev o launchSettings já
+            // define ASPNETCORE_URLS, mas o .exe publicado não lê launchSettings, então
+            // garantimos aqui. O usuário ainda pode sobrescrever via variável de ambiente.
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+            {
+                Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://0.0.0.0:5000");
+            }
+
             // Modo headless: sem janela/bandeja, roda apenas o servidor web.
             // Útil para autostart silencioso, execução sem desktop ou depuração.
             // Ctrl+C encerra graciosamente via ConsoleLifetime do host.
@@ -167,6 +176,8 @@ namespace DroidDeck
                             services.AddSingleton<Services.StreamDeckConfigService>();
                             services.AddSingleton<Services.DiscordRpcService>();
                             services.AddHostedService<Services.DiscordAutoConnect>();
+                            services.AddSingleton<Services.ObsService>();
+                            services.AddHostedService<Services.ObsAutoConnect>();
                             services.AddSingleton<Services.ActionExecutorService>();
                             services.AddHostedService<Services.SystemMonitorService>();
                         }

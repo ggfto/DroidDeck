@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'qr_scan_page.dart';
 import 'discord_settings_page.dart';
+import 'obs_settings_page.dart';
 
 class ConfigPage extends StatefulWidget {
   const ConfigPage({super.key});
@@ -146,8 +147,10 @@ class ConfigPageState extends State<ConfigPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             TextField(
               controller: _ipController,
               decoration: const InputDecoration(
@@ -185,7 +188,18 @@ class ConfigPageState extends State<ConfigPage> {
                 MaterialPageRoute(builder: (_) => const DiscordSettingsPage()),
               ),
             ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.videocam),
+              title: const Text('Plugin do OBS'),
+              subtitle: const Text('Conectar, trocar cena, gravar/transmitir'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ObsSettingsPage()),
+              ),
+            ),
           ],
+          ),
         ),
       ),
     );

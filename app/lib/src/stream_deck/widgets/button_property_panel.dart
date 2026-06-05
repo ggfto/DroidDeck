@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:companion/core/core.dart';
 import 'package:companion/src/services/signalr_service.dart';
 import 'package:companion/src/config/discord_settings_page.dart';
+import 'package:companion/src/config/obs_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -30,6 +31,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   String _mixerOperation = 'toggleMute';
   String _discordOp = 'toggleMute';
   String _mediaCommand = 'playpause';
+  String _obsOp = 'setScene';
+  String? _obsScene;
+  String? _obsInput;
   // Discord avançado (canal de voz / usuário / volume)
   List<Map<String, String>> _dcGuilds = [];
   List<Map<String, String>> _dcChannels = [];
@@ -62,6 +66,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     'back',
     'multi',
     'discord',
+    'obs',
   ];
   final List<Color> _colors = [
     Colors.grey[800]!,
@@ -138,6 +143,13 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
         _dcDelta = int.tryParse(dp['delta'] ?? '') ?? 10;
         _dcValue = int.tryParse(dp['value'] ?? '') ?? 100;
         _loadDiscordDataFor(_discordOp);
+      } else if (_selectedActionType == 'obs') {
+        _actionParamController = TextEditingController();
+        final dp = widget.button.action!.parameters;
+        _obsOp = dp['operation'] ?? 'setScene';
+        _obsScene = dp['scene'];
+        _obsInput = dp['inputName'];
+        _loadObsState();
       } else {
         _actionParamController = TextEditingController();
       }
@@ -279,6 +291,12 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       params['path'] = _actionParamController.text;
     } else if (_selectedActionType == 'media') {
       params['command'] = _mediaCommand;
+    } else if (_selectedActionType == 'obs') {
+      params['operation'] = _obsOp;
+      if (_obsOp == 'setScene' && _obsScene != null) params['scene'] = _obsScene!;
+      if (_obsOp == 'toggleInputMute' && _obsInput != null) {
+        params['inputName'] = _obsInput!;
+      }
     } else if (_selectedActionType == 'mixer') {
       params['operation'] = _mixerOperation;
       params['processName'] = _actionParamController.text.trim();
@@ -563,6 +581,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                 ],
                 if (_selectedActionType == 'discord') ...[
                   ..._buildDiscordFields(),
+                ],
+                if (_selectedActionType == 'obs') ...[
+                  ..._buildObsFields(),
                 ],
                 if (_selectedActionType == 'mixer') ...[
                   DropdownButtonFormField<String>(
@@ -1030,6 +1051,125 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
           style: TextStyle(fontSize: 11, color: Colors.grey)),
     ));
     return fields;
+  }
+
+  // ---- OBS ----
+  void _loadObsState() {
+    Injector.get<DroidDeckClient>().getObsState().then((s) {
+      if (s != null && mounted) {
+        Injector.get<SignalRService>().obsState.value =
+            Map<String, dynamic>.from(s);
+      }
+    }).catchError((_) {});
+  }
+
+  List<Widget> _buildObsFields() {
+    final s = Injector.get<SignalRService>().obsState.value;
+    final scenes =
+        (s['scenes'] as List?)?.map((e) => '$e').toList() ?? <String>[];
+    final inputs = (s['audioInputs'] as List?)
+            ?.map((e) => '${(e is Map) ? e['name'] : e}')
+            .toList() ??
+        <String>[];
+
+    final fields = <Widget>[
+      _obsWarning(),
+      DropdownButtonFormField<String>(
+        value: _obsOp,
+        isExpanded: true,
+        decoration: const InputDecoration(
+            labelText: 'Ação do OBS', border: OutlineInputBorder()),
+        items: const [
+          DropdownMenuItem(value: 'setScene', child: Text('Trocar de cena')),
+          DropdownMenuItem(value: 'toggleRecord', child: Text('Gravar (alternar)')),
+          DropdownMenuItem(
+              value: 'toggleStream', child: Text('Transmitir / Live (alternar)')),
+          DropdownMenuItem(
+              value: 'toggleVirtualCam', child: Text('Câmera virtual (alternar)')),
+          DropdownMenuItem(
+              value: 'toggleReplayBuffer', child: Text('Replay buffer (alternar)')),
+          DropdownMenuItem(value: 'saveReplay', child: Text('Salvar replay')),
+          DropdownMenuItem(
+              value: 'toggleInputMute', child: Text('Mutar fonte (alternar)')),
+        ],
+        onChanged: (v) {
+          setState(() => _obsOp = v ?? 'setScene');
+          _loadObsState();
+        },
+      ),
+      const SizedBox(height: 12),
+    ];
+
+    if (_obsOp == 'setScene') {
+      fields.add(DropdownButtonFormField<String>(
+        value: scenes.contains(_obsScene) ? _obsScene : null,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: 'Cena',
+          border: const OutlineInputBorder(),
+          helperText: scenes.isEmpty ? 'Conecte o OBS pra listar as cenas' : null,
+        ),
+        items: scenes
+            .map((c) => DropdownMenuItem(
+                value: c, child: Text(c, overflow: TextOverflow.ellipsis)))
+            .toList(),
+        onChanged: (v) => setState(() => _obsScene = v),
+      ));
+    } else if (_obsOp == 'toggleInputMute') {
+      fields.add(DropdownButtonFormField<String>(
+        value: inputs.contains(_obsInput) ? _obsInput : null,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: 'Fonte de áudio',
+          border: const OutlineInputBorder(),
+          helperText: inputs.isEmpty ? 'Conecte o OBS pra listar as fontes' : null,
+        ),
+        items: inputs
+            .map((c) => DropdownMenuItem(
+                value: c, child: Text(c, overflow: TextOverflow.ellipsis)))
+            .toList(),
+        onChanged: (v) => setState(() => _obsInput = v),
+      ));
+    }
+
+    fields.add(const Padding(
+      padding: EdgeInsets.only(top: 6),
+      child: Text('Requer o OBS aberto e conectado (config do DroidDeck).',
+          style: TextStyle(fontSize: 11, color: Colors.grey)),
+    ));
+    return fields;
+  }
+
+  Widget _obsWarning() {
+    return Watch((context) {
+      final connected =
+          Injector.get<SignalRService>().obsState.value['connected'] == true;
+      if (connected) return const SizedBox.shrink();
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.orange.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+            const SizedBox(width: 8),
+            const Expanded(
+                child: Text('OBS não conectado — esta ação não funciona até conectar.',
+                    style: TextStyle(fontSize: 12))),
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ObsSettingsPage()),
+              ),
+              child: const Text('Configurar'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   /// Mostra lado a lado como o botão fica desligado x ativo (com a cor escolhida).

@@ -41,6 +41,12 @@ namespace DroidDeck.Hubs
                 }
                 catch { }
             }
+            // Estado do OBS (cena/gravando/transmitindo) pra os botões refletirem.
+            if (_services.GetService(typeof(Services.ObsService)) is Services.ObsService obs)
+            {
+                try { await Clients.Caller.SendAsync("ReceiveObsState", obs.GetStatePayload()); }
+                catch { }
+            }
             await base.OnConnectedAsync();
         }
 

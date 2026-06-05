@@ -45,6 +45,13 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     return (a.parameters['command'] ?? 'playpause').toLowerCase();
   }
 
+  // Operação do OBS (setscene/togglerecord/...) se for um botão de OBS; senão null.
+  String? get _obsOp {
+    final a = widget.button.action;
+    if (a == null || a.type != 'obs') return null;
+    return (a.parameters['operation'] ?? 'setScene').toLowerCase();
+  }
+
   IconData _mediaIconData(String cmd) {
     switch (cmd) {
       case 'next':
@@ -126,6 +133,14 @@ class _DeckGridButtonState extends State<DeckGridButton> {
       return Watch((context) {
         Injector.get<SignalRService>().mediaPlaying.value; // assina o estado
         return _render(null);
+      });
+    }
+    // Botão de OBS: reflete cena atual / gravando / transmitindo / etc. ao vivo.
+    final oop = _obsOp;
+    if (oop != null) {
+      return Watch((context) {
+        final ds = Injector.get<SignalRService>().obsState.value;
+        return _renderObs(oop, ds);
       });
     }
     final p = _muteProcess;
@@ -283,6 +298,93 @@ class _DeckGridButtonState extends State<DeckGridButton> {
         (widget.button.label != null && widget.button.label!.isNotEmpty)
             ? widget.button.label!
             : defLabel;
+    return GestureDetector(
+      onTap: _handleTap,
+      onLongPress: widget.onLongPress,
+      child: Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 30, color: Colors.white),
+            const SizedBox(height: 4),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    overflow: TextOverflow.ellipsis),
+                maxLines: 2),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _renderObs(String op, Map<String, dynamic> ds) {
+    final params = widget.button.action?.parameters ?? const <String, String>{};
+    IconData icon;
+    bool active = false;
+    String defLabel;
+
+    switch (op) {
+      case 'setscene':
+        final sc = params['scene'];
+        active = sc != null && sc.isNotEmpty && ds['currentScene'] == sc;
+        icon = Icons.movie_outlined;
+        defLabel = (sc?.isNotEmpty ?? false) ? sc! : 'Cena';
+        break;
+      case 'togglerecord':
+        active = ds['recording'] == true;
+        icon = Icons.fiber_manual_record;
+        defLabel = active ? 'Gravando' : 'Gravar';
+        break;
+      case 'togglestream':
+        active = ds['streaming'] == true;
+        icon = Icons.sensors;
+        defLabel = active ? 'No ar' : 'Live';
+        break;
+      case 'togglevirtualcam':
+        active = ds['virtualCam'] == true;
+        icon = Icons.videocam;
+        defLabel = 'Câmera virtual';
+        break;
+      case 'togglereplaybuffer':
+        active = ds['replayBuffer'] == true;
+        icon = Icons.history;
+        defLabel = 'Replay buffer';
+        break;
+      case 'savereplay':
+        icon = Icons.save_alt;
+        defLabel = 'Salvar replay';
+        break;
+      case 'toggleinputmute':
+        icon = Icons.mic_off;
+        defLabel = (params['inputName']?.isNotEmpty ?? false)
+            ? params['inputName']!
+            : 'Mutar fonte';
+        break;
+      default:
+        icon = Icons.videocam;
+        defLabel = 'OBS';
+    }
+
+    final baseColor =
+        _parseColor(widget.button.backgroundColor) ?? Colors.grey[850];
+    final bg = active ? _activeColor() : baseColor;
+    final label = (widget.button.label != null && widget.button.label!.isNotEmpty)
+        ? widget.button.label!
+        : defLabel;
     return GestureDetector(
       onTap: _handleTap,
       onLongPress: widget.onLongPress,

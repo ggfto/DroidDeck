@@ -18,6 +18,7 @@ namespace DroidDeck.Services
         private readonly IAudioControlService _audioControl;
         private readonly IHubContext<DeckHub> _hubContext;
         private readonly DiscordRpcService _discord;
+        private readonly ObsService _obs;
 
         public ActionExecutorService(
             ILogger<ActionExecutorService> logger,
@@ -26,7 +27,8 @@ namespace DroidDeck.Services
             MixerService mixerService,
             IAudioControlService audioControl,
             IHubContext<DeckHub> hubContext,
-            DiscordRpcService discord)
+            DiscordRpcService discord,
+            ObsService obs)
         {
             _logger = logger;
             _appActivator = appActivator;
@@ -35,6 +37,7 @@ namespace DroidDeck.Services
             _audioControl = audioControl;
             _hubContext = hubContext;
             _discord = discord;
+            _obs = obs;
         }
 
         public async Task ExecuteActionAsync(DeckAction action)
@@ -72,6 +75,10 @@ namespace DroidDeck.Services
 
                     case "discord":
                         await ExecuteDiscordAction(action);
+                        break;
+
+                    case "obs":
+                        await ExecuteObsAction(action);
                         break;
 
                     default:
@@ -326,6 +333,45 @@ namespace DroidDeck.Services
 
                 default: // toggleMute
                     await _discord.SetMuteAsync(null);
+                    break;
+            }
+        }
+
+        private async Task ExecuteObsAction(DeckAction action)
+        {
+            var p = action.Parameters;
+            p.TryGetValue("operation", out var op);
+            string Get(string k) => p.TryGetValue(k, out var v) ? v : "";
+
+            switch ((op ?? "").Trim().ToLowerInvariant())
+            {
+                case "setscene":
+                    if (!string.IsNullOrEmpty(Get("scene"))) await _obs.SetSceneAsync(Get("scene"));
+                    break;
+                case "togglerecord":
+                    await _obs.ToggleRecordAsync();
+                    break;
+                case "startrecord":
+                    await _obs.StartRecordAsync();
+                    break;
+                case "stoprecord":
+                    await _obs.StopRecordAsync();
+                    break;
+                case "togglestream":
+                    await _obs.ToggleStreamAsync();
+                    break;
+                case "togglevirtualcam":
+                    await _obs.ToggleVirtualCamAsync();
+                    break;
+                case "togglereplaybuffer":
+                    await _obs.ToggleReplayBufferAsync();
+                    break;
+                case "savereplay":
+                    await _obs.SaveReplayAsync();
+                    break;
+                case "toggleinputmute":
+                    if (!string.IsNullOrEmpty(Get("inputName")))
+                        await _obs.ToggleInputMuteAsync(Get("inputName"));
                     break;
             }
         }
