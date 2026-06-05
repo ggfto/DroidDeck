@@ -1,3 +1,17 @@
+# [1.2.0](https://github.com/ggfto/DroidDeck/compare/v1.1.0...v1.2.0) (2026-06-05)
+
+
+### Bug Fixes
+
+* **media:** nao cachear o session manager WinRT (RPC_E_WRONG_THREAD) ([4ea7945](https://github.com/ggfto/DroidDeck/commit/4ea79456164e2fe0049576342e64cd7a7c3682be))
+
+
+### Features
+
+* **media:** controle de midia no deck (play/pause, proxima, anterior, parar) ([2289b33](https://github.com/ggfto/DroidDeck/commit/2289b33fdab57b30050ba0c57324e74ca659d567))
+* **media:** play/pause do deck reflete o estado (poller de midia ao vivo) ([3430093](https://github.com/ggfto/DroidDeck/commit/3430093e19550d3c935077220fb15012b216cbef))
+* **obs:** controle do OBS via obs-websocket (cenas, gravação, stream) ([88ef320](https://github.com/ggfto/DroidDeck/commit/88ef3202eb963622c096464ff6adb30f5fdb0130))
+
 # [1.1.0](https://github.com/ggfto/DroidDeck/compare/v1.0.0...v1.1.0) (2026-06-03)
 
 
