@@ -16,7 +16,7 @@ jobs:
     name: Backend (Windows .exe)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: subosito/flutter-action@v2
         with:
@@ -29,7 +29,7 @@ jobs:
           flutter pub get
           flutter build web --release
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -46,7 +46,7 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path publish/* -DestinationPath DroidDeck-win-x64.zip -Force
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: backend
           path: DroidDeck-win-x64.zip
@@ -55,9 +55,9 @@ jobs:
     name: App (Android APK)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -93,7 +93,7 @@ jobs:
       - name: Renomeia o APK
         run: cp app/build/app/outputs/flutter-apk/app-release.apk DroidDeck.apk
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app
           path: DroidDeck.apk
@@ -103,23 +103,23 @@ jobs:
     needs: [backend, app]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0          # semantic-release precisa do histórico + tags
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
 
       - name: Instala o semantic-release
         run: npm install
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: backend
           path: dist
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: app
           path: dist
