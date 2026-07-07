@@ -25,11 +25,11 @@ namespace DroidDeck.Services
     /// <summary>
     /// Cliente Discord RPC (IPC via named pipe). Controla mute/deafen do próprio
     /// usuário e reflete o estado ao vivo. Requer um app no Discord Developer Portal
-    /// (Client ID + Secret) e redirect http://localhost:5000/discord. Funciona p/ o dono do app.
+    /// (Client ID + Secret) e redirect http://localhost:4787/discord. Funciona p/ o dono do app.
     /// </summary>
     public class DiscordRpcService
     {
-        private const string RedirectUri = "http://localhost:5000/discord";
+        private const string RedirectUri = "http://localhost:4787/discord";
         private static readonly string[] Scopes = { "rpc", "rpc.voice.read", "rpc.voice.write" };
 
         private readonly ILogger<DiscordRpcService> _logger;

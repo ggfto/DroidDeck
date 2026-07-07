@@ -27,7 +27,7 @@ namespace DroidDeck
             // garantimos aqui. O usuário ainda pode sobrescrever via variável de ambiente.
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
             {
-                Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://0.0.0.0:5000");
+                Environment.SetEnvironmentVariable("ASPNETCORE_URLS", $"http://0.0.0.0:{Lib.PairingInfo.Port}");
             }
 
             // Modo headless: sem janela/bandeja, roda apenas o servidor web.

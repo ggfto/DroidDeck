@@ -14,7 +14,7 @@ class DiscordSettingsPage extends StatefulWidget {
 }
 
 class _DiscordSettingsPageState extends State<DiscordSettingsPage> {
-  static const redirectUri = 'http://localhost:5000/discord';
+  static const redirectUri = 'http://localhost:4787/discord';
 
   final _idCtrl = TextEditingController();
   final _secretCtrl = TextEditingController();

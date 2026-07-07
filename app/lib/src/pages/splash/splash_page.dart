@@ -40,10 +40,11 @@ class SplashPageState extends State<SplashPage> {
     }
     final sp = await SharedPreferences.getInstance();
     final ip = sp.getString(Constants.ipAddrKey);
+    final port = sp.getString(Constants.portKey) ?? Constants.defaultPort;
     final apiKey = sp.getString(Constants.apiKeyKey);
 
     if (ip != null && ip.isNotEmpty && mounted) {
-      final baseUrl = 'http://$ip:5000';
+      final baseUrl = 'http://$ip:$port';
 
       final client = Injector.get<DroidDeckClient>();
       client.setBaseUrl(baseUrl);

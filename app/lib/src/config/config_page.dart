@@ -72,16 +72,20 @@ class ConfigPageState extends State<ConfigPage> {
 
     // Check for port
     String baseUrl;
+    String port;
     if (ip.contains(':')) {
       // User provided port
       baseUrl = 'http://$ip';
+      port = ip.substring(ip.indexOf(':') + 1);
     } else {
       // Default port
-      baseUrl = 'http://$ip:5000';
+      port = Constants.defaultPort;
+      baseUrl = 'http://$ip:$port';
     }
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(Constants.ipAddrKey, ip); // Save raw IP for UI
+    await prefs.setString(Constants.portKey, port); // persiste a porta p/ o splash
     final apiKey = prefs.getString(Constants.apiKeyKey); // mantém a chave do pareamento
 
     // Update Singletons immediately
@@ -105,7 +109,7 @@ class ConfigPageState extends State<ConfigPage> {
 
     final uri = Uri.tryParse(result);
     final ip = uri?.queryParameters['ip'];
-    final port = uri?.queryParameters['port'] ?? '5000';
+    final port = uri?.queryParameters['port'] ?? Constants.defaultPort;
     final key = uri?.queryParameters['key'];
 
     if (uri == null ||
@@ -123,6 +127,7 @@ class ConfigPageState extends State<ConfigPage> {
     final baseUrl = 'http://$ip:$port';
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(Constants.ipAddrKey, ip);
+    await prefs.setString(Constants.portKey, port); // persiste a porta p/ o splash
     await prefs.setString(Constants.apiKeyKey, key);
 
     final client = Injector.get<DroidDeckClient>();

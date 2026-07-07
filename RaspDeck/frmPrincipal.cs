@@ -14,7 +14,7 @@ namespace DroidDeck
     {
         private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
         private const string AppRunName = "DroidDeck";
-        private const string WebUrl = "http://localhost:5000/";
+        private const string WebUrl = "http://localhost:4787/";
 
         private ToolStripMenuItem _autoStartItem = null!;
 

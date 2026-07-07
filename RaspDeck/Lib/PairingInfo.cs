@@ -9,7 +9,7 @@ namespace DroidDeck.Lib
     /// </summary>
     public static class PairingInfo
     {
-        public const int Port = 5000;
+        public const int Port = 4787;
 
         /// <summary>URI escaneada pelo app: droiddeck://pair?ip=..&port=..&key=..</summary>
         public static string BuildUri()
