@@ -1,3 +1,27 @@
+## [1.2.1](https://github.com/ggfto/DroidDeck/compare/v1.2.0...v1.2.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* **app:** nao limpa o campo Secret ao salvar credenciais do Discord ([25a14d3](https://github.com/ggfto/DroidDeck/commit/25a14d33b5cd4bdfbac25a2fd824d69fcde9519c))
+* **app:** tela de erro 401/403 oferece 'Refazer pareamento' (nao prende o usuario) ([d950ca6](https://github.com/ggfto/DroidDeck/commit/d950ca68d9df1de9450fa121913a94853b75531e))
+* **discord:** reconexao automatica continua (watchdog) + serializa ConnectAsync ([f59ed2e](https://github.com/ggfto/DroidDeck/commit/f59ed2e5a776d19a36ac907d515315d260e33ad0))
+* **discord:** renova o token OAuth2 via refresh_token (sem reautorizar toda semana) ([73c26fa](https://github.com/ggfto/DroidDeck/commit/73c26fada2d3bd77472b40c2608df4f80fec2757))
+* **discord:** timeout do handshake 5s->10s (READY chegava tarde e falhava) ([492745a](https://github.com/ggfto/DroidDeck/commit/492745ac786ed34637cb4aa2e67d5a3f50f60f3a))
+* **discord:** trata opcode do frame IPC (responde PONG, trata CLOSE) ([26a7c51](https://github.com/ggfto/DroidDeck/commit/26a7c5113fe99a559741e0017eeab061de10cee3))
+* **ram:** libera ico/bitmap GDI, handles de Process e MMDeviceEnumerator no audio ([5512a2c](https://github.com/ggfto/DroidDeck/commit/5512a2cdb1ac082cb33db14da9523fcbdef40912))
+* **robustez:** app - reconexao SignalR indefinida, leak de assinatura, mounted, discovery ([62900ab](https://github.com/ggfto/DroidDeck/commit/62900abdbff6294f9f1a5959bd0a6dbfc3cb4ed4))
+* **robustez:** backend - discovery resiliente, mixer sem 500, OBS hello, limpeza ([38501ae](https://github.com/ggfto/DroidDeck/commit/38501ae4aad228392510e879581b41b7cb57f6d0))
+* **security:** nao vaza a API key em log nem no dialogo de debug do app ([f5ca4ee](https://github.com/ggfto/DroidDeck/commit/f5ca4ee5b7340863aa65354f5fd45484af900802))
+* **security:** restringe CORS a loopback/LAN e blinda /api/pairing/local-key contra fetch cross-site ([fce4172](https://github.com/ggfto/DroidDeck/commit/fce41725d6dc3d5051a63bded68850cc8384947a))
+* **security:** valida profile.Id contra path traversal ([f98ce35](https://github.com/ggfto/DroidDeck/commit/f98ce354f1b86d95f1a1de04276eae95ad852e91))
+
+
+### Performance Improvements
+
+* **ram:** cacheia nomes de instancia da GPU e libera counters no shutdown ([d7b612e](https://github.com/ggfto/DroidDeck/commit/d7b612eb09b923539049b1aaa7273314a16093f9))
+* **ram:** so faz poll/broadcast com clientes conectados e mede midia a cada 3s ([24f4c67](https://github.com/ggfto/DroidDeck/commit/24f4c67b2cf6c1062d62027165ed91f829bdaeea))
+
 # [1.2.0](https://github.com/ggfto/DroidDeck/compare/v1.1.0...v1.2.0) (2026-06-05)
 
 
