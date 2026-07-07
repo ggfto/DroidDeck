@@ -65,7 +65,9 @@ namespace DroidDeck.Audio
     {
         public IEnumerable<IAudioDevice> EnumerateAudioEndPoints(DataFlow dataFlow, DeviceState deviceState)
         {
-            var enumerator = new MMDeviceEnumerator();
+            // O enumerador em si é IDisposable e não é mais preciso após materializar a
+            // lista (os MMDevice ficam nos adapters). Descartá-lo evita acumular objetos COM.
+            using var enumerator = new MMDeviceEnumerator();
             return enumerator.EnumerateAudioEndPoints(dataFlow, deviceState).Select(d => new NAudioDeviceAdapter(d)).ToList();
         }
 
@@ -73,7 +75,7 @@ namespace DroidDeck.Audio
         {
             try
             {
-                var devices = new MMDeviceEnumerator();
+                using var devices = new MMDeviceEnumerator();
                 var dev = devices.GetDevice(id);
                 if (dev == null) return null;
                 return new NAudioDeviceAdapter(dev);

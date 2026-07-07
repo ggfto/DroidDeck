@@ -19,27 +19,33 @@ namespace DroidDeck
 
             if (!session.IsSystemSoundsSession && ProcessExists(session.GetProcessID))
             {
-                Process process = Process.GetProcessById((int)session.GetProcessID);
-                Description = (process.ProcessName == "Spotify" ? process.ProcessName + ": " : "") + (!string.IsNullOrEmpty(process.MainWindowTitle) ? process.MainWindowTitle : process.ProcessName);
                 Id = (int)session.GetProcessID;
 
+                // GetProcessById fica DENTRO do try: se o processo terminar entre o
+                // ProcessExists e aqui (corrida), lança ArgumentException — antes isso
+                // subia e quebrava a enumeração inteira (500). O Process/Icon/Bitmap são
+                // descartados (using) pra não vazar handle de kernel e GDI (HICON/HBITMAP).
                 try
                 {
+                    using var process = Process.GetProcessById((int)session.GetProcessID);
+                    Description = (process.ProcessName == "Spotify" ? process.ProcessName + ": " : "") + (!string.IsNullOrEmpty(process.MainWindowTitle) ? process.MainWindowTitle : process.ProcessName);
+
                     var moduleFile = process.MainModule?.FileName;
                     if (!string.IsNullOrEmpty(moduleFile))
                     {
-                        var icon = System.Drawing.Icon.ExtractAssociatedIcon(moduleFile!);
+                        using var icon = System.Drawing.Icon.ExtractAssociatedIcon(moduleFile!);
                         if (icon != null)
                         {
+                            using var bmp = icon.ToBitmap();
                             using var ms = new MemoryStream();
-                            icon.ToBitmap().Save(ms, ImageFormat.Png);
+                            bmp.Save(ms, ImageFormat.Png);
                             Icon = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
                         }
                     }
                 }
                 catch
                 {
-                    // Extração de ícone é best-effort; fica sem ícone se falhar.
+                    // Descrição/ícone são best-effort; ficam no default se falhar.
                 }
             }
 
@@ -87,7 +93,7 @@ namespace DroidDeck
         {
             try
             {
-                var process = Process.GetProcessById((int)processId);
+                using var process = Process.GetProcessById((int)processId);
                 return true;
             }
             catch (ArgumentException)

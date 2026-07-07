@@ -29,7 +29,7 @@ namespace DroidDeck.Services
                         try
                         {
                             var pid = (int)s.GetProcessID();
-                            var p = System.Diagnostics.Process.GetProcessById(pid);
+                            using var p = System.Diagnostics.Process.GetProcessById(pid);
                             if (string.Equals(p.ProcessName, processName, StringComparison.OrdinalIgnoreCase))
                             {
                                 s.Mute = mute;
@@ -65,7 +65,7 @@ namespace DroidDeck.Services
                         try
                         {
                             var pid = (int)s.GetProcessID();
-                            var p = System.Diagnostics.Process.GetProcessById(pid);
+                            using var p = System.Diagnostics.Process.GetProcessById(pid);
                             if (string.Equals(p.ProcessName, processName, StringComparison.OrdinalIgnoreCase))
                             {
                                 return s.Mute;

@@ -44,7 +44,7 @@ namespace DroidDeck
         }
         public MixerMaster(string idString)
         {
-            var devices = new MMDeviceEnumerator();
+            using var devices = new MMDeviceEnumerator();
             MMDevice? device = null;
             try
             {
@@ -88,7 +88,8 @@ namespace DroidDeck
         public static List<MixerMaster> GetAllMixers(DataFlow dataFlow, DeviceState deviceState)
         {
             var devices = new List<MixerMaster>();
-            foreach (MMDevice d in new MMDeviceEnumerator().EnumerateAudioEndPoints(dataFlow, deviceState))
+            using var en = new MMDeviceEnumerator();
+            foreach (MMDevice d in en.EnumerateAudioEndPoints(dataFlow, deviceState))
             {
                 var master = new MixerMaster(d);
                 devices.Add(master);
@@ -114,7 +115,7 @@ namespace DroidDeck
 
         public MixerMaster? SetOptions(string id, MixerData data)
         {
-            var devices = new MMDeviceEnumerator();
+            using var devices = new MMDeviceEnumerator();
             var device = devices.GetDevice(id);
             if (device == null) return null;
             else
