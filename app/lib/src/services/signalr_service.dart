@@ -84,6 +84,10 @@ class SignalRService {
 
   SignalRService();
 
+  /// Mascara o access_token da URL para log/exibição (a chave é um segredo).
+  static String _redactUrl(String url) =>
+      url.replaceAll(RegExp(r'access_token=[^&]+'), 'access_token=***');
+
   Future<void> init(String baseUrl, {String? apiKey}) async {
     if (_hubConnection != null) return;
 
@@ -109,8 +113,11 @@ class SignalRService {
       hubUrl += '${sep}access_token=${Uri.encodeQueryComponent(apiKey)}';
     }
 
-    currentUrl.value = hubUrl; // Track the URL being used
-    _logger.info('Connecting to SignalR Hub at $hubUrl');
+    // SEGURANÇA: a chave vai na query string (?access_token=) por exigência do
+    // WebSocket do SignalR, mas NÃO deve vazar em log nem no diálogo de debug (que
+    // mostra currentUrl). Guarda/loga só a versão com a chave mascarada.
+    currentUrl.value = _redactUrl(hubUrl);
+    _logger.info('Connecting to SignalR Hub at ${_redactUrl(hubUrl)}');
     connectionStatus.value = "Connecting...";
 
     try {
