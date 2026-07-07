@@ -367,9 +367,11 @@ namespace DroidDeck.Services
             throw new IOException("Pipe do Discord não encontrado — o Discord está aberto?");
         }
 
-        private async Task WriteFrameAsync(int opcode, object payload)
+        private Task WriteFrameAsync(int opcode, object payload)
+            => WriteRawFrameAsync(opcode, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload)));
+
+        private async Task WriteRawFrameAsync(int opcode, byte[] data)
         {
-            var data = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload));
             var frame = new byte[8 + data.Length];
             BitConverter.GetBytes(opcode).CopyTo(frame, 0);      // little-endian (Windows)
             BitConverter.GetBytes(data.Length).CopyTo(frame, 4);
@@ -411,10 +413,28 @@ namespace DroidDeck.Services
                 while (!ct.IsCancellationRequested && _pipe is { IsConnected: true })
                 {
                     await ReadExactAsync(header, 8, ct);
+                    int opcode = BitConverter.ToInt32(header, 0);
                     int len = BitConverter.ToInt32(header, 4);
                     var buf = new byte[len];
                     await ReadExactAsync(buf, len, ct);
-                    HandleFrame(Encoding.UTF8.GetString(buf));
+
+                    // Opcodes IPC do Discord: 0=HANDSHAKE, 1=FRAME, 2=CLOSE, 3=PING, 4=PONG.
+                    // Antes tudo era tratado como FRAME — o PING nunca era respondido, então
+                    // o Discord fechava conexões ociosas e o deck "parava de reagir".
+                    switch (opcode)
+                    {
+                        case 3: // PING → devolver PONG com o MESMO payload (mantém a conexão viva)
+                            await WriteRawFrameAsync(4, buf);
+                            break;
+                        case 2: // CLOSE → o Discord está encerrando; derruba limpo (dispara reconexão)
+                            _logger.LogWarning("Discord RPC CLOSE: {Msg}", Encoding.UTF8.GetString(buf));
+                            throw new IOException("Discord fechou a conexão (CLOSE).");
+                        case 4: // PONG (resposta a um PING nosso, se houver) → ignora
+                            break;
+                        default: // 0=HANDSHAKE (resposta), 1=FRAME
+                            HandleFrame(Encoding.UTF8.GetString(buf));
+                            break;
+                    }
                 }
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)

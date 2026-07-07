@@ -126,7 +126,7 @@ namespace DroidDeck.Services
 
         public void SaveProfile(DeckProfile profile)
         {
-            if (!IsValidProfileId(profile?.Id))
+            if (profile == null || !IsValidProfileId(profile.Id))
             {
                 _logger.LogWarning("SaveProfile: Id de perfil invalido rejeitado: {Id}", profile?.Id);
                 return;
@@ -135,7 +135,7 @@ namespace DroidDeck.Services
             {
                 try
                 {
-                    var filePath = Path.Combine(_profilesDirectory, $"{profile!.Id}.json");
+                    var filePath = Path.Combine(_profilesDirectory, $"{profile.Id}.json");
                     var json = JsonSerializer.Serialize(profile, _jsonOptions);
                     File.WriteAllText(filePath, json);
 
