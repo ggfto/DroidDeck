@@ -53,6 +53,7 @@ class SplashPageState extends State<SplashPage> {
       final signalR = Injector.get<SignalRService>();
       await signalR.init(baseUrl, apiKey: apiKey);
 
+      if (!mounted) return; // o widget pode ter sido descartado durante o await
       Navigator.of(context).pushReplacementNamed('/home');
     } else if (mounted) {
       Navigator.of(context).pushReplacementNamed('/config');

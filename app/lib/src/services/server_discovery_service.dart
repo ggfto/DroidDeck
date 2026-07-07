@@ -60,11 +60,14 @@ class ServerDiscoveryService {
             final json = jsonDecode(response) as Map<String, dynamic>;
             if (json.containsKey('ip') && !responseCompleter.isCompleted) {
               responseCompleter.complete(json['ip'] as String);
+              // So fecha ao achar de verdade. Antes fechava no 1o datagrama mesmo
+              // malformado/de outro servico, impedindo ler as respostas seguintes.
+              socket.close();
             }
           } catch (e) {
             debugPrint('Discovery: Error parsing response: $e');
+            // Nao fecha: continua ouvindo ate o timeout (pode vir outro pacote valido).
           }
-          socket.close();
         }
       }
     });

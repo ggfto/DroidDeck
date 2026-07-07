@@ -1,7 +1,20 @@
 import 'package:companion/core/core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:signalr_netcore/signalr_client.dart';
+import 'package:signalr_netcore/iretry_policy.dart';
 import 'package:logging/logging.dart';
+
+/// Reconecta indefinidamente com backoff limitado. A politica padrao do
+/// signalr_netcore desiste apos ~30s ([0,2,10,30]s), entao um celular que perde
+/// a rede por mais que isso nunca reconectava sozinho (so reabrindo a tela).
+class _InfiniteRetryPolicy implements IRetryPolicy {
+  @override
+  int? nextRetryDelayInMilliseconds(RetryContext retryContext) {
+    const steps = [0, 2000, 5000, 10000, 20000, 30000];
+    final n = retryContext.previousRetryCount;
+    return n < steps.length ? steps[n] : 30000; // depois, 30s pra sempre
+  }
+}
 
 class SystemStats {
   final double cpuUsage; // % (0-100)
@@ -123,7 +136,7 @@ class SignalRService {
     try {
       _hubConnection = HubConnectionBuilder()
           .withUrl(hubUrl)
-          .withAutomaticReconnect()
+          .withAutomaticReconnect(reconnectPolicy: _InfiniteRetryPolicy())
           .build();
     } catch (e) {
       _logger.severe('Error building HubConnection: $e');

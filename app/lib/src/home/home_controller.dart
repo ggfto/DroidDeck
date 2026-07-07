@@ -15,10 +15,13 @@ class HomeController {
 
   Timer? _pollingTimer;
   Timer? _signalRRefreshDebounce;
+  void Function()? _volumeSubDispose;
 
   HomeController() {
-    // Subscribe to SignalR volume updates and refresh when they arrive
-    _signalR.volumeUpdates.subscribe((updates) {
+    // Subscribe to SignalR volume updates and refresh when they arrive.
+    // Guarda o dispose da assinatura pra cancelar no dispose() — senao o callback
+    // continua vivo e dispara fetch num controller ja descartado (leak + erro).
+    _volumeSubDispose = _signalR.volumeUpdates.subscribe((updates) {
       if (updates.isEmpty) return;
 
       // Debounce to avoid excessive refreshes during rapid slider changes
@@ -147,6 +150,8 @@ class HomeController {
   void dispose() {
     stopPolling();
     _signalRRefreshDebounce?.cancel();
+    _volumeSubDispose?.call();
+    _volumeSubDispose = null;
   }
 
   void toggleFullscreen() {
