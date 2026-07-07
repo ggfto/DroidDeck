@@ -128,16 +128,28 @@ namespace DroidDeck.Services
 
         private async Task HandleHelloAsync(JsonElement d)
         {
-            var cfg = LoadConfig();
-            var identify = new Dictionary<string, object?> { ["rpcVersion"] = 1 };
-
-            if (d.TryGetProperty("authentication", out var auth) && auth.ValueKind == JsonValueKind.Object)
+            // Chamado como fire-and-forget do read loop. Se algo falhar (ex.: JSON de auth
+            // sem challenge/salt), NAO deixa a excecao subir sem observador: sinaliza o TCS
+            // pra ConnectAsync falhar na hora em vez de esperar o timeout de 6s.
+            try
             {
-                var challenge = auth.GetProperty("challenge").GetString()!;
-                var salt = auth.GetProperty("salt").GetString()!;
-                identify["authentication"] = ComputeAuth(cfg.Password ?? "", salt, challenge);
+                var cfg = LoadConfig();
+                var identify = new Dictionary<string, object?> { ["rpcVersion"] = 1 };
+
+                if (d.TryGetProperty("authentication", out var auth) && auth.ValueKind == JsonValueKind.Object
+                    && auth.TryGetProperty("challenge", out var chEl) && auth.TryGetProperty("salt", out var saltEl))
+                {
+                    var challenge = chEl.GetString() ?? "";
+                    var salt = saltEl.GetString() ?? "";
+                    identify["authentication"] = ComputeAuth(cfg.Password ?? "", salt, challenge);
+                }
+                await SendAsync(new { op = 1, d = identify });
             }
-            await SendAsync(new { op = 1, d = identify });
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "OBS: falha no handshake (Hello)");
+                _identifiedTcs?.TrySetException(ex);
+            }
         }
 
         private static string ComputeAuth(string password, string salt, string challenge)

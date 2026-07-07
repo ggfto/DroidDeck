@@ -61,27 +61,30 @@ namespace DroidDeck.Lib
 
                         if ("DroidDeckDiscoveryRequest".Equals(dataReceived))
                         {
-                            string responseMessage = "{\"ip\": \"IP_ADDR\", \"name\": \"COMPUTER_NAME\"}";
-                            responseMessage = responseMessage.Replace("IP_ADDR", ipAddress);
-                            responseMessage = responseMessage.Replace("COMPUTER_NAME", computerName);
-                            byte[] sendBytes = Encoding.ASCII.GetBytes(responseMessage);
+                            // Serializa de verdade pra escapar aspas/barras em MachineName.
+                            string responseMessage = System.Text.Json.JsonSerializer.Serialize(
+                                new { ip = ipAddress, name = computerName });
+                            byte[] sendBytes = Encoding.UTF8.GetBytes(responseMessage);
                             await udpServer.SendAsync(sendBytes, sendBytes.Length, result.RemoteEndPoint);
                             _logger.LogDebug("[Discovery] Resposta enviada para {Remote}", result.RemoteEndPoint);
                         }
                     }
                     catch (ObjectDisposedException)
                     {
-                        break;
+                        break; // udpServer fechado (shutdown)
                     }
-                    catch (SocketException se)
+                    catch (OperationCanceledException)
                     {
-                        _logger.LogError(se, "Socket error in Discovery listener");
-                        break;
+                        break; // cancelamento
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error in Discovery listener");
-                        break;
+                        // Erros transitorios NAO podem matar o listener pra sempre: no Windows
+                        // um UDP recv recebe WSAECONNRESET (10054) quando um destino anterior
+                        // fica inalcancavel (ICMP port-unreachable). Antes qualquer excecao dava
+                        // break e o discovery parava de responder de vez. Agora loga e continua.
+                        _logger.LogWarning(ex, "[Discovery] Erro transitorio no listener; continuando");
+                        try { await Task.Delay(500, token); } catch { break; }
                     }
                 }
             }

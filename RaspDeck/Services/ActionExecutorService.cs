@@ -46,7 +46,7 @@ namespace DroidDeck.Services
             {
                 _logger.LogInformation("Executing action type: {Type}", action.Type);
 
-                switch (action.Type.ToLower())
+                switch ((action.Type ?? "").ToLowerInvariant())
                 {
                     case "launchapp":
                     case "launch_app":

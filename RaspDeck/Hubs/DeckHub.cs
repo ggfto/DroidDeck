@@ -19,11 +19,6 @@ namespace DroidDeck.Hubs
             _services = services;
         }
 
-        public async Task SendMessage(string user, string message)
-        {
-            await Clients.All.SendAsync("ReceiveMessage", user, message);
-        }
-
         // Ao conectar (ou reconectar), envia o estado atual do Discord só para este cliente,
         // pra UI não ficar desatualizada após reconexão / reinício do backend.
         public override async Task OnConnectedAsync()
