@@ -110,13 +110,32 @@ namespace DroidDeck.Services
             return GetProfiles().FirstOrDefault(p => p.Id == id);
         }
 
+        // SEGURANÇA: o Id vem do corpo JSON do cliente e é usado para compor um caminho de
+        // arquivo. Sem validação, "..\\..\\..\\algo" permitiria escrever/apagar fora da pasta
+        // de perfis (path traversal). Ids legítimos são GUID (backend) ou timestamp numérico
+        // (app) — ambos casam com este charset. Rejeita separadores, "." e vazio.
+        private static bool IsValidProfileId(string? id)
+        {
+            if (string.IsNullOrEmpty(id) || id.Length > 128) return false;
+            foreach (var c in id)
+            {
+                if (!(char.IsAsciiLetterOrDigit(c) || c == '-' || c == '_')) return false;
+            }
+            return true;
+        }
+
         public void SaveProfile(DeckProfile profile)
         {
+            if (!IsValidProfileId(profile?.Id))
+            {
+                _logger.LogWarning("SaveProfile: Id de perfil invalido rejeitado: {Id}", profile?.Id);
+                return;
+            }
             lock (_lock)
             {
                 try
                 {
-                    var filePath = Path.Combine(_profilesDirectory, $"{profile.Id}.json");
+                    var filePath = Path.Combine(_profilesDirectory, $"{profile!.Id}.json");
                     var json = JsonSerializer.Serialize(profile, _jsonOptions);
                     File.WriteAllText(filePath, json);
 
@@ -136,6 +155,11 @@ namespace DroidDeck.Services
 
         public void DeleteProfile(string id)
         {
+            if (!IsValidProfileId(id))
+            {
+                _logger.LogWarning("DeleteProfile: Id de perfil invalido rejeitado: {Id}", id);
+                return;
+            }
             lock (_lock)
             {
                 try
