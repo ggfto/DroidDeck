@@ -39,6 +39,7 @@ namespace DroidDeck.Services
         private TaskCompletionSource<bool>? _readyTcs;
         private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonElement>> _pending = new();
         private readonly SemaphoreSlim _writeLock = new(1, 1);
+        private readonly SemaphoreSlim _connectLock = new(1, 1); // serializa watchdog + Conectar manual
 
         public bool Connected { get; private set; }
         public bool SelfMute { get; private set; }
@@ -122,6 +123,13 @@ namespace DroidDeck.Services
 
         // ---- Conexão + autenticação ----
         public async Task ConnectAsync(bool interactive = true)
+        {
+            await _connectLock.WaitAsync();
+            try { await ConnectCoreAsync(interactive); }
+            finally { _connectLock.Release(); }
+        }
+
+        private async Task ConnectCoreAsync(bool interactive)
         {
             var cfg = LoadConfig();
             if (string.IsNullOrWhiteSpace(cfg.ClientId) || string.IsNullOrWhiteSpace(cfg.ClientSecret))
