@@ -75,6 +75,32 @@ namespace DroidDeck
             webTask.Wait();
         }
 
+        /// <summary>
+        /// True se a origem (header Origin de uma requisição de navegador) é o próprio PC
+        /// (loopback) ou um IP de LAN privada — de onde o configurador web legítimo roda.
+        /// Hostnames públicos (ex.: evil.com) retornam false, barrando CORS de sites externos.
+        /// </summary>
+        private static bool IsLocalOrLanOrigin(string origin)
+        {
+            if (string.IsNullOrEmpty(origin)) return false;
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+            if (uri.IsLoopback) return true;
+            if (!System.Net.IPAddress.TryParse(uri.Host, out var ip)) return false; // hostname público → barra
+            var b = ip.GetAddressBytes();
+            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && b.Length == 4)
+            {
+                return b[0] == 10                                   // 10.0.0.0/8
+                    || (b[0] == 172 && b[1] >= 16 && b[1] <= 31)    // 172.16.0.0/12
+                    || (b[0] == 192 && b[1] == 168)                 // 192.168.0.0/16
+                    || (b[0] == 169 && b[1] == 254)                 // 169.254.0.0/16 (link-local)
+                    || b[0] == 127;                                 // 127.0.0.0/8
+            }
+            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                return ip.IsIPv6LinkLocal || ip.IsIPv6SiteLocal
+                    || (b.Length == 16 && (b[0] & 0xFE) == 0xFC);   // fc00::/7 (ULA)
+            return false;
+        }
+
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
             // Em dev (dotnet run a partir de RaspDeck/) o wwwroot fonte está no diretório
@@ -155,10 +181,14 @@ namespace DroidDeck
                         {
                             options.AddPolicy(name: "_myAllowSpecificOrigins", policy =>
                             {
-                                policy.SetIsOriginAllowed(origin => true) // Allow any origin
+                                // SEGURANÇA: não refletir qualquer origem. Só o próprio host
+                                // (loopback) e IPs de LAN privada — que é de onde o configurador
+                                // web legítimo roda. Sites públicos (evil.com) são barrados, o que
+                                // impede um site que a vítima visite de ler respostas da API.
+                                // Sem AllowCredentials: a auth é por header X-API-KEY, não cookie.
+                                policy.SetIsOriginAllowed(IsLocalOrLanOrigin)
                                       .AllowAnyHeader()
-                                      .AllowAnyMethod()
-                                      .AllowCredentials(); // Allow credentials (cookies/auth)
+                                      .AllowAnyMethod();
                             });
                         });
 
@@ -220,6 +250,20 @@ namespace DroidDeck
                                 var ip = ctx.Connection.RemoteIpAddress;
                                 if (ip == null || !System.Net.IPAddress.IsLoopback(ip))
                                     return Microsoft.AspNetCore.Http.Results.StatusCode(403);
+
+                                // SEGURANÇA: bloqueia leitura por site cross-site (o navegador da
+                                // vítima faz fetch a partir de 127.0.0.1, mas o browser marca a
+                                // requisição). Sec-Fetch-Site é um header proibido — JS não forja.
+                                // Fetch de outro site vem "cross-site"; o configurador servido aqui
+                                // vem "same-origin"/"none". Sem esse gate, qualquer site leria a chave.
+                                var secFetchSite = ctx.Request.Headers["Sec-Fetch-Site"].ToString();
+                                if (!string.IsNullOrEmpty(secFetchSite) &&
+                                    secFetchSite != "same-origin" && secFetchSite != "none")
+                                    return Microsoft.AspNetCore.Http.Results.StatusCode(403);
+                                var origin = ctx.Request.Headers["Origin"].ToString();
+                                if (!string.IsNullOrEmpty(origin) && !IsLocalOrLanOrigin(origin))
+                                    return Microsoft.AspNetCore.Http.Results.StatusCode(403);
+
                                 return Microsoft.AspNetCore.Http.Results.Ok(new { key = DroidDeck.Auth.ApiKeyProvider.GetKey() });
                             }).AllowAnonymous();
 
