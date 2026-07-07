@@ -19,6 +19,7 @@ namespace DroidDeck.Services
         public string? ClientId { get; set; }
         public string? ClientSecret { get; set; }
         public string? AccessToken { get; set; }
+        public string? RefreshToken { get; set; }
     }
 
     /// <summary>
@@ -117,7 +118,8 @@ namespace DroidDeck.Services
             var cfg = LoadConfig();
             cfg.ClientId = clientId;
             cfg.ClientSecret = clientSecret;
-            cfg.AccessToken = null; // força reautorizar com as novas credenciais
+            cfg.AccessToken = null;  // força reautorizar com as novas credenciais
+            cfg.RefreshToken = null;
             SaveConfig(cfg);
         }
 
@@ -152,15 +154,28 @@ namespace DroidDeck.Services
                 try { await SendCommandAsync("AUTHENTICATE", new { access_token = cfg.AccessToken }); authed = true; }
                 catch { authed = false; }
             }
+            // Token expirado (Discord expira em ~7 dias)? Renova SEM popup usando o
+            // refresh_token salvo. Isso faz a auto-conexão voltar a funcionar sozinha em
+            // vez de exigir reautorização manual toda semana.
+            if (!authed && !string.IsNullOrEmpty(cfg.RefreshToken))
+            {
+                try
+                {
+                    if (await RefreshAccessTokenAsync(cfg))
+                    {
+                        await SendCommandAsync("AUTHENTICATE", new { access_token = cfg.AccessToken });
+                        authed = true;
+                    }
+                }
+                catch (Exception ex) { _logger.LogDebug(ex, "Discord: refresh de token falhou"); }
+            }
             if (!authed)
             {
-                // Auto-conexão (startup) nunca abre popup; só reusa o token salvo.
+                // Auto-conexão (startup) nunca abre popup; só reusa/renova o token salvo.
                 if (!interactive)
                     throw new InvalidOperationException("Sem token válido para auto-conexão.");
-                var token = await AuthorizeAndGetTokenAsync(cfg);
-                cfg.AccessToken = token;
-                SaveConfig(cfg);
-                await SendCommandAsync("AUTHENTICATE", new { access_token = token });
+                await AuthorizeAndGetTokenAsync(cfg); // salva access+refresh internamente
+                await SendCommandAsync("AUTHENTICATE", new { access_token = cfg.AccessToken });
             }
 
             await SendCommandAsync("SUBSCRIBE", null, evt: "VOICE_SETTINGS_UPDATE");
@@ -174,7 +189,7 @@ namespace DroidDeck.Services
                 SelfMute, SelfDeaf, VoiceChannelName);
         }
 
-        private async Task<string> AuthorizeAndGetTokenAsync(DiscordConfig cfg)
+        private async Task AuthorizeAndGetTokenAsync(DiscordConfig cfg)
         {
             // O usuário precisa APROVAR no cliente Discord (timeout maior).
             // No fluxo RPC o redirect_uri NÃO vai nos args (mas o app precisa ter um
@@ -183,8 +198,7 @@ namespace DroidDeck.Services
                 new { client_id = cfg.ClientId, scopes = Scopes }, timeoutMs: 60000);
             var code = resp.GetProperty("data").GetProperty("code").GetString()!;
 
-            using var http = new HttpClient();
-            var form = new FormUrlEncodedContent(new Dictionary<string, string>
+            await ExchangeTokenAsync(cfg, new Dictionary<string, string>
             {
                 ["client_id"] = cfg.ClientId!,
                 ["client_secret"] = cfg.ClientSecret!,
@@ -192,11 +206,37 @@ namespace DroidDeck.Services
                 ["code"] = code,
                 ["redirect_uri"] = RedirectUri,
             });
-            var tokenResp = await http.PostAsync("https://discord.com/api/oauth2/token", form);
+        }
+
+        /// <summary>Renova o access_token com o refresh_token salvo (sem popup).</summary>
+        private Task<bool> RefreshAccessTokenAsync(DiscordConfig cfg) =>
+            ExchangeTokenAsync(cfg, new Dictionary<string, string>
+            {
+                ["client_id"] = cfg.ClientId!,
+                ["client_secret"] = cfg.ClientSecret!,
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = cfg.RefreshToken!,
+            });
+
+        /// <summary>
+        /// Troca no endpoint OAuth2 do Discord (authorization_code ou refresh_token).
+        /// Salva access_token E refresh_token em cfg (persistidos), pra próxima renovação
+        /// não precisar de popup. Retorna true se veio um access_token válido.
+        /// </summary>
+        private async Task<bool> ExchangeTokenAsync(DiscordConfig cfg, Dictionary<string, string> form)
+        {
+            using var http = new HttpClient();
+            var tokenResp = await http.PostAsync("https://discord.com/api/oauth2/token",
+                new FormUrlEncodedContent(form));
             var body = await tokenResp.Content.ReadAsStringAsync();
             if (!tokenResp.IsSuccessStatusCode)
                 throw new Exception($"Troca de token falhou ({(int)tokenResp.StatusCode}): {body}");
-            return JsonDocument.Parse(body).RootElement.GetProperty("access_token").GetString()!;
+
+            var root = JsonDocument.Parse(body).RootElement;
+            cfg.AccessToken = root.TryGetProperty("access_token", out var at) ? at.GetString() : null;
+            if (root.TryGetProperty("refresh_token", out var rt)) cfg.RefreshToken = rt.GetString();
+            SaveConfig(cfg);
+            return !string.IsNullOrEmpty(cfg.AccessToken);
         }
 
         // ---- Comandos de voz ----
