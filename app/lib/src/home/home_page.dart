@@ -48,15 +48,35 @@ class HomePageState extends State<HomePage> {
           return const Center(child: CircularProgressIndicator());
         }
         if (controller.error.value != null) {
+          final err = controller.error.value ?? '';
+          // 401/403 = pareamento invalido: retry so falha de novo. Oferece voltar
+          // ao pareamento pra nao prender o usuario nesta tela.
+          final isAuthError = err.contains('401') || err.contains('403');
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Erro: ${controller.error.value}'),
-                ElevatedButton(
-                    onPressed: controller.fetchOutputs,
-                    child: const Text('Tentar novamente'))
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    isAuthError
+                        ? 'Falha de autenticação (chave inválida ou expirada).\nRefaça o pareamento.'
+                        : 'Erro: $err',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  if (!isAuthError)
+                    ElevatedButton(
+                        onPressed: controller.fetchOutputs,
+                        child: const Text('Tentar novamente')),
+                  TextButton.icon(
+                    onPressed: () =>
+                        Navigator.of(context).pushReplacementNamed('/config'),
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('Refazer pareamento'),
+                  ),
+                ],
+              ),
             ),
           );
         }
