@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 
@@ -7,6 +8,11 @@ namespace DroidDeck.Hubs
     public class DeckHub : Hub
     {
         private readonly IServiceProvider _services;
+
+        // Nº de clientes conectados. O SystemMonitorService usa isto pra NÃO ficar
+        // fazendo broadcast e poll de mídia (WinRT caro) quando ninguém está ouvindo.
+        private static int _connectedCount = 0;
+        public static int ConnectedCount => Volatile.Read(ref _connectedCount);
 
         public DeckHub(IServiceProvider services)
         {
@@ -22,6 +28,7 @@ namespace DroidDeck.Hubs
         // pra UI não ficar desatualizada após reconexão / reinício do backend.
         public override async Task OnConnectedAsync()
         {
+            Interlocked.Increment(ref _connectedCount);
             if (_services.GetService(typeof(Services.DiscordRpcService)) is Services.DiscordRpcService discord)
             {
                 try
@@ -48,6 +55,12 @@ namespace DroidDeck.Hubs
                 catch { }
             }
             await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            Interlocked.Decrement(ref _connectedCount);
+            await base.OnDisconnectedAsync(exception);
         }
 
         // Add more methods here if clients need to send commands back via SignalR

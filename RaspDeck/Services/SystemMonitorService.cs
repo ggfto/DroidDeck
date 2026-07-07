@@ -70,10 +70,19 @@ namespace DroidDeck.Services
                 return;
             }
 
+            int tick = 0;
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
+                    // Sem clientes ouvindo, não computa nem transmite nada — evita o poll
+                    // de mídia WinRT (caro) e as alocações de rede/GPU 24/7 com o app ocioso.
+                    if (DeckHub.ConnectedCount <= 0)
+                    {
+                        await Task.Delay(1000, stoppingToken);
+                        continue;
+                    }
+
                     var cpu = _cpuCounter?.NextValue() ?? 0;
 
                     // RAM via GlobalMemoryStatusEx: total, disponível e % de uso de uma vez.
@@ -103,19 +112,24 @@ namespace DroidDeck.Services
                     await _hubContext.Clients.All.SendAsync("ReceiveSystemStats", stats, cancellationToken: stoppingToken);
 
                     // Estado de reprodução de mídia (pra botões play/pause refletirem).
-                    try
+                    // A cada 3s: o acesso WinRT (RequestAsync) é caro; 1s era exagero.
+                    if (tick % 3 == 0)
                     {
-                        var playing = await _media.IsAnythingPlayingAsync();
-                        await _hubContext.Clients.All.SendAsync("ReceiveMediaStatus",
-                            new { playing }, cancellationToken: stoppingToken);
+                        try
+                        {
+                            var playing = await _media.IsAnythingPlayingAsync();
+                            await _hubContext.Clients.All.SendAsync("ReceiveMediaStatus",
+                                new { playing }, cancellationToken: stoppingToken);
+                        }
+                        catch { }
                     }
-                    catch { }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error broadcasting system stats");
                 }
 
+                tick++;
                 await Task.Delay(1000, stoppingToken);
             }
 
