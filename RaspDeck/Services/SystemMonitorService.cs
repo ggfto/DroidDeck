@@ -28,6 +28,11 @@ namespace DroidDeck.Services
 
         // Counters de GPU (uso) por instância de engine 3D; cacheados entre ticks.
         private readonly Dictionary<string, PerformanceCounter> _gpuCounters = new();
+        // A enumeração de instâncias ("GetInstanceNames") é cara e aloca uma string por
+        // engine de GPU a cada chamada. Só rescaneia a cada N ticks; entre eles, só lê os
+        // counters já cacheados (evita pressão de GC constante no loop de 1s).
+        private int _gpuTick = 0;
+        private const int GpuRescanEveryTicks = 30;
 
         public SystemMonitorService(ILogger<SystemMonitorService> logger, IHubContext<DeckHub> hubContext, MediaControlService media)
         {
@@ -113,6 +118,11 @@ namespace DroidDeck.Services
 
                 await Task.Delay(1000, stoppingToken);
             }
+
+            // Libera os PerformanceCounter ao encerrar o serviço.
+            try { _cpuCounter?.Dispose(); } catch { }
+            foreach (var c in _gpuCounters.Values) { try { c.Dispose(); } catch { } }
+            _gpuCounters.Clear();
         }
 
         private (float up, float down) SampleNetwork()
@@ -149,24 +159,28 @@ namespace DroidDeck.Services
         {
             try
             {
-                var cat = new PerformanceCounterCategory("GPU Engine");
-                var names = cat.GetInstanceNames()
-                    .Where(n => n.EndsWith("engtype_3D"))
-                    .ToHashSet();
+                // Rescan das instâncias só de tempos em tempos (caro). No 1º tick e a cada N.
+                if (_gpuTick++ % GpuRescanEveryTicks == 0)
+                {
+                    var cat = new PerformanceCounterCategory("GPU Engine");
+                    var names = cat.GetInstanceNames()
+                        .Where(n => n.EndsWith("engtype_3D"))
+                        .ToHashSet();
 
-                foreach (var n in names)
-                {
-                    if (!_gpuCounters.ContainsKey(n))
+                    foreach (var n in names)
                     {
-                        var c = new PerformanceCounter("GPU Engine", "Utilization Percentage", n, true);
-                        try { c.NextValue(); } catch { } // prime: 1ª leitura é 0
-                        _gpuCounters[n] = c;
+                        if (!_gpuCounters.ContainsKey(n))
+                        {
+                            var c = new PerformanceCounter("GPU Engine", "Utilization Percentage", n, true);
+                            try { c.NextValue(); } catch { } // prime: 1ª leitura é 0
+                            _gpuCounters[n] = c;
+                        }
                     }
-                }
-                foreach (var key in _gpuCounters.Keys.Where(k => !names.Contains(k)).ToList())
-                {
-                    try { _gpuCounters[key].Dispose(); } catch { }
-                    _gpuCounters.Remove(key);
+                    foreach (var key in _gpuCounters.Keys.Where(k => !names.Contains(k)).ToList())
+                    {
+                        try { _gpuCounters[key].Dispose(); } catch { }
+                        _gpuCounters.Remove(key);
+                    }
                 }
 
                 float sum = 0;
