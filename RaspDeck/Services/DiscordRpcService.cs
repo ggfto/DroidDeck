@@ -143,8 +143,9 @@ namespace DroidDeck.Services
             _readyTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _ = Task.Run(() => ReadLoopAsync(_readCts.Token));
 
+            _logger.LogInformation("Discord: enviando handshake (client_id={Id})", cfg.ClientId);
             await WriteFrameAsync(0, new { v = 1, client_id = cfg.ClientId }); // handshake
-            await Task.WhenAny(_readyTcs.Task, Task.Delay(5000));
+            await Task.WhenAny(_readyTcs.Task, Task.Delay(10000));
             if (!_readyTcs.Task.IsCompletedSuccessfully)
                 throw new Exception("Discord não respondeu ao handshake (READY).");
 
@@ -465,6 +466,12 @@ namespace DroidDeck.Services
                     int len = BitConverter.ToInt32(header, 4);
                     var buf = new byte[len];
                     await ReadExactAsync(buf, len, ct);
+
+                    // Debug: frames recebidos (útil pra diagnosticar; fica fora do Info
+                    // pra não spammar nem logar dados de usuário na operação normal).
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                        _logger.LogDebug("Discord IPC recv op={Op} len={Len}: {Body}",
+                            opcode, len, len <= 600 ? Encoding.UTF8.GetString(buf) : "(payload grande)");
 
                     // Opcodes IPC do Discord: 0=HANDSHAKE, 1=FRAME, 2=CLOSE, 3=PING, 4=PONG.
                     // Antes tudo era tratado como FRAME — o PING nunca era respondido, então
