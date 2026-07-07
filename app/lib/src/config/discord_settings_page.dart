@@ -56,7 +56,8 @@ class _DiscordSettingsPageState extends State<DiscordSettingsPage> {
     setState(() => _busy = true);
     try {
       await Injector.get<DroidDeckClient>().setDiscordConfig(id, secret);
-      _secretCtrl.clear();
+      // Não limpa o campo: antes o secret sumia ao salvar e parecia que não
+      // tinha salvo. Ele fica visível (mascarado) confirmando que foi enviado.
       _snack('Credenciais salvas. Agora toque em "Conectar".');
     } catch (_) {
       _snack('Não foi possível salvar (servidor acessível?).');
