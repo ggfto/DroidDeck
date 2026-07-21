@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/ggfto/DroidDeck/compare/v1.2.1...v1.3.0) (2026-07-21)
+
+
+### Features
+
+* **soundboard:** adiciona soundboard (MyInstants + soundboard nativa do Discord) ([dee42e5](https://github.com/ggfto/DroidDeck/commit/dee42e531ca219930df8e57ccceee59ef3b8e43c))
+
 ## [1.2.1](https://github.com/ggfto/DroidDeck/compare/v1.2.0...v1.2.1) (2026-07-07)
 
 
