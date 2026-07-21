@@ -147,6 +147,8 @@ namespace DroidDeck
 
                         services.AddSingleton<DroidDeck.Audio.IAudioDeviceEnumerator, DroidDeck.Audio.NAudioDeviceEnumerator>();
                         services.AddSingleton<DroidDeck.Services.MixerService>();
+                        // Cliente HTTP p/ integrações externas (ex.: busca de sons no MyInstants).
+                        services.AddHttpClient();
 
                         // Conditional Discovery registration (respects env/config)
                         try
@@ -208,6 +210,7 @@ namespace DroidDeck
                             services.AddHostedService<Services.DiscordAutoConnect>();
                             services.AddSingleton<Services.ObsService>();
                             services.AddHostedService<Services.ObsAutoConnect>();
+                            services.AddSingleton<Services.SoundboardService>();
                             services.AddSingleton<Services.ActionExecutorService>();
                             services.AddHostedService<Services.SystemMonitorService>();
                         }

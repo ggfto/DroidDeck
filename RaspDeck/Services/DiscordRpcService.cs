@@ -47,6 +47,7 @@ namespace DroidDeck.Services
         public bool SelfDeaf { get; private set; }
         public string? VoiceChannelId { get; private set; }
         public string? VoiceChannelName { get; private set; }
+        public string? VoiceGuildId { get; private set; }
         public int InputVolume { get; private set; }
         public int OutputVolume { get; private set; }
         public string VoiceMode { get; private set; } = ""; // PUSH_TO_TALK | VOICE_ACTIVITY
@@ -317,6 +318,7 @@ namespace DroidDeck.Services
                 {
                     VoiceChannelId = d.TryGetProperty("id", out var id) ? id.GetString() : null;
                     VoiceChannelName = d.TryGetProperty("name", out var nm) ? nm.GetString() : null;
+                    VoiceGuildId = d.TryGetProperty("guild_id", out var gid) ? gid.GetString() : null;
                     var parts = new List<object>();
                     if (d.TryGetProperty("voice_states", out var vss) && vss.ValueKind == JsonValueKind.Array)
                         foreach (var v in vss.EnumerateArray())
@@ -391,6 +393,75 @@ namespace DroidDeck.Services
 
         public Task ToggleUserMuteAsync(string userId) =>
             SetUserVoiceAsync(userId, !(_userMute.TryGetValue(userId, out var m) && m), null);
+
+        // ---- Soundboard nativa do Discord (RPC) ----
+        // NOTA: GET_SOUNDBOARD_SOUNDS / PLAY_SOUNDBOARD_SOUND não estão na lista oficial de
+        // comandos RPC — usam os scopes que já temos (rpc/rpc.voice.write). Parsing defensivo.
+        /// <summary>
+        /// Lista os sons da soundboard disponíveis (padrão + do servidor). Cada item:
+        /// { soundId, name, guildId, emojiName }.
+        /// </summary>
+        public async Task<object> GetSoundboardSoundsAsync()
+        {
+            EnsureConnected();
+            var r = await SendCommandAsync("GET_SOUNDBOARD_SOUNDS", null);
+            var list = new List<object>();
+            if (r.TryGetProperty("data", out var d))
+            {
+                // A resposta vem com "data" sendo o array direto; algumas variações usam
+                // {data:{sounds:[...]}}. Cobre os dois.
+                JsonElement arr = d;
+                if (d.ValueKind == JsonValueKind.Object)
+                {
+                    if (!(d.TryGetProperty("sounds", out arr) && arr.ValueKind == JsonValueKind.Array)
+                        && !(d.TryGetProperty("soundboard_sounds", out arr) && arr.ValueKind == JsonValueKind.Array))
+                        arr = default;
+                }
+                if (arr.ValueKind == JsonValueKind.Array)
+                    foreach (var s in arr.EnumerateArray())
+                    {
+                        // Sons padrão do Discord (guild_id "0") não tocam via PLAY_SOUNDBOARD_SOUND;
+                        // só devolve os sons de servidor (que funcionam) p/ não haver botão morto.
+                        var g = s.TryGetProperty("guild_id", out var gv) && gv.ValueKind == JsonValueKind.String
+                            ? gv.GetString() : null;
+                        if (string.IsNullOrEmpty(g) || g == "0") continue;
+                        list.Add(MapSound(s));
+                    }
+            }
+            return list;
+        }
+
+        private static object MapSound(JsonElement s)
+        {
+            string? Str(string prop) =>
+                s.TryGetProperty(prop, out var v)
+                    ? (v.ValueKind == JsonValueKind.String ? v.GetString()
+                        : v.ValueKind == JsonValueKind.Number ? v.GetRawText() : null)
+                    : null;
+            var guildId = Str("guild_id");
+            if (guildId == "0") guildId = null; // sons padrão do Discord não têm guild
+            return new
+            {
+                soundId = Str("sound_id") ?? Str("id"),
+                name = Str("name") ?? "",
+                guildId,
+                emojiName = Str("emoji_name"),
+            };
+        }
+
+        /// <summary>
+        /// Toca um som da soundboard nativa no canal de voz atual do Discord.
+        /// Args verificados ao vivo: { sound_id, guild_id } — guild_id é o servidor DONO do som.
+        /// Só funciona p/ sons do mesmo servidor do canal de voz (som de outro servidor exige
+        /// Nitro; sons padrão do Discord não tocam por esta via — "Invalid Sound").
+        /// </summary>
+        public async Task PlaySoundboardSoundAsync(string soundId, string? guildId)
+        {
+            EnsureConnected();
+            var args = new Dictionary<string, object?> { ["sound_id"] = soundId };
+            if (!string.IsNullOrEmpty(guildId)) args["guild_id"] = guildId;
+            await SendCommandAsync("PLAY_SOUNDBOARD_SOUND", args);
+        }
 
         private void EnsureConnected()
         {

@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'qr_scan_page.dart';
 import 'discord_settings_page.dart';
 import 'obs_settings_page.dart';
+import 'soundboard_settings_page.dart';
 
 class ConfigPage extends StatefulWidget {
   const ConfigPage({super.key});
@@ -201,6 +202,16 @@ class ConfigPageState extends State<ConfigPage> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const ObsSettingsPage()),
+              ),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.library_music),
+              title: const Text('Soundboard'),
+              subtitle: const Text('Sons do MyInstants: saída de áudio e volume'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SoundboardSettingsPage()),
               ),
             ),
           ],

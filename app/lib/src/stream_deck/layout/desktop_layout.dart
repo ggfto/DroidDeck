@@ -4,6 +4,7 @@ import 'package:companion/src/stream_deck/widgets/dynamic_deck_button.dart';
 import 'package:companion/src/services/signalr_service.dart';
 import 'package:companion/src/config/discord_settings_page.dart';
 import 'package:companion/src/config/obs_settings_page.dart';
+import 'package:companion/src/config/soundboard_settings_page.dart';
 import 'package:companion/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
@@ -123,6 +124,21 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
                     ),
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const SoundboardSettingsPage()),
+                    ),
+                    icon: const Icon(Icons.library_music, size: 18),
+                    label: const Text('Configurar Soundboard'),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 36),
+                      foregroundColor: Colors.white70,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -181,6 +197,14 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
                           tooltip: 'Configurar OBS',
                           onPressed: () => Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => const ObsSettingsPage()),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.library_music),
+                          tooltip: 'Configurar Soundboard',
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const SoundboardSettingsPage()),
                           ),
                         ),
                         IconButton(

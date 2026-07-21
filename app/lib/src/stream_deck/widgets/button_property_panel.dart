@@ -34,6 +34,20 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   String _obsOp = 'setScene';
   String? _obsScene;
   String? _obsInput;
+  // Soundboard
+  String _soundOperation = 'play'; // play | stop
+  String _soundSource = 'myinstants'; // myinstants | discord
+  String? _soundId;
+  String? _soundUrl;
+  String? _soundTitle;
+  final TextEditingController _soundSearchController = TextEditingController();
+  List<SoundResult> _soundResults = [];
+  bool _soundSearching = false;
+  // Soundboard nativa do Discord
+  String? _dcSoundId;
+  String? _dcSoundGuildId;
+  List<Map<String, String>> _dcSounds = [];
+  bool _dcSoundsLoading = false;
   // Discord avançado (canal de voz / usuário / volume)
   List<Map<String, String>> _dcGuilds = [];
   List<Map<String, String>> _dcChannels = [];
@@ -67,6 +81,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     'multi',
     'discord',
     'obs',
+    'soundboard',
   ];
   final List<Color> _colors = [
     Colors.grey[800]!,
@@ -150,6 +165,17 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
         _obsScene = dp['scene'];
         _obsInput = dp['inputName'];
         _loadObsState();
+      } else if (_selectedActionType == 'soundboard') {
+        _actionParamController = TextEditingController();
+        final dp = widget.button.action!.parameters;
+        _soundOperation = dp['operation'] ?? 'play';
+        _soundSource = dp['source'] ?? 'myinstants';
+        _soundId = dp['id'];
+        _soundUrl = dp['url'];
+        _soundTitle = dp['title'];
+        _dcSoundId = dp['soundId'];
+        _dcSoundGuildId = dp['guildId'];
+        if (_soundSource == 'discord') _loadDiscordSounds();
       } else {
         _actionParamController = TextEditingController();
       }
@@ -280,6 +306,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   void dispose() {
     _labelController.dispose();
     _actionParamController.dispose();
+    _soundSearchController.dispose();
     super.dispose();
   }
 
@@ -304,6 +331,22 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       if (_targetProfileId != null) params['profileId'] = _targetProfileId!;
     } else if (_selectedActionType == 'multi') {
       params['steps'] = _encodeSteps(_multiSteps);
+    } else if (_selectedActionType == 'soundboard') {
+      params['operation'] = _soundOperation;
+      if (_soundOperation == 'play') {
+        params['source'] = _soundSource;
+        if (_soundSource == 'discord') {
+          if (_dcSoundId != null) params['soundId'] = _dcSoundId!;
+          if (_dcSoundGuildId != null && _dcSoundGuildId!.isNotEmpty) {
+            params['guildId'] = _dcSoundGuildId!;
+          }
+          if (_soundTitle != null) params['title'] = _soundTitle!;
+        } else {
+          if (_soundId != null) params['id'] = _soundId!;
+          if (_soundUrl != null) params['url'] = _soundUrl!;
+          if (_soundTitle != null) params['title'] = _soundTitle!;
+        }
+      }
     } else if (_selectedActionType == 'discord') {
       params['operation'] = _discordOp;
       if (_discordOp == 'joinChannel') {
@@ -584,6 +627,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                 ],
                 if (_selectedActionType == 'obs') ...[
                   ..._buildObsFields(),
+                ],
+                if (_selectedActionType == 'soundboard') ...[
+                  ..._buildSoundboardFields(),
                 ],
                 if (_selectedActionType == 'mixer') ...[
                   DropdownButtonFormField<String>(
@@ -1054,6 +1100,291 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   }
 
   // ---- OBS ----
+  Future<void> _runSoundSearch() async {
+    final q = _soundSearchController.text.trim();
+    if (q.isEmpty) return;
+    setState(() => _soundSearching = true);
+    try {
+      final results = await Injector.get<DroidDeckClient>().searchSounds(q);
+      if (mounted) setState(() => _soundResults = results);
+    } finally {
+      if (mounted) setState(() => _soundSearching = false);
+    }
+  }
+
+  List<Widget> _buildSoundboardFields() {
+    final fields = <Widget>[
+      DropdownButtonFormField<String>(
+        value: _soundOperation,
+        isExpanded: true,
+        decoration: const InputDecoration(
+            labelText: 'Ação', border: OutlineInputBorder()),
+        items: const [
+          DropdownMenuItem(value: 'play', child: Text('Tocar um som')),
+          DropdownMenuItem(value: 'stop', child: Text('Parar tudo')),
+        ],
+        onChanged: (v) => setState(() => _soundOperation = v ?? 'play'),
+      ),
+      const SizedBox(height: 12),
+    ];
+
+    if (_soundOperation == 'stop') {
+      fields.add(const Padding(
+        padding: EdgeInsets.only(top: 6),
+        child: Text('Para qualquer som que estiver tocando na soundboard.',
+            style: TextStyle(fontSize: 11, color: Colors.grey)),
+      ));
+      return fields;
+    }
+
+    // operação "play": escolhe a fonte do som
+    fields.add(DropdownButtonFormField<String>(
+      value: _soundSource,
+      isExpanded: true,
+      decoration: const InputDecoration(
+          labelText: 'Fonte', border: OutlineInputBorder()),
+      items: const [
+        DropdownMenuItem(
+            value: 'myinstants',
+            child: Text('MyInstants (toca no PC → cabo/OBS)')),
+        DropdownMenuItem(
+            value: 'discord',
+            child: Text('Soundboard do Discord (canal de voz)')),
+      ],
+      onChanged: (v) {
+        setState(() {
+          _soundSource = v ?? 'myinstants';
+          // A seleção pertence a uma fonte específica: limpa ao trocar.
+          _soundTitle = null;
+          _soundId = null;
+          _soundUrl = null;
+          _dcSoundId = null;
+          _dcSoundGuildId = null;
+        });
+        if (_soundSource == 'discord' && _dcSounds.isEmpty) _loadDiscordSounds();
+      },
+    ));
+    fields.add(const SizedBox(height: 12));
+
+    fields.addAll(
+        _soundSource == 'discord' ? _discordSoundFields() : _myInstantsFields());
+    return fields;
+  }
+
+  List<Widget> _myInstantsFields() {
+    final fields = <Widget>[];
+    if (_soundTitle != null && _soundTitle!.isNotEmpty) {
+      fields.add(Card(
+        color: Colors.green.withValues(alpha: 0.12),
+        child: ListTile(
+          leading: const Icon(Icons.music_note, color: Colors.green),
+          title: Text(_soundTitle!, overflow: TextOverflow.ellipsis),
+          subtitle: const Text('Som selecionado'),
+          trailing: IconButton(
+            icon: const Icon(Icons.play_arrow),
+            tooltip: 'Testar no PC',
+            onPressed: (_soundUrl == null)
+                ? null
+                : () => Injector.get<DroidDeckClient>()
+                    .playSound(_soundId ?? '', _soundUrl!, _soundTitle ?? ''),
+          ),
+        ),
+      ));
+      fields.add(const SizedBox(height: 8));
+    }
+
+    fields.add(Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _soundSearchController,
+            textInputAction: TextInputAction.search,
+            decoration: const InputDecoration(
+              labelText: 'Buscar som no MyInstants',
+              hintText: 'ex.: risada, bruh, aplausos…',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _runSoundSearch(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _soundSearching
+            ? const Padding(
+                padding: EdgeInsets.all(8),
+                child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2)),
+              )
+            : IconButton.filled(
+                icon: const Icon(Icons.search),
+                onPressed: _runSoundSearch,
+              ),
+      ],
+    ));
+    fields.add(const SizedBox(height: 8));
+
+    if (_soundResults.isNotEmpty) {
+      fields.add(ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 260),
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: _soundResults.length,
+          itemBuilder: (context, i) {
+            final s = _soundResults[i];
+            final selected = s.mp3 == _soundUrl;
+            return ListTile(
+              dense: true,
+              selected: selected,
+              leading: IconButton(
+                icon: const Icon(Icons.play_circle_outline),
+                tooltip: 'Ouvir (toca no PC)',
+                onPressed: () => Injector.get<DroidDeckClient>()
+                    .playSound(s.id, s.mp3, s.title),
+              ),
+              title: Text(s.title, overflow: TextOverflow.ellipsis),
+              trailing: selected
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : const Icon(Icons.add_circle_outline),
+              onTap: () => setState(() {
+                _soundId = s.id;
+                _soundUrl = s.mp3;
+                _soundTitle = s.title;
+                if (_labelController.text.trim().isEmpty) {
+                  _labelController.text = s.title;
+                }
+              }),
+            );
+          },
+        ),
+      ));
+    }
+
+    fields.add(const Padding(
+      padding: EdgeInsets.only(top: 6),
+      child: Text(
+          'O som toca no PC e sai pelo dispositivo configurado (cabo p/ Discord/OBS + monitor). '
+          'Configure a saída em Configurações › Soundboard.',
+          style: TextStyle(fontSize: 11, color: Colors.grey)),
+    ));
+    return fields;
+  }
+
+  List<Widget> _loadDiscordSoundsButtonRow() {
+    return [
+      Row(
+        children: [
+          const Expanded(
+            child: Text('Sons da soundboard do Discord',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          _dcSoundsLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Recarregar',
+                  onPressed: _loadDiscordSounds,
+                ),
+        ],
+      ),
+      const SizedBox(height: 8),
+    ];
+  }
+
+  List<Widget> _discordSoundFields() {
+    final fields = <Widget>[];
+
+    if (_soundTitle != null && _soundTitle!.isNotEmpty) {
+      fields.add(Card(
+        color: Colors.green.withValues(alpha: 0.12),
+        child: ListTile(
+          leading: const Icon(Icons.graphic_eq, color: Colors.green),
+          title: Text(_soundTitle!, overflow: TextOverflow.ellipsis),
+          subtitle: const Text('Som selecionado'),
+          trailing: IconButton(
+            icon: const Icon(Icons.play_arrow),
+            tooltip: 'Testar no canal de voz',
+            onPressed: (_dcSoundId == null)
+                ? null
+                : () => Injector.get<DroidDeckClient>()
+                    .playDiscordSoundboard(_dcSoundId!, _dcSoundGuildId),
+          ),
+        ),
+      ));
+      fields.add(const SizedBox(height: 8));
+    }
+
+    fields.addAll(_loadDiscordSoundsButtonRow());
+
+    if (_dcSounds.isEmpty && !_dcSoundsLoading) {
+      fields.add(const Text(
+        'Nenhum som carregado. Conecte o Discord no PC, entre num canal de voz e toque em recarregar.',
+        style: TextStyle(fontSize: 12, color: Colors.grey),
+      ));
+    } else if (_dcSounds.isNotEmpty) {
+      fields.add(ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 260),
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: _dcSounds.length,
+          itemBuilder: (context, i) {
+            final s = _dcSounds[i];
+            final sid = s['soundId'] ?? '';
+            final name = s['name'] ?? '';
+            final emoji = s['emojiName'] ?? '';
+            final selected = sid == _dcSoundId;
+            return ListTile(
+              dense: true,
+              selected: selected,
+              leading: IconButton(
+                icon: const Icon(Icons.play_circle_outline),
+                tooltip: 'Ouvir (no canal de voz)',
+                onPressed: () => Injector.get<DroidDeckClient>()
+                    .playDiscordSoundboard(sid, s['guildId']),
+              ),
+              title: Text('${emoji.isNotEmpty ? '$emoji  ' : ''}$name',
+                  overflow: TextOverflow.ellipsis),
+              trailing: selected
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : const Icon(Icons.add_circle_outline),
+              onTap: () => setState(() {
+                _dcSoundId = sid;
+                _dcSoundGuildId = s['guildId'];
+                _soundTitle = name;
+                if (_labelController.text.trim().isEmpty) {
+                  _labelController.text = name;
+                }
+              }),
+            );
+          },
+        ),
+      ));
+    }
+
+    fields.add(const Padding(
+      padding: EdgeInsets.only(top: 6),
+      child: Text(
+          'Toca a soundboard NATIVA do Discord no canal de voz atual (sem cabo). '
+          'Você precisa estar num canal de voz. Não sai na live/OBS.',
+          style: TextStyle(fontSize: 11, color: Colors.grey)),
+    ));
+    return fields;
+  }
+
+  Future<void> _loadDiscordSounds() async {
+    setState(() => _dcSoundsLoading = true);
+    try {
+      final sounds =
+          await Injector.get<DroidDeckClient>().getDiscordSoundboardSounds();
+      if (mounted) setState(() => _dcSounds = sounds);
+    } finally {
+      if (mounted) setState(() => _dcSoundsLoading = false);
+    }
+  }
+
   void _loadObsState() {
     Injector.get<DroidDeckClient>().getObsState().then((s) {
       if (s != null && mounted) {

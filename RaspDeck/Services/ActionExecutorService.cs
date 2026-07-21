@@ -19,6 +19,7 @@ namespace DroidDeck.Services
         private readonly IHubContext<DeckHub> _hubContext;
         private readonly DiscordRpcService _discord;
         private readonly ObsService _obs;
+        private readonly SoundboardService _soundboard;
 
         public ActionExecutorService(
             ILogger<ActionExecutorService> logger,
@@ -28,7 +29,8 @@ namespace DroidDeck.Services
             IAudioControlService audioControl,
             IHubContext<DeckHub> hubContext,
             DiscordRpcService discord,
-            ObsService obs)
+            ObsService obs,
+            SoundboardService soundboard)
         {
             _logger = logger;
             _appActivator = appActivator;
@@ -38,6 +40,7 @@ namespace DroidDeck.Services
             _hubContext = hubContext;
             _discord = discord;
             _obs = obs;
+            _soundboard = soundboard;
         }
 
         public async Task ExecuteActionAsync(DeckAction action)
@@ -81,6 +84,10 @@ namespace DroidDeck.Services
                         await ExecuteObsAction(action);
                         break;
 
+                    case "soundboard":
+                        await ExecuteSoundboardAction(action);
+                        break;
+
                     default:
                         _logger.LogWarning("Unknown action type: {Type}", action.Type);
                         break;
@@ -115,6 +122,33 @@ namespace DroidDeck.Services
             {
                 _appActivator.SendKeys(keys);
             }
+        }
+
+        private async Task ExecuteSoundboardAction(DeckAction action)
+        {
+            var operation = action.Parameters.TryGetValue("operation", out var op) ? op.ToLowerInvariant() : "play";
+            var source = action.Parameters.TryGetValue("source", out var src) ? src.ToLowerInvariant() : "myinstants";
+
+            if (operation == "stop")
+            {
+                _soundboard.StopAll();
+                return;
+            }
+
+            if (source == "discord")
+            {
+                // Toca um som da soundboard NATIVA do Discord no canal de voz atual (sem cabo).
+                action.Parameters.TryGetValue("soundId", out var soundId);
+                action.Parameters.TryGetValue("guildId", out var guildId);
+                await _discord.PlaySoundboardSoundAsync(soundId ?? "", guildId);
+                return;
+            }
+
+            // MyInstants: toca o mp3 no dispositivo de saída configurado.
+            action.Parameters.TryGetValue("url", out var url);
+            action.Parameters.TryGetValue("id", out var id);
+            action.Parameters.TryGetValue("title", out var title);
+            await _soundboard.PlayAsync(id ?? "", url ?? "", title);
         }
 
         private async Task ExecuteMediaAction(DeckAction action)

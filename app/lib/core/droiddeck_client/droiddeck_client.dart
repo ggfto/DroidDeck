@@ -7,6 +7,7 @@ import 'models/mixer_master.dart';
 import 'models/media_session.dart';
 import 'models/deck_profile.dart';
 import 'models/deck_action.dart';
+import 'models/sound_result.dart';
 
 class DroidDeckClient {
   final Dio _dio;
@@ -162,6 +163,29 @@ class DroidDeckClient {
     }
   }
 
+  /// Sons da soundboard NATIVA do Discord ([{soundId, name, guildId, emojiName}]).
+  Future<List<Map<String, String>>> getDiscordSoundboardSounds() async {
+    try {
+      final r = await _dio.get('/api/discord/soundboard-sounds');
+      return (r.data as List)
+          .map<Map<String, String>>((e) => {
+                'soundId': '${e['soundId'] ?? ''}',
+                'name': '${e['name'] ?? ''}',
+                'guildId': '${e['guildId'] ?? ''}',
+                'emojiName': '${e['emojiName'] ?? ''}',
+              })
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Toca um som da soundboard nativa do Discord no canal de voz atual.
+  Future<void> playDiscordSoundboard(String soundId, String? guildId) async {
+    await _dio.post('/api/discord/play-soundboard',
+        data: {'soundId': soundId, 'guildId': guildId});
+  }
+
   // ---- OBS ----
   /// Estado do OBS (connected/currentScene/recording/streaming/virtualCam/
   /// replayBuffer/scenes/audioInputs) ou null se indisponível.
@@ -265,5 +289,80 @@ class DroidDeckClient {
       '/api/StreamDeck/layout',
       data: {'rows': rows, 'columns': columns},
     );
+  }
+
+  // ---- Soundboard (MyInstants) ----
+  /// Busca sons no MyInstants (proxiado pelo backend).
+  Future<List<SoundResult>> searchSounds(String query) async {
+    try {
+      final r = await _dio.get('/api/Soundboard/search',
+          queryParameters: {'q': query});
+      return (r.data as List)
+          .map((e) => SoundResult.fromJson((e as Map).cast<String, dynamic>()))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Sons em alta no MyInstants.
+  Future<List<SoundResult>> getTrendingSounds() async {
+    try {
+      final r = await _dio.get('/api/Soundboard/trending');
+      return (r.data as List)
+          .map((e) => SoundResult.fromJson((e as Map).cast<String, dynamic>()))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Toca um som no PC (sai pelo dispositivo configurado — cabo/monitor).
+  Future<void> playSound(String id, String url, String title) async {
+    await _dio.post('/api/Soundboard/play',
+        data: {'id': id, 'url': url, 'title': title});
+  }
+
+  /// Para tudo que estiver tocando na soundboard.
+  Future<void> stopSounds() async {
+    await _dio.post('/api/Soundboard/stop');
+  }
+
+  /// Dispositivos de saída de áudio disponíveis ([{id, name}]).
+  Future<List<Map<String, String>>> getSoundDevices() async {
+    try {
+      final r = await _dio.get('/api/Soundboard/devices');
+      return (r.data as List)
+          .map<Map<String, String>>(
+              (e) => {'id': '${e['id']}', 'name': '${e['name'] ?? ''}'})
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Config da soundboard ({cableDeviceId, monitorDeviceId, monitorEnabled, volume}).
+  Future<Map<String, dynamic>?> getSoundboardConfig() async {
+    try {
+      final r = await _dio.get('/api/Soundboard/config');
+      return (r.data as Map).cast<String, dynamic>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Salva a config da soundboard (seleção de dispositivos + volume).
+  Future<void> saveSoundboardConfig({
+    String? cableDeviceId,
+    String? monitorDeviceId,
+    bool? monitorEnabled,
+    int? volume,
+  }) async {
+    await _dio.post('/api/Soundboard/config', data: {
+      'cableDeviceId': cableDeviceId,
+      'monitorDeviceId': monitorDeviceId,
+      'monitorEnabled': monitorEnabled,
+      'volume': volume,
+    });
   }
 }

@@ -92,5 +92,32 @@ namespace DroidDeck.Controllers
             }
             catch (System.Exception ex) { return StatusCode(502, new { error = ex.Message }); }
         }
+
+        // ---- Soundboard nativa do Discord ----
+        [HttpGet("soundboard-sounds")]
+        public async Task<IActionResult> SoundboardSounds()
+        {
+            try { return Ok(await _discord.GetSoundboardSoundsAsync()); }
+            catch (System.Exception ex) { return StatusCode(502, new { error = ex.Message }); }
+        }
+
+        public class PlaySoundDto
+        {
+            public string? SoundId { get; set; }
+            public string? GuildId { get; set; }
+        }
+
+        [HttpPost("play-soundboard")]
+        public async Task<IActionResult> PlaySoundboard([FromBody] PlaySoundDto? dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto?.SoundId))
+                return BadRequest(new { error = "soundId é obrigatório" });
+            try
+            {
+                await _discord.PlaySoundboardSoundAsync(dto!.SoundId!, dto.GuildId);
+                return Ok();
+            }
+            catch (System.Exception ex) { return StatusCode(502, new { error = ex.Message }); }
+        }
     }
 }
