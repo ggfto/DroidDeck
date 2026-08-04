@@ -71,6 +71,13 @@ namespace DroidDeck.Services
         {
             public required IWavePlayer Output { get; init; }
             public required WaveStream Reader { get; init; }
+
+            /// <summary>
+            /// Device de saída explícito (null = dispositivo padrão do Windows). O WasapiOut
+            /// NÃO descarta o MMDevice que recebe no construtor, então a posse fica aqui e
+            /// ele é liberado junto com o Output — senão vaza um proxy COM por som tocado.
+            /// </summary>
+            public MMDevice? Device { get; init; }
         }
 
         public SoundboardService(
@@ -230,6 +237,7 @@ namespace DroidDeck.Services
             {
                 foreach (var device in targets)
                 {
+                    ActivePlayback? playback = null;
                     try
                     {
                         var reader = new MediaFoundationReader(path);
@@ -239,7 +247,8 @@ namespace DroidDeck.Services
                             ? new WasapiOut(device, AudioClientShareMode.Shared, false, 200)
                             : new WasapiOut(AudioClientShareMode.Shared, 200);
                         output.Init(sample);
-                        var playback = new ActivePlayback { Output = output, Reader = reader };
+                        // A posse do device passa pro ActivePlayback a partir daqui.
+                        playback = new ActivePlayback { Output = output, Reader = reader, Device = device };
                         output.PlaybackStopped += (_, __) => OnPlaybackStopped(playback);
                         output.Play();
                         _active.Add(playback);
@@ -247,6 +256,8 @@ namespace DroidDeck.Services
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "Falha ao iniciar playback no device {Device}", device?.FriendlyName ?? "(padrão)");
+                        // Falhou antes de virar ActivePlayback: ninguém mais liberaria o device.
+                        if (playback == null) { try { device?.Dispose(); } catch { } }
                     }
                 }
                 NowPlayingTitle = _active.Count > 0 ? (title ?? "") : null;
@@ -279,6 +290,7 @@ namespace DroidDeck.Services
                 {
                     try { pb.Output.Dispose(); } catch { }
                     try { pb.Reader.Dispose(); } catch { }
+                    try { pb.Device?.Dispose(); } catch { }
                 }
                 if (_active.Count == 0)
                 {
@@ -304,6 +316,7 @@ namespace DroidDeck.Services
                 try { pb.Output.Stop(); } catch { }
                 try { pb.Output.Dispose(); } catch { }
                 try { pb.Reader.Dispose(); } catch { }
+                try { pb.Device?.Dispose(); } catch { }
             }
             if (broadcast) _ = BroadcastAsync();
         }
@@ -317,7 +330,11 @@ namespace DroidDeck.Services
                 using var en = new MMDeviceEnumerator();
                 foreach (var d in en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
                 {
-                    list.Add(new { id = d.ID, name = d.FriendlyName });
+                    // Só precisamos de duas strings; o MMDevice é COM e morre aqui.
+                    using (d)
+                    {
+                        list.Add(new { id = d.ID, name = d.FriendlyName });
+                    }
                 }
             }
             catch (Exception ex)
