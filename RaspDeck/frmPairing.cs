@@ -42,12 +42,25 @@ namespace DroidDeck
             };
             try
             {
-                pic.Image = new Bitmap(new MemoryStream(PairingInfo.BuildQrPng(uri)));
+                // Um Bitmap construído a partir de um stream exige que o stream continue vivo
+                // pelo resto da vida da imagem — daí a cópia independente, que permite fechar
+                // o MemoryStream aqui mesmo. O PictureBox não descarta a própria Image, então
+                // o descarte vai no FormClosed (senão vaza um HBITMAP por abertura do diálogo).
+                using var ms = new MemoryStream(PairingInfo.BuildQrPng(uri));
+                using var qr = new Bitmap(ms);
+                pic.Image = new Bitmap(qr);
             }
             catch (Exception ex)
             {
                 Log.Error($"Falha ao gerar QR de pareamento: {ex.Message}");
             }
+
+            FormClosed += (_, _) =>
+            {
+                var img = pic.Image;
+                pic.Image = null;
+                try { img?.Dispose(); } catch { }
+            };
 
             var details = new TextBox
             {
