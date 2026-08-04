@@ -108,9 +108,16 @@ namespace DroidDeck.Services
                 using (var connectCts = new CancellationTokenSource(5000))
                     await _ws.ConnectAsync(uri, connectCts.Token);
 
-                _readCts = new CancellationTokenSource();
+                // Mesmo padrão do DiscordRpcService: o CTS é descartado pelo próprio loop ao
+                // terminar (último usuário do token). Antes cada reconexão vazava um CTS.
+                var readCts = new CancellationTokenSource();
+                _readCts = readCts;
                 _identifiedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                _ = Task.Run(() => ReadLoopAsync(_readCts.Token));
+                _ = Task.Run(async () =>
+                {
+                    try { await ReadLoopAsync(readCts.Token); }
+                    finally { readCts.Dispose(); }
+                });
 
                 await Task.WhenAny(_identifiedTcs.Task, Task.Delay(6000));
                 if (!_identifiedTcs.Task.IsCompletedSuccessfully)

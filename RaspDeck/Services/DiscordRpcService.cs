@@ -140,9 +140,18 @@ namespace DroidDeck.Services
 
             Disconnect();
             await ConnectPipeAsync();
-            _readCts = new CancellationTokenSource();
+            // Cada reconexão do watchdog cria um CTS novo. Ele é descartado pelo PRÓPRIO loop
+            // ao terminar — o loop é o último a usar o token, e descartá-lo no Disconnect()
+            // arriscaria ObjectDisposedException numa leitura em voo. Antes nunca era
+            // descartado, então cada reconexão deixava um CTS para trás.
+            var readCts = new CancellationTokenSource();
+            _readCts = readCts;
             _readyTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _ = Task.Run(() => ReadLoopAsync(_readCts.Token));
+            _ = Task.Run(async () =>
+            {
+                try { await ReadLoopAsync(readCts.Token); }
+                finally { readCts.Dispose(); }
+            });
 
             _logger.LogInformation("Discord: enviando handshake (client_id={Id})", cfg.ClientId);
             await WriteFrameAsync(0, new { v = 1, client_id = cfg.ClientId }); // handshake
