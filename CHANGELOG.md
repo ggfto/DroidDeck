@@ -1,3 +1,14 @@
+## [1.3.1](https://github.com/ggfto/DroidDeck/compare/v1.3.0...v1.3.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **media:** serializa o acesso WinRT e adiciona timeout e disjuntor ([1f43be4](https://github.com/ggfto/DroidDeck/commit/1f43be43d3dea31073a2cfbc3d7023decc398d74))
+* **mixer:** libera os objetos COM do NAudio a cada enumeracao ([72bd159](https://github.com/ggfto/DroidDeck/commit/72bd159e074cc72256ff6f67d315d6ab0feb0fad))
+* **rpc:** descarta o CancellationTokenSource de leitura a cada reconexao ([506423e](https://github.com/ggfto/DroidDeck/commit/506423eb0811d479c64ac3cad4833d8729185085))
+* **soundboard:** descarta o MMDevice do playback e da listagem de saidas ([8247ca5](https://github.com/ggfto/DroidDeck/commit/8247ca5d130a9caf6923a2d05f8185d31e4258d3))
+* **ui:** descarta o bitmap do QR de pareamento ([030020c](https://github.com/ggfto/DroidDeck/commit/030020c904f82532f0fe14b5a7a454203ebf4493))
+
 # [1.3.0](https://github.com/ggfto/DroidDeck/compare/v1.2.1...v1.3.0) (2026-07-21)
 
 
