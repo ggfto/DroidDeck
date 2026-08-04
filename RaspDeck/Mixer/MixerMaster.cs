@@ -4,6 +4,17 @@ using System.Linq;
 
 namespace DroidDeck
 {
+    /// <summary>
+    /// Snapshot (DTO) de um dispositivo de áudio e suas sessões.
+    ///
+    /// Regra de ouro deste tipo: ele NUNCA guarda referência COM viva. Todo
+    /// <see cref="MMDevice"/>/<see cref="AudioSessionControl"/> usado para montar o snapshot é
+    /// descartado antes de o objeto ser devolvido. Sem isso, cada poll de
+    /// /api/v1/Mixer/{in,out} (a cada 60s) deixava para trás um proxy COM por dispositivo e
+    /// vários por sessão; a liberação só acontecia na finalização do GC, que precisa
+    /// marshalar de volta para o apartamento de origem — o que empilhava threads bloqueadas
+    /// em espera de RPC (LpcReply) até o processo passar de 14 mil threads / 1 GB de RAM.
+    /// </summary>
     public class MixerMaster
     {
         private Dictionary<int, MixerChannel>? channels;
@@ -31,14 +42,18 @@ namespace DroidDeck
                 channels = new Dictionary<int, MixerChannel>();
                 foreach (var session in device.Sessions)
                 {
-                    if (session.IsSystemSoundsSession) continue;
-                    var channel = new MixerChannel();
-                    // best-effort: set basic properties
-                    // Note: IAudioSession abstraction doesn't expose process info for icon extraction
-                    channel.Id = (int)session.GetProcessID();
-                    channel.Mute = session.Mute;
-                    channel.Volume = (int)(session.Volume * device.MasterVolumeLevelScalar * 100);
-                    channels[channel.Id] = channel;
+                    // A sessão é COM por baixo do adapter; descartar após copiar os valores.
+                    using (session)
+                    {
+                        if (session.IsSystemSoundsSession) continue;
+                        var channel = new MixerChannel();
+                        // best-effort: set basic properties
+                        // Note: IAudioSession abstraction doesn't expose process info for icon extraction
+                        channel.Id = (int)session.GetProcessID();
+                        channel.Mute = session.Mute;
+                        channel.Volume = (int)(session.Volume * device.MasterVolumeLevelScalar * 100);
+                        channels[channel.Id] = channel;
+                    }
                 }
             }
         }
@@ -56,11 +71,15 @@ namespace DroidDeck
             }
 
             if (device == null) return;
-            if (device.State == DeviceState.Unplugged ||
-                device.State == DeviceState.NotPresent ||
-                device.State == DeviceState.Disabled) return;
 
-            newMaster(device);
+            using (device)
+            {
+                if (device.State == DeviceState.Unplugged ||
+                    device.State == DeviceState.NotPresent ||
+                    device.State == DeviceState.Disabled) return;
+
+                newMaster(device);
+            }
         }
 
         private void newMaster(MMDevice device)
@@ -70,7 +89,8 @@ namespace DroidDeck
             var idx = friendly.IndexOf("(");
             Title = idx >= 0 ? friendly.Substring(0, idx).Trim() : friendly.Trim();
             Description = device.DeviceFriendlyName;
-            Volume = (int)(device.AudioEndpointVolume.MasterVolumeLevelScalar * 100);
+            var masterVolume = device.AudioEndpointVolume.MasterVolumeLevelScalar;
+            Volume = (int)(masterVolume * 100);
             Mute = device.AudioEndpointVolume.Mute;
             Icon = null;
             if (device.DataFlow == DataFlow.Render)
@@ -79,9 +99,13 @@ namespace DroidDeck
                 channels = new Dictionary<int, MixerChannel>();
                 for (int i = 0; i < sessions.Count; i++)
                 {
-                    if (sessions[i].IsSystemSoundsSession) continue;
-                    var channel = new MixerChannel(sessions[i], device.AudioEndpointVolume.MasterVolumeLevelScalar);
-                    channels[(int)sessions[i].GetProcessID] = channel;
+                    // sessions[i] materializa um AudioSessionControl NOVO a cada acesso
+                    // (SessionCollection não cacheia). Ler o indexer uma única vez por
+                    // iteração e descartar: antes eram três leituras por sessão, ou seja,
+                    // três proxies COM vazados por sessão por chamada.
+                    using var session = sessions[i];
+                    if (session.IsSystemSoundsSession) continue;
+                    channels[(int)session.GetProcessID] = new MixerChannel(session, masterVolume);
                 }
             }
         }
@@ -91,8 +115,12 @@ namespace DroidDeck
             using var en = new MMDeviceEnumerator();
             foreach (MMDevice d in en.EnumerateAudioEndPoints(dataFlow, deviceState))
             {
-                var master = new MixerMaster(d);
-                devices.Add(master);
+                // O MixerMaster copia tudo que precisa no construtor, então o MMDevice pode
+                // (e deve) morrer aqui — ele não sobrevive até a serialização da resposta.
+                using (d)
+                {
+                    devices.Add(new MixerMaster(d));
+                }
             }
             return devices;
         }
@@ -102,7 +130,10 @@ namespace DroidDeck
             var devices = new List<MixerMaster>();
             foreach (var d in enumerator.EnumerateAudioEndPoints(dataFlow, deviceState))
             {
-                devices.Add(new MixerMaster(d));
+                using (d)
+                {
+                    devices.Add(new MixerMaster(d));
+                }
             }
             return devices;
         }
@@ -116,21 +147,35 @@ namespace DroidDeck
         public MixerMaster? SetOptions(string id, MixerData data)
         {
             using var devices = new MMDeviceEnumerator();
-            var device = devices.GetDevice(id);
+            MMDevice? device;
+            try { device = devices.GetDevice(id); }
+            catch { return null; }
             if (device == null) return null;
-            else
+
+            using (device)
             {
                 float volume;
                 volume = (data.Volume ?? -1.0f) / 100.0f;
                 bool mute = data.Mute == true;
+                var masterVolume = device.AudioEndpointVolume.MasterVolumeLevelScalar;
+
                 if (data.Session >= 0 && device.DataFlow.CompareTo(DataFlow.Render) == 0)
                 {
-                    var ch = GetChannel(data.Session);
-                    if (ch != null)
-                        ch.SetOptions(data, device.AudioEndpointVolume.MasterVolumeLevelScalar);
+                    // Resolve a sessão AO VIVO pelo PID, no device recém-aberto. Antes usava
+                    // o AudioSessionControl que este MixerMaster tinha guardado desde a
+                    // construção — um proxy COM potencialmente obsoleto (e vazado).
+                    var sessions = device.AudioSessionManager.Sessions;
+                    for (int i = 0; i < sessions.Count; i++)
+                    {
+                        using var session = sessions[i];
+                        if (session.IsSystemSoundsSession) continue;
+                        if ((int)session.GetProcessID != data.Session) continue;
+                        MixerChannel.Apply(session, data, masterVolume);
+                        break;
+                    }
                 }
                 else
-                    if (mute && device.AudioEndpointVolume.MasterVolumeLevelScalar >= volume)
+                    if (mute && masterVolume >= volume)
                     device.AudioEndpointVolume.Mute = mute;
                 else
                     if (volume > 0)
@@ -140,8 +185,9 @@ namespace DroidDeck
                     }
                     else
                         device.AudioEndpointVolume.Mute = mute;
+
+                return new MixerMaster(device);
             }
-            return new MixerMaster(device);
         }
 
         public string? Id { get; set; }

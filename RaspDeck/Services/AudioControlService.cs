@@ -20,26 +20,34 @@ namespace DroidDeck.Services
             int affected = 0;
 
             // try to find sessions by enumerating audio endpoints and their sessions
+            // O device e cada sessão são COM: descartar sempre, senão só saem na finalização
+            // do GC e empilham esperas de RPC entre apartamentos.
             foreach (var device in _enumerator.EnumerateAudioEndPoints(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.DeviceState.Active))
             {
-                try
+                using (device)
                 {
-                    foreach (var s in device.Sessions)
+                    try
                     {
-                        try
+                        foreach (var s in device.Sessions)
                         {
-                            var pid = (int)s.GetProcessID();
-                            using var p = System.Diagnostics.Process.GetProcessById(pid);
-                            if (string.Equals(p.ProcessName, processName, StringComparison.OrdinalIgnoreCase))
+                            using (s)
                             {
-                                s.Mute = mute;
-                                affected++;
+                                try
+                                {
+                                    var pid = (int)s.GetProcessID();
+                                    using var p = System.Diagnostics.Process.GetProcessById(pid);
+                                    if (string.Equals(p.ProcessName, processName, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        s.Mute = mute;
+                                        affected++;
+                                    }
+                                }
+                                catch { }
                             }
                         }
-                        catch { }
                     }
+                    catch { }
                 }
-                catch { }
             }
 
             return affected;
@@ -58,23 +66,29 @@ namespace DroidDeck.Services
             if (string.IsNullOrEmpty(processName)) return null;
             foreach (var device in _enumerator.EnumerateAudioEndPoints(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.DeviceState.Active))
             {
-                try
+                using (device)
                 {
-                    foreach (var s in device.Sessions)
+                    try
                     {
-                        try
+                        foreach (var s in device.Sessions)
                         {
-                            var pid = (int)s.GetProcessID();
-                            using var p = System.Diagnostics.Process.GetProcessById(pid);
-                            if (string.Equals(p.ProcessName, processName, StringComparison.OrdinalIgnoreCase))
+                            using (s)
                             {
-                                return s.Mute;
+                                try
+                                {
+                                    var pid = (int)s.GetProcessID();
+                                    using var p = System.Diagnostics.Process.GetProcessById(pid);
+                                    if (string.Equals(p.ProcessName, processName, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        return s.Mute;
+                                    }
+                                }
+                                catch { }
                             }
                         }
-                        catch { }
                     }
+                    catch { }
                 }
-                catch { }
             }
             return null;
         }

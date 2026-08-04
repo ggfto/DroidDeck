@@ -7,27 +7,35 @@ using System.IO;
 
 namespace DroidDeck
 {
+    /// <summary>
+    /// Snapshot (DTO) de uma sessão de áudio. NÃO guarda o <see cref="AudioSessionControl"/>:
+    /// ele é COM e ficava vivo enquanto o objeto sobrevivia à serialização, vazando um proxy
+    /// por sessão por poll (o app consulta /api/v1/Mixer/{in,out} a cada 60s). Todos os campos
+    /// abaixo já são cópias por valor, então o COM pode ser liberado assim que o snapshot é
+    /// montado. Para escrever, use <see cref="Apply"/> com uma sessão resolvida na hora.
+    /// </summary>
     public class MixerChannel
     {
-        private readonly AudioSessionControl? session;
-
         public MixerChannel() { }
+
         public MixerChannel(AudioSessionControl session, float masterVolume)
         {
             Id = 0;
             Description = "Windows";
 
-            if (!session.IsSystemSoundsSession && ProcessExists(session.GetProcessID))
+            if (!session.IsSystemSoundsSession)
             {
-                Id = (int)session.GetProcessID;
+                var pid = (int)session.GetProcessID;
 
-                // GetProcessById fica DENTRO do try: se o processo terminar entre o
-                // ProcessExists e aqui (corrida), lança ArgumentException — antes isso
-                // subia e quebrava a enumeração inteira (500). O Process/Icon/Bitmap são
-                // descartados (using) pra não vazar handle de kernel e GDI (HICON/HBITMAP).
+                // Um único GetProcessById (antes eram dois: ProcessExists + este). Se o
+                // processo morreu entre a enumeração e aqui, lança e o canal fica no default
+                // — mesmo efeito do ProcessExists() anterior, com metade dos handles.
+                // O Process/Icon/Bitmap são descartados (using) pra não vazar handle de
+                // kernel e GDI (HICON/HBITMAP).
                 try
                 {
-                    using var process = Process.GetProcessById((int)session.GetProcessID);
+                    using var process = Process.GetProcessById(pid);
+                    Id = pid;
                     Description = (process.ProcessName == "Spotify" ? process.ProcessName + ": " : "") + (!string.IsNullOrEmpty(process.MainWindowTitle) ? process.MainWindowTitle : process.ProcessName);
 
                     var moduleFile = process.MainModule?.FileName;
@@ -51,36 +59,31 @@ namespace DroidDeck
 
             Volume = (int)(session.SimpleAudioVolume.Volume * masterVolume * 100);
             Mute = session.SimpleAudioVolume.Mute;
-            this.session = session;
         }
 
-        public AudioSessionControl? GetSession()
+        /// <summary>
+        /// Aplica volume/mute numa sessão viva. Estático de propósito: quem chama é dono do
+        /// <paramref name="session"/> e o descarta logo em seguida.
+        /// </summary>
+        public static void Apply(AudioSessionControl session, MixerData data, float masterVolume)
         {
-            return session;
-        }
+            float volume = (data.Volume ?? -1.0f) / 100.0f;
+            var newVolume = volume / masterVolume;
+            bool mute = data.Mute == true;
 
-        public void SetOptions(MixerData data, float masterVolume)
-        {
-            if (session != null)
+            if (mute && session.SimpleAudioVolume.Volume >= newVolume)
+                session.SimpleAudioVolume.Mute = mute;
+            else
+                if (newVolume > 0)
             {
-                float volume;
-                volume = (data.Volume ?? -1.0f) / 100.0f;
-                var newVolume = volume / masterVolume;
-                bool mute = data.Mute == true;
-                if (mute && session.SimpleAudioVolume.Volume >= newVolume)
-                    session.SimpleAudioVolume.Mute = mute;
+                if (newVolume <= 1)
+                    session.SimpleAudioVolume.Volume = newVolume;
                 else
-                    if (newVolume > 0)
-                {
-                    if (newVolume <= 1)
-                        session.SimpleAudioVolume.Volume = newVolume;
-                    else
-                        session.SimpleAudioVolume.Volume = 1;
-                    session.SimpleAudioVolume.Mute = false;
-                }
-                else
-                    session.SimpleAudioVolume.Mute = mute;
+                    session.SimpleAudioVolume.Volume = 1;
+                session.SimpleAudioVolume.Mute = false;
             }
+            else
+                session.SimpleAudioVolume.Mute = mute;
         }
 
         public int Id { get; set; }
@@ -88,18 +91,5 @@ namespace DroidDeck
         public int Volume { get; set; }
         public string? Icon { get; set; }
         public bool Mute { get; set; }
-
-        private bool ProcessExists(uint processId)
-        {
-            try
-            {
-                using var process = Process.GetProcessById((int)processId);
-                return true;
-            }
-            catch (ArgumentException)
-            {
-                return false;
-            }
-        }
     }
 }
