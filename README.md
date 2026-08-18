@@ -23,7 +23,7 @@ na query do SignalR), com a chave em `%LocalAppData%\DroidDeck\apikey`. Pareamen
 ## Backend (RaspDeck)
 
 ```powershell
-# rodar (app de bandeja + servidor web em http://localhost:5000)
+# rodar (app de bandeja + servidor web em http://localhost:4787)
 Set-Location 'G:\ggfto\DroidDeck\RaspDeck'; dotnet run
 
 # build
@@ -57,7 +57,7 @@ aprovação da Discord), e o Client Secret não pode ser compartilhado. Setup (1
 
 1. discord.com/developers/applications → **New Application**
 2. Em **OAuth2**, copie o **Client ID** e o **Client Secret**
-3. Em **OAuth2 → Redirects**, adicione `http://localhost:5000/discord` e **Salve**
+3. Em **OAuth2 → Redirects**, adicione `http://localhost:4787/discord` e **Salve**
 
 No app/configurador: **Configurações → Plugin do Discord** (ou o botão "Configurar Discord" na
 sidebar do configurador web). Cole Client ID + Secret → **Salvar** → **Conectar** (aprove o
