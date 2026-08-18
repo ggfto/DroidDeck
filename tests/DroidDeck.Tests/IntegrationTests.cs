@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 using DroidDeck.Audio;
+using DroidDeck.Auth;
 
 namespace DroidDeck.Tests
 {
@@ -34,7 +35,9 @@ namespace DroidDeck.Tests
                 });
             }).CreateClient();
 
-            client.DefaultRequestHeaders.Add("X-API-KEY", "changeme");
+            // A chave fixa "changeme" saiu quando a auth passou a gerar uma chave forte por
+            // maquina (ApiKeyProvider). Pegar dela mantem o teste alinhado com o servidor.
+            client.DefaultRequestHeaders.Add("X-API-KEY", ApiKeyProvider.GetKey());
             var response = await client.GetAsync("/api/v1/mixer/out");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
