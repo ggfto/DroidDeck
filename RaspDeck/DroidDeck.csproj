@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="LocalStorage" Version="2.1.0" />
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NLog" Version="6.0.4" />
     <PackageReference Include="QRCoder" Version="1.8.0" />
@@ -23,6 +24,14 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <Compile Remove="DroidDeck.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- TuyaCrypto e interno de proposito (ninguem fora do plugin deve montar assinatura),
+         mas precisa ser testavel: e a unica peca do plugin que falha em silencio. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>DroidDeck.Tests</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>

@@ -49,6 +49,13 @@ namespace DroidDeck.Hubs
                 try { await Clients.Caller.SendAsync("ReceiveObsState", obs.GetStatePayload()); }
                 catch { }
             }
+            // Estado da Tuya + dispositivos. Sem isto, quem conecta depois do backend só
+            // receberia algo quando algum aparelho mudasse — os botões abririam sem cor.
+            if (_services.GetService(typeof(Services.TuyaService)) is Services.TuyaService tuya)
+            {
+                try { await Clients.Caller.SendAsync("ReceiveTuyaState", tuya.GetStatePayload()); }
+                catch { }
+            }
             await base.OnConnectedAsync();
         }
 

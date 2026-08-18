@@ -95,6 +95,11 @@ class SignalRService {
   // Estado do OBS (connected/currentScene/recording/streaming/...) pros botões refletirem.
   final obsState = signal<Map<String, dynamic>>({'connected': false});
 
+  // Estado do plugin Tuya + os dispositivos. O backend só manda o snapshot completo em
+  // eventos raros (conectou, reenumerou); mudança de estado de aparelho chega em
+  // ReceiveTuyaDeviceState e é fundida aqui, pra não repassar a lista inteira a cada clique.
+  final tuyaState = signal<Map<String, dynamic>>({'paired': false, 'devices': []});
+
   SignalRService();
 
   /// Mascara o access_token da URL para log/exibição (a chave é um segredo).
@@ -271,6 +276,47 @@ class SignalRService {
         } catch (e) {
           _logger.warning('Error parsing ReceiveObsState: $e');
         }
+      }
+    });
+
+    // Snapshot completo do plugin Tuya (conectou, reenumerou dispositivos).
+    _hubConnection?.on('ReceiveTuyaState', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        try {
+          tuyaState.value = Map<String, dynamic>.from(arguments[0] as Map);
+        } catch (e) {
+          _logger.warning('Error parsing ReceiveTuyaState: $e');
+        }
+      }
+    });
+
+    // Um aparelho mudou de estado (push MQTT). Chega só o que mudou; fundimos no
+    // snapshot pra que o botão do deck repinte sem uma nova ida ao servidor.
+    _hubConnection?.on('ReceiveTuyaDeviceState', (arguments) {
+      if (arguments == null || arguments.isEmpty) return;
+      try {
+        final msg = Map<String, dynamic>.from(arguments[0] as Map);
+        final deviceId = msg['deviceId'];
+        final changes = Map<String, dynamic>.from(msg['status'] as Map);
+
+        final snapshot = Map<String, dynamic>.from(tuyaState.value);
+        final devices = List<dynamic>.from(snapshot['devices'] as List? ?? const []);
+
+        final index = devices.indexWhere((d) => (d as Map)['id'] == deviceId);
+        if (index < 0) return; // aparelho fora do cache: ignora até a próxima enumeração
+
+        final device = Map<String, dynamic>.from(devices[index] as Map);
+        device['status'] = {
+          ...Map<String, dynamic>.from(device['status'] as Map? ?? const {}),
+          ...changes,
+        };
+        devices[index] = device;
+
+        // Reatribui o mapa inteiro: mutar em profundidade não dispara o signal.
+        snapshot['devices'] = devices;
+        tuyaState.value = snapshot;
+      } catch (e) {
+        _logger.warning('Error parsing ReceiveTuyaDeviceState: $e');
       }
     });
 

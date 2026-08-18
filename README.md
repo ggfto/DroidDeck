@@ -65,6 +65,63 @@ popup que abre no Discord do PC). O token fica em `%LocalAppData%\DroidDeck\disc
 reconecta sozinho no startup. No editor, ações de Discord mostram um **aviso** se ainda não
 estiver configurado/conectado. Câmera/compartilhar tela não são possíveis (RPC privado da Discord).
 
+## Casa inteligente (Tuya / Smart Life)
+
+Controla lâmpadas, tomadas e interruptores pelo deck. Vale para **qualquer marca que use
+Tuya por baixo** — Nova Digital, Positivo Casa Inteligente, RSmart, Elgin, Geonav, Aubess…
+são todas rebrand da mesma plataforma.
+
+**Não precisa de conta de desenvolvedor.** O pareamento é por QR:
+
+1. No app **Smart Life** (ou Tuya Smart): **Eu → ⚙️ → Conta e segurança → Código de usuário**
+2. No configurador: **Configurações → Casa inteligente (Tuya)**, cole o código, **Gerar QR**
+3. Escaneie o QR com o app (aba Home → ícone de scan). Ele pede para confirmar login
+   **"Home Assistant"** — ver a ressalva abaixo.
+
+A sessão fica em `%LocalAppData%\DroidDeck\tuya.json` e reconecta sozinha no startup.
+
+### ⚠️ Se você usa o app da marca (Nova Digital, Positivo, RSmart…)
+
+**O scan vai falhar** com _"please use the designated app to scan the code to login"_. O QR
+carrega o registro de app do Home Assistant, e só **Smart Life** e **Tuya Smart** aceitam —
+apps de marca recusam. Compartilhar o dispositivo não resolve (vários OEMs nem oferecem
+a opção).
+
+Solução: **remova o aparelho do app da marca e pareie de novo pelo Smart Life**. É o mesmo
+hardware e funciona igual; você perde só as automações configuradas no app da marca.
+
+> Usamos o registro público do Home Assistant porque a Tuya não abre esse cadastro no
+> autoatendimento — depende de _business review_. Por isso o app mostra o nome dele na
+> autorização. O `clientId`/`schema` ficam em `tuya.json`, então trocar por um registro
+> próprio é mudança de configuração, não de código.
+
+### Botões
+
+No editor, tipo de ação **`tuya`**: escolha o dispositivo, depois o que controlar. Os campos
+se adaptam ao aparelho (o `specifications` da Tuya diz o tipo de cada função): liga/desliga
+vira switch, brilho vira slider já na faixa certa, modo vira lista de opções.
+
+- **Alternar** — liga se estiver desligado e vice-versa. É o uso comum de um deck.
+- **Sempre ligar / valor fixo** — manda um valor determinístico.
+
+Configure a **Cor ativa** para o botão acender quando o aparelho estiver ligado. O estado
+chega por push (MQTT) e reflete inclusive mudanças feitas no interruptor de parede ou no app.
+
+### Cota da API
+
+O plano gratuito da Tuya permite ~26 mil chamadas/mês (≈0,6 por minuto), com cota separada
+para as mensagens de push. Por isso o estado vem **por push, nunca por polling**, e a
+reenumeração de dispositivos (botão "atualizar") só roda quando você pede. Apertar botões
+não é problema — cada clique é uma chamada.
+
+### Limitações conhecidas
+
+- **Sem controle local.** Tudo passa pela nuvem; sem internet, os botões não funcionam.
+  O protocolo local dos aparelhos recentes (3.4/3.5) exige um handshake que nenhuma
+  biblioteca .NET implementa hoje. Também renderia pouco em latência: medimos ~240 ms no
+  canal local contra ~310 ms pela nuvem.
+- **Aparelho offline** falha com erro 2001 da Tuya.
+
 ## Releases (download pronto pro usuário)
 
 CI em `.github/workflows/release.yml`, disparo **manual** em **Actions → Release → Run workflow**.

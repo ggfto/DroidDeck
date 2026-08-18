@@ -20,6 +20,7 @@ namespace DroidDeck.Services
         private readonly DiscordRpcService _discord;
         private readonly ObsService _obs;
         private readonly SoundboardService _soundboard;
+        private readonly TuyaService _tuya;
 
         public ActionExecutorService(
             ILogger<ActionExecutorService> logger,
@@ -30,7 +31,8 @@ namespace DroidDeck.Services
             IHubContext<DeckHub> hubContext,
             DiscordRpcService discord,
             ObsService obs,
-            SoundboardService soundboard)
+            SoundboardService soundboard,
+            TuyaService tuya)
         {
             _logger = logger;
             _appActivator = appActivator;
@@ -41,6 +43,7 @@ namespace DroidDeck.Services
             _discord = discord;
             _obs = obs;
             _soundboard = soundboard;
+            _tuya = tuya;
         }
 
         public async Task ExecuteActionAsync(DeckAction action)
@@ -86,6 +89,10 @@ namespace DroidDeck.Services
 
                     case "soundboard":
                         await ExecuteSoundboardAction(action);
+                        break;
+
+                    case "tuya":
+                        await ExecuteTuyaAction(action);
                         break;
 
                     default:
@@ -368,6 +375,65 @@ namespace DroidDeck.Services
                 default: // toggleMute
                     await _discord.SetMuteAsync(null);
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Casa inteligente Tuya/Smart Life (cobre os rebrands: Nova Digital, Positivo, RSmart...).
+        ///
+        /// "toggle" e o caso comum de um deck e depende do estado que o push MQTT mantem em
+        /// memoria -- por isso ele nao faz leitura na nuvem antes (o que gastaria cota a cada
+        /// clique). Se o push estiver fora do ar o estado pode estar velho; nesse caso o usuario
+        /// ve o botao inverter "para o lado errado" uma vez e acerta no clique seguinte.
+        /// Para um comando deterministico use "set" com o valor explicito.
+        /// </summary>
+        private async Task ExecuteTuyaAction(DeckAction action)
+        {
+            var p = action.Parameters;
+            string Get(string k) => p.TryGetValue(k, out var v) ? v : "";
+
+            var deviceId = Get("deviceId");
+            var code = Get("code");
+            if (string.IsNullOrEmpty(deviceId) || string.IsNullOrEmpty(code))
+            {
+                _logger.LogWarning("Tuya: acao sem deviceId/code");
+                return;
+            }
+
+            var operation = (Get("operation") is { Length: > 0 } op ? op : "toggle").Trim().ToLowerInvariant();
+
+            switch (operation)
+            {
+                case "toggle":
+                    await _tuya.ToggleAsync(deviceId, code);
+                    break;
+
+                case "set":
+                    await _tuya.SendCommandAsync(deviceId, code, ParseValue(Get("value"), Get("valueType")));
+                    break;
+
+                default:
+                    _logger.LogWarning("Tuya: operacao desconhecida {Op}", operation);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Os parametros de acao sao string (Dictionary&lt;string,string&gt;), mas a Tuya exige o
+        /// tipo certo: mandar "true" onde ela espera booleano faz a API recusar. O valueType vem
+        /// do specifications do proprio aparelho, gravado no botao pelo editor.
+        /// </summary>
+        private static object? ParseValue(string raw, string valueType)
+        {
+            switch ((valueType ?? "").Trim().ToLowerInvariant())
+            {
+                case "boolean":
+                    return bool.TryParse(raw, out var b) && b;
+                case "integer":
+                    return long.TryParse(raw, out var l) ? l : 0L;
+                default:
+                    // Enum, String e Json seguem como texto -- e o que a Tuya espera nesses casos.
+                    return raw;
             }
         }
 

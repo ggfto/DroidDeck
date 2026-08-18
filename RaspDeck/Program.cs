@@ -210,6 +210,8 @@ namespace DroidDeck
                             services.AddHostedService<Services.DiscordAutoConnect>();
                             services.AddSingleton<Services.ObsService>();
                             services.AddHostedService<Services.ObsAutoConnect>();
+                            services.AddSingleton<Services.TuyaService>();
+                            services.AddHostedService<Services.TuyaAutoConnect>();
                             services.AddSingleton<Services.SoundboardService>();
                             services.AddSingleton<Services.ActionExecutorService>();
                             services.AddHostedService<Services.SystemMonitorService>();

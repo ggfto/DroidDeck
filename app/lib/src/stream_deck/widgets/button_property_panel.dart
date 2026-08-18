@@ -31,6 +31,10 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   String _mixerOperation = 'toggleMute';
   String _discordOp = 'toggleMute';
   String _mediaCommand = 'playpause';
+  String _tuyaOp = 'toggle';
+  String? _tuyaDeviceId;
+  String? _tuyaCode;
+  String _tuyaValue = '';
   String _obsOp = 'setScene';
   String? _obsScene;
   String? _obsInput;
@@ -68,7 +72,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
 
   /// Ações que refletem um estado ligado/desligado (e portanto têm "cor de ativo").
   bool get _isStatefulAction =>
-      _selectedActionType == 'discord' || _selectedActionType == 'mixer';
+      _selectedActionType == 'discord' ||
+      _selectedActionType == 'mixer' ||
+      _selectedActionType == 'tuya';
 
   final List<String> _actionTypes = [
     'none',
@@ -82,6 +88,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     'discord',
     'obs',
     'soundboard',
+    'tuya',
   ];
   final List<Color> _colors = [
     Colors.grey[800]!,
@@ -165,6 +172,14 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
         _obsScene = dp['scene'];
         _obsInput = dp['inputName'];
         _loadObsState();
+      } else if (_selectedActionType == 'tuya') {
+        _actionParamController = TextEditingController();
+        final dp = widget.button.action!.parameters;
+        _tuyaOp = dp['operation'] ?? 'toggle';
+        _tuyaDeviceId = dp['deviceId'];
+        _tuyaCode = dp['code'];
+        _tuyaValue = dp['value'] ?? '';
+        _loadTuyaState();
       } else if (_selectedActionType == 'soundboard') {
         _actionParamController = TextEditingController();
         final dp = widget.button.action!.parameters;
@@ -324,6 +339,16 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       if (_obsOp == 'toggleInputMute' && _obsInput != null) {
         params['inputName'] = _obsInput!;
       }
+    } else if (_selectedActionType == 'tuya') {
+      params['operation'] = _tuyaOp;
+      if (_tuyaDeviceId != null) params['deviceId'] = _tuyaDeviceId!;
+      if (_tuyaCode != null) params['code'] = _tuyaCode!;
+      if (_tuyaOp == 'set') {
+        params['value'] = _tuyaValue;
+        // O backend precisa do tipo para converter a string no que a Tuya espera
+        // (mandar "true" onde ela quer booleano faz a API recusar).
+        params['valueType'] = _tuyaFunction()?['type'] ?? 'String';
+      }
     } else if (_selectedActionType == 'mixer') {
       params['operation'] = _mixerOperation;
       params['processName'] = _actionParamController.text.trim();
@@ -448,6 +473,10 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                       // Ação e monitor (dynamicType) são exclusivos.
                       if (val != 'none') _dynamicType = null;
                     });
+                    // Num botão novo o initState não passou pelo ramo da Tuya, então
+                    // sem isto os campos abririam dizendo "conta não vinculada" mesmo
+                    // com a conta pareada — o snapshot só chega em broadcast raro.
+                    if (val == 'tuya') _loadTuyaState();
                   },
                 ),
                 const SizedBox(height: 16),
@@ -630,6 +659,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                 ],
                 if (_selectedActionType == 'soundboard') ...[
                   ..._buildSoundboardFields(),
+                ],
+                if (_selectedActionType == 'tuya') ...[
+                  ..._buildTuyaFields(),
                 ],
                 if (_selectedActionType == 'mixer') ...[
                   DropdownButtonFormField<String>(
@@ -1382,6 +1414,278 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       if (mounted) setState(() => _dcSounds = sounds);
     } finally {
       if (mounted) setState(() => _dcSoundsLoading = false);
+    }
+  }
+
+  // ---- Tuya / Smart Life ----
+
+  void _loadTuyaState() {
+    Injector.get<DroidDeckClient>().getTuyaState().then((s) {
+      if (s != null && mounted) {
+        setState(() {
+          Injector.get<SignalRService>().tuyaState.value =
+              Map<String, dynamic>.from(s);
+        });
+      }
+    }).catchError((_) {});
+  }
+
+  List<dynamic> _tuyaDevices() =>
+      (Injector.get<SignalRService>().tuyaState.value['devices'] as List? ??
+          const []);
+
+  Map<String, dynamic>? _tuyaDevice() {
+    for (final d in _tuyaDevices()) {
+      if ((d as Map)['id'] == _tuyaDeviceId) {
+        return Map<String, dynamic>.from(d);
+      }
+    }
+    return null;
+  }
+
+  /// Metadados da funcao escolhida (type/values), vindos do `specifications` do
+  /// proprio aparelho -- e o que faz o campo de valor se adaptar sozinho.
+  Map<String, dynamic>? _tuyaFunction() {
+    final device = _tuyaDevice();
+    if (device == null || _tuyaCode == null) return null;
+    final fns = device['functions'] as Map? ?? const {};
+    final fn = fns[_tuyaCode];
+    return fn == null ? null : Map<String, dynamic>.from(fn as Map);
+  }
+
+  /// Os limites vem como JSON cru da Tuya: {"min":10,"max":1000} ou {"range":[...]}.
+  Map<String, dynamic> _tuyaValues() {
+    final raw = _tuyaFunction()?['values'];
+    if (raw is! String || raw.isEmpty) return const {};
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  List<Widget> _buildTuyaFields() {
+    final paired =
+        Injector.get<SignalRService>().tuyaState.value['paired'] == true;
+    final devices = _tuyaDevices();
+
+    if (!paired) {
+      return [
+        Card(
+          color: Colors.orange.withValues(alpha: 0.12),
+          child: const Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Conta Tuya nao vinculada',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 4),
+                Text(
+                  'Vincule sua conta Smart Life em Configuracoes -> Casa inteligente '
+                  'para escolher um dispositivo.',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ];
+    }
+
+    final device = _tuyaDevice();
+    final fn = _tuyaFunction();
+    final type = fn?['type'] as String?;
+
+    return [
+      DropdownButtonFormField<String>(
+        value: devices.any((d) => (d as Map)['id'] == _tuyaDeviceId)
+            ? _tuyaDeviceId
+            : null,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: 'Dispositivo',
+          border: const OutlineInputBorder(),
+          helperText: devices.isEmpty
+              ? 'Nenhum dispositivo -- atualize em Configuracoes'
+              : null,
+        ),
+        items: devices.map((d) {
+          final dev = d as Map;
+          return DropdownMenuItem(
+            value: dev['id'] as String,
+            child: Text(
+              '${dev['name']}${dev['online'] == true ? '' : ' (offline)'}',
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
+        onChanged: (v) => setState(() {
+          _tuyaDeviceId = v;
+          // Trocar de aparelho invalida a funcao: os DPs sao de cada modelo.
+          _tuyaCode = null;
+          _tuyaValue = '';
+        }),
+      ),
+      const SizedBox(height: 12),
+      if (device != null) ...[
+        DropdownButtonFormField<String>(
+          value:
+              (device['functions'] as Map? ?? const {}).containsKey(_tuyaCode)
+                  ? _tuyaCode
+                  : null,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'O que controlar',
+            border: OutlineInputBorder(),
+          ),
+          items: (device['functions'] as Map? ?? const {})
+              .entries
+              .map((e) => DropdownMenuItem(
+                    value: e.key as String,
+                    child: Text('${e.key}  -  ${(e.value as Map)['type']}',
+                        overflow: TextOverflow.ellipsis),
+                  ))
+              .toList(),
+          onChanged: (v) => setState(() {
+            _tuyaCode = v;
+            _tuyaValue = '';
+            // So booleano pode alternar; o resto exige um valor explicito.
+            final t = _tuyaFunction()?['type'];
+            _tuyaOp = t == 'Boolean' ? 'toggle' : 'set';
+          }),
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (fn != null) ...[
+        if (type == 'Boolean')
+          DropdownButtonFormField<String>(
+            value: _tuyaOp,
+            decoration: const InputDecoration(
+              labelText: 'Acao',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(
+                  value: 'toggle', child: Text('Alternar (liga/desliga)')),
+              DropdownMenuItem(
+                  value: 'set', child: Text('Sempre ligar / sempre desligar')),
+            ],
+            onChanged: (v) => setState(() => _tuyaOp = v ?? 'toggle'),
+          ),
+        if (type == 'Boolean' && _tuyaOp == 'set') ...[
+          const SizedBox(height: 12),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(_tuyaValue == 'true' ? 'Ligar' : 'Desligar'),
+            value: _tuyaValue == 'true',
+            onChanged: (v) => setState(() => _tuyaValue = v ? 'true' : 'false'),
+          ),
+        ],
+        if (type == 'Integer') ..._buildTuyaIntegerField(),
+        if (type == 'Enum') ..._buildTuyaEnumField(),
+        if (type == 'String' || type == 'Json' || type == 'Raw') ...[
+          TextFormField(
+            initialValue: _tuyaValue,
+            decoration: InputDecoration(
+              labelText: 'Valor',
+              border: const OutlineInputBorder(),
+              helperText: 'Tipo $type -- valor cru enviado a Tuya',
+            ),
+            onChanged: (v) => _tuyaValue = v,
+          ),
+        ],
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: _testTuyaCommand,
+          icon: const Icon(Icons.play_arrow),
+          label: const Text('Testar agora'),
+        ),
+      ],
+      const SizedBox(height: 8),
+      const Text(
+        'O estado do botao acompanha o aparelho em tempo real; use "Cor ativa" '
+        'para ele acender quando estiver ligado.',
+        style: TextStyle(fontSize: 11, color: Colors.grey),
+      ),
+    ];
+  }
+
+  List<Widget> _buildTuyaIntegerField() {
+    final values = _tuyaValues();
+    final min = (values['min'] as num?)?.toDouble() ?? 0;
+    final max = (values['max'] as num?)?.toDouble() ?? 100;
+    final unit = values['unit'] as String? ?? '';
+    final current = double.tryParse(_tuyaValue) ?? min;
+    final clamped = current.clamp(min, max);
+
+    return [
+      const SizedBox(height: 12),
+      Text('Valor: ${clamped.round()}$unit',
+          style: const TextStyle(fontSize: 12)),
+      Slider(
+        min: min,
+        max: max,
+        // Faixas grandes (brilho vai de 10 a 1000) ficariam travadas com poucas
+        // divisoes; sem divisions o slider e continuo e arredondamos no fim.
+        value: clamped.toDouble(),
+        label: '${clamped.round()}',
+        onChanged: (v) => setState(() => _tuyaValue = '${v.round()}'),
+      ),
+      Text('Faixa: ${min.round()} a ${max.round()}$unit',
+          style: const TextStyle(fontSize: 11, color: Colors.grey)),
+    ];
+  }
+
+  List<Widget> _buildTuyaEnumField() {
+    final range =
+        (_tuyaValues()['range'] as List? ?? const []).map((e) => '$e').toList();
+
+    return [
+      const SizedBox(height: 12),
+      DropdownButtonFormField<String>(
+        value: range.contains(_tuyaValue) ? _tuyaValue : null,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          labelText: 'Valor',
+          border: OutlineInputBorder(),
+        ),
+        items:
+            range.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+        onChanged: (v) => setState(() => _tuyaValue = v ?? ''),
+      ),
+    ];
+  }
+
+  Future<void> _testTuyaCommand() async {
+    if (_tuyaDeviceId == null || _tuyaCode == null) return;
+
+    final type = _tuyaFunction()?['type'];
+    Object? value;
+    if (_tuyaOp == 'toggle') {
+      // Espelha o backend: inverte a partir do ultimo estado conhecido.
+      final status = _tuyaDevice()?['status'] as Map? ?? const {};
+      value = !(status[_tuyaCode] == true);
+    } else if (type == 'Boolean') {
+      value = _tuyaValue == 'true';
+    } else if (type == 'Integer') {
+      value = int.tryParse(_tuyaValue) ?? 0;
+    } else {
+      value = _tuyaValue;
+    }
+
+    try {
+      await Injector.get<DroidDeckClient>()
+          .sendTuyaCommand(_tuyaDeviceId!, _tuyaCode!, value);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Comando enviado.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+      }
     }
   }
 

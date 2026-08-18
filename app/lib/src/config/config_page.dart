@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'qr_scan_page.dart';
 import 'discord_settings_page.dart';
 import 'obs_settings_page.dart';
+import 'tuya_settings_page.dart';
 import 'soundboard_settings_page.dart';
 
 class ConfigPage extends StatefulWidget {
@@ -202,6 +203,16 @@ class ConfigPageState extends State<ConfigPage> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const ObsSettingsPage()),
+              ),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.home_outlined),
+              title: const Text('Casa inteligente (Tuya)'),
+              subtitle: const Text('Smart Life, Nova Digital e outras marcas Tuya'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TuyaSettingsPage()),
               ),
             ),
             ListTile(

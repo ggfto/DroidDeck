@@ -52,6 +52,26 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     return (a.parameters['operation'] ?? 'setScene').toLowerCase();
   }
 
+  /// (deviceId, code) do botão de casa inteligente, ou null se não for um.
+  (String, String)? get _tuyaTarget {
+    final a = widget.button.action;
+    if (a == null || a.type != 'tuya') return null;
+    final deviceId = a.parameters['deviceId'];
+    final code = a.parameters['code'];
+    if (deviceId == null || code == null) return null;
+    return (deviceId, code);
+  }
+
+  /// Último estado conhecido do DP, mantido fresco pelo push MQTT do backend.
+  bool _tuyaActive(Map<String, dynamic> state, String deviceId, String code) {
+    for (final d in (state['devices'] as List? ?? const [])) {
+      final device = d as Map;
+      if (device['id'] != deviceId) continue;
+      return (device['status'] as Map? ?? const {})[code] == true;
+    }
+    return false;
+  }
+
   IconData _mediaIconData(String cmd) {
     switch (cmd) {
       case 'next':
@@ -143,6 +163,14 @@ class _DeckGridButtonState extends State<DeckGridButton> {
         return _renderObs(oop, ds);
       });
     }
+    // Botão de casa inteligente: acende conforme o estado real do aparelho.
+    final tuya = _tuyaTarget;
+    if (tuya != null) {
+      return Watch((context) {
+        final ts = Injector.get<SignalRService>().tuyaState.value;
+        return _render(_tuyaActive(ts, tuya.$1, tuya.$2));
+      });
+    }
     final p = _muteProcess;
     if (p == null) return _render(null);
     // Reage ao estado de mute vindo do backend (toque ou mudança externa).
@@ -179,6 +207,25 @@ class _DeckGridButtonState extends State<DeckGridButton> {
           return;
         }
         sr.discordState.value = cur;
+      } else if (_tuyaTarget case (final deviceId, final code)?) {
+        // O push MQTT confirma em ~800ms; sem otimismo o botão pareceria travado.
+        // Só para "toggle": em "set" o valor é fixo e o push já traz a verdade.
+        final op = (widget.button.action?.parameters['operation'] ?? 'toggle')
+            .toLowerCase();
+        if (op == 'toggle') {
+          final snapshot = Map<String, dynamic>.from(sr.tuyaState.value);
+          final devices = List<dynamic>.from(snapshot['devices'] as List? ?? const []);
+          final index = devices.indexWhere((d) => (d as Map)['id'] == deviceId);
+          if (index >= 0) {
+            final device = Map<String, dynamic>.from(devices[index] as Map);
+            final status = Map<String, dynamic>.from(device['status'] as Map? ?? const {});
+            status[code] = !(status[code] == true);
+            device['status'] = status;
+            devices[index] = device;
+            snapshot['devices'] = devices;
+            sr.tuyaState.value = snapshot;
+          }
+        }
       } else {
         final mc = _mediaCommand;
         if (mc == 'playpause' || mc == 'toggle') {

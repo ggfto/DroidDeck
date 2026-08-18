@@ -218,6 +218,65 @@ class DroidDeckClient {
     }
   }
 
+  // ---- Tuya / Smart Life ----
+  /// Estado do plugin: paired/connected/push + os dispositivos com status e funções.
+  Future<Map<String, dynamic>?> getTuyaState() async {
+    try {
+      final r = await _dio.get('/api/tuya/state');
+      return (r.data as Map).cast<String, dynamic>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Passo 1 do pareamento: devolve `qrPayload` para renderizar o QR na tela.
+  Future<Map<String, dynamic>> startTuyaPairing(String userCode) async {
+    try {
+      final r = await _dio
+          .post('/api/tuya/pair/start', data: {'userCode': userCode});
+      return (r.data as Map).cast<String, dynamic>();
+    } on DioException catch (e) {
+      throw Exception(_tuyaError(e, 'Falha ao gerar o QR de pareamento'));
+    }
+  }
+
+  /// Passo 2: chamar em laço. `false` = ainda não escaneado (não é erro).
+  /// Lança [Exception] quando o QR expirou (HTTP 410) e outro precisa ser gerado.
+  Future<bool> pollTuyaPairing() async {
+    try {
+      final r = await _dio.post('/api/tuya/pair/poll');
+      return (r.data as Map)['scanned'] == true;
+    } on DioException catch (e) {
+      throw Exception(_tuyaError(e, 'Falha ao verificar o pareamento'));
+    }
+  }
+
+  /// Reenumera os dispositivos na nuvem. Caro em cota — só a pedido do usuário.
+  Future<Map<String, dynamic>> refreshTuyaDevices() async {
+    try {
+      final r = await _dio.post('/api/tuya/devices/refresh');
+      return (r.data as Map).cast<String, dynamic>();
+    } on DioException catch (e) {
+      throw Exception(_tuyaError(e, 'Falha ao atualizar os dispositivos'));
+    }
+  }
+
+  /// Dispara um comando avulso (usado pelo botão "testar" do editor).
+  Future<void> sendTuyaCommand(
+      String deviceId, String code, Object? value) async {
+    try {
+      await _dio.post('/api/tuya/command',
+          data: {'deviceId': deviceId, 'code': code, 'value': value});
+    } on DioException catch (e) {
+      throw Exception(_tuyaError(e, 'Falha ao enviar o comando'));
+    }
+  }
+
+  static String _tuyaError(DioException e, String fallback) {
+    final data = e.response?.data;
+    return (data is Map && data['error'] != null) ? '${data['error']}' : fallback;
+  }
+
   // Media Control methods
   Future<List<MediaSession>> getMediaSessions() async {
     final response = await _dio.get('/api/v1/Media/sessions');
