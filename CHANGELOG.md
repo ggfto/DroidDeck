@@ -1,3 +1,17 @@
+# [1.4.0](https://github.com/ggfto/DroidDeck/compare/v1.3.1...v1.4.0) (2026-08-18)
+
+
+### Bug Fixes
+
+* **mixer:** usa o enumerador injetado e preenche nome/icone nos dois caminhos ([ca977dc](https://github.com/ggfto/DroidDeck/commit/ca977dc3fc8073ab5e03b152ada6bbd3014dd707))
+* **tests:** destrava a suite, que nao compilava ([12d5b73](https://github.com/ggfto/DroidDeck/commit/12d5b73ce2903cdf66816790047cc7d045517018))
+
+
+### Features
+
+* **tuya:** botao reflete nivel e cor reais do aparelho ([3841b63](https://github.com/ggfto/DroidDeck/commit/3841b63ae2147d962cbf94484e8594ae946d8ef9))
+* **tuya:** controla dispositivos Tuya/Smart Life pelo deck ([3574e5a](https://github.com/ggfto/DroidDeck/commit/3574e5a1944fb496b4b182aa1be510ed83cfc18a))
+
 ## [1.3.1](https://github.com/ggfto/DroidDeck/compare/v1.3.0...v1.3.1) (2026-08-04)
 
 
