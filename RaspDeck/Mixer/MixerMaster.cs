@@ -47,9 +47,13 @@ namespace DroidDeck
                     {
                         if (session.IsSystemSoundsSession) continue;
                         var channel = new MixerChannel();
-                        // best-effort: set basic properties
-                        // Note: IAudioSession abstraction doesn't expose process info for icon extraction
-                        channel.Id = (int)session.GetProcessID();
+                        // O comentário anterior dizia que a abstração não expunha info de
+                        // processo para extrair ícone — mas expõe GetProcessID(), que é tudo
+                        // de que o DescribeFromProcess precisa. Sem esta chamada os canais
+                        // vinham sem nome e sem ícone por este caminho.
+                        var pid = (int)session.GetProcessID();
+                        channel.Id = pid;
+                        channel.DescribeFromProcess(pid);
                         channel.Mute = session.Mute;
                         channel.Volume = (int)(session.Volume * device.MasterVolumeLevelScalar * 100);
                         channels[channel.Id] = channel;

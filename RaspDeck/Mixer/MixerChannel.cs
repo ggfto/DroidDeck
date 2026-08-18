@@ -25,40 +25,51 @@ namespace DroidDeck
 
             if (!session.IsSystemSoundsSession)
             {
-                var pid = (int)session.GetProcessID;
-
-                // Um único GetProcessById (antes eram dois: ProcessExists + este). Se o
-                // processo morreu entre a enumeração e aqui, lança e o canal fica no default
-                // — mesmo efeito do ProcessExists() anterior, com metade dos handles.
-                // O Process/Icon/Bitmap são descartados (using) pra não vazar handle de
-                // kernel e GDI (HICON/HBITMAP).
-                try
-                {
-                    using var process = Process.GetProcessById(pid);
-                    Id = pid;
-                    Description = (process.ProcessName == "Spotify" ? process.ProcessName + ": " : "") + (!string.IsNullOrEmpty(process.MainWindowTitle) ? process.MainWindowTitle : process.ProcessName);
-
-                    var moduleFile = process.MainModule?.FileName;
-                    if (!string.IsNullOrEmpty(moduleFile))
-                    {
-                        using var icon = System.Drawing.Icon.ExtractAssociatedIcon(moduleFile!);
-                        if (icon != null)
-                        {
-                            using var bmp = icon.ToBitmap();
-                            using var ms = new MemoryStream();
-                            bmp.Save(ms, ImageFormat.Png);
-                            Icon = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
-                        }
-                    }
-                }
-                catch
-                {
-                    // Descrição/ícone são best-effort; ficam no default se falhar.
-                }
+                DescribeFromProcess((int)session.GetProcessID);
             }
 
             Volume = (int)(session.SimpleAudioVolume.Volume * masterVolume * 100);
             Mute = session.SimpleAudioVolume.Mute;
+        }
+
+        /// <summary>
+        /// Preenche Id/Descrição/Ícone a partir do PID da sessão.
+        ///
+        /// Compartilhado pelos dois caminhos de enumeração (NAudio direto e a abstração
+        /// <see cref="DroidDeck.Audio.IAudioDevice"/>): antes só o caminho do NAudio fazia
+        /// isto, e a abstração devolvia canais sem nome nem ícone — divergência silenciosa,
+        /// já que ambos populam o mesmo DTO.
+        ///
+        /// Um único GetProcessById (antes eram dois: ProcessExists + este). Se o processo
+        /// morreu entre a enumeração e aqui, lança e o canal fica no default. O
+        /// Process/Icon/Bitmap são descartados (using) pra não vazar handle de kernel e
+        /// GDI (HICON/HBITMAP).
+        /// </summary>
+        public void DescribeFromProcess(int pid)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(pid);
+                Id = pid;
+                Description = (process.ProcessName == "Spotify" ? process.ProcessName + ": " : "") + (!string.IsNullOrEmpty(process.MainWindowTitle) ? process.MainWindowTitle : process.ProcessName);
+
+                var moduleFile = process.MainModule?.FileName;
+                if (!string.IsNullOrEmpty(moduleFile))
+                {
+                    using var icon = System.Drawing.Icon.ExtractAssociatedIcon(moduleFile!);
+                    if (icon != null)
+                    {
+                        using var bmp = icon.ToBitmap();
+                        using var ms = new MemoryStream();
+                        bmp.Save(ms, ImageFormat.Png);
+                        Icon = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
+                    }
+                }
+            }
+            catch
+            {
+                // Descrição/ícone são best-effort; ficam no default se falhar.
+            }
         }
 
         /// <summary>

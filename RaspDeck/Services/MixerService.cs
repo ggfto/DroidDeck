@@ -18,8 +18,7 @@ namespace DroidDeck.Services
         public List<MixerEntity> FindAllOutputs()
         {
             _logger.LogDebug("Finding all output mixers");
-            // Use direct NAudio access instead of abstraction to enable icon extraction
-            return MixerMaster.GetAllMixers(DataFlow.Render, DeviceState.Active)
+            return MixerMaster.GetAllMixers(_enumerator, DataFlow.Render, DeviceState.Active)
                 .Select(m => new MixerEntity(m))
                 .ToList();
         }
@@ -27,8 +26,7 @@ namespace DroidDeck.Services
         public List<MixerEntity> FindAllInputs()
         {
             _logger.LogDebug("Finding all input mixers");
-            // Use direct NAudio access instead of abstraction to enable icon extraction
-            return MixerMaster.GetAllMixers(DataFlow.Capture, DeviceState.Active)
+            return MixerMaster.GetAllMixers(_enumerator, DataFlow.Capture, DeviceState.Active)
                 .Select(m => new MixerEntity(m))
                 .ToList();
         }
@@ -36,9 +34,8 @@ namespace DroidDeck.Services
         public MixerEntity? FindOne(string id)
         {
             _logger.LogDebug("Finding mixer by id {id}", id);
-            // Use direct NAudio access instead of abstraction to enable icon extraction
-            var master = MixerMaster.GetAllMixers(DataFlow.Render, DeviceState.Active).FirstOrDefault(d => d.Id == id)
-                      ?? MixerMaster.GetAllMixers(DataFlow.Capture, DeviceState.Active).FirstOrDefault(d => d.Id == id);
+            var master = MixerMaster.GetAllMixers(_enumerator, DataFlow.Render, DeviceState.Active).FirstOrDefault(d => d.Id == id)
+                      ?? MixerMaster.GetAllMixers(_enumerator, DataFlow.Capture, DeviceState.Active).FirstOrDefault(d => d.Id == id);
 
             return master != null ? new MixerEntity(master) : null;
         }
