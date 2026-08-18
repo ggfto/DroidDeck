@@ -3,6 +3,8 @@ import 'package:companion/core/core.dart';
 import 'package:companion/src/services/signalr_service.dart';
 import 'package:flutter/material.dart';
 
+import '../tuya_display.dart';
+
 class DeckGridButton extends StatefulWidget {
   final DeckButton button;
   final VoidCallback onTap;
@@ -60,16 +62,6 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     final code = a.parameters['code'];
     if (deviceId == null || code == null) return null;
     return (deviceId, code);
-  }
-
-  /// Último estado conhecido do DP, mantido fresco pelo push MQTT do backend.
-  bool _tuyaActive(Map<String, dynamic> state, String deviceId, String code) {
-    for (final d in (state['devices'] as List? ?? const [])) {
-      final device = d as Map;
-      if (device['id'] != deviceId) continue;
-      return (device['status'] as Map? ?? const {})[code] == true;
-    }
-    return false;
   }
 
   IconData _mediaIconData(String cmd) {
@@ -168,7 +160,7 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     if (tuya != null) {
       return Watch((context) {
         final ts = Injector.get<SignalRService>().tuyaState.value;
-        return _render(_tuyaActive(ts, tuya.$1, tuya.$2));
+        return _renderTuya(ts, tuya.$1, tuya.$2);
       });
     }
     final p = _muteProcess;
@@ -373,6 +365,108 @@ class _DeckGridButtonState extends State<DeckGridButton> {
                     overflow: TextOverflow.ellipsis),
                 maxLines: 2),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Dispositivo do snapshot da Tuya, ou null se ainda não enumerado.
+  Map<String, dynamic>? _tuyaDeviceOf(Map<String, dynamic> state, String deviceId) {
+    for (final d in (state['devices'] as List? ?? const [])) {
+      if ((d as Map)['id'] == deviceId) return Map<String, dynamic>.from(d);
+    }
+    return null;
+  }
+
+  /// Botão de casa inteligente: reflete estado, nível e cor reais do aparelho.
+  Widget _renderTuya(Map<String, dynamic> state, String deviceId, String code) {
+    final device = _tuyaDeviceOf(state, deviceId);
+    final status = device?['status'] as Map? ?? const {};
+    final functions = device?['functions'] as Map? ?? const {};
+
+    final on = tuyaIsOn(status, code);
+    final level = tuyaLevel(status, functions, code);
+    final rgb = tuyaColor(status);
+
+    final baseColor = _parseColor(widget.button.backgroundColor) ?? Colors.grey[850];
+    // Cor real do RGB tem prioridade sobre a "cor ativa" configurada: se o usuário
+    // pintou a sala de roxo, o botão mostra roxo. Só faz sentido com o aparelho aceso.
+    final bg = !on ? baseColor : (rgb ?? _activeColor());
+
+    // Sobre fundo claro (RGB pode ser amarelo/branco) o texto branco some.
+    final fg = bg != null && bg.computeLuminance() > 0.55 ? Colors.black87 : Colors.white;
+
+    final label = (widget.button.label != null && widget.button.label!.isNotEmpty)
+        ? widget.button.label!
+        : (device?['name'] as String?);
+
+    return GestureDetector(
+      onTap: _handleTap,
+      onLongPress: widget.onLongPress,
+      child: Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Stack(
+            children: [
+              // Preenchimento proporcional ao nível, subindo do rodapé. Some quando o
+              // aparelho está apagado — nível de luz apagada não significa nada.
+              if (level != null && on)
+                Positioned.fill(
+                  child: FractionallySizedBox(
+                    alignment: Alignment.bottomCenter,
+                    heightFactor: level,
+                    child: Container(
+                      color: fg.withValues(alpha: 0.18),
+                    ),
+                  ),
+                ),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      tuyaIconFor(device?['category'] as String?, on),
+                      color: fg,
+                      size: 24,
+                    ),
+                    if (label != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: fg,
+                          fontSize: 10,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        maxLines: 1,
+                      ),
+                    ],
+                    if (level != null && on)
+                      Text(
+                        '${(level * 100).round()}%',
+                        style: TextStyle(
+                          color: fg.withValues(alpha: 0.85),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
