@@ -29,6 +29,17 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
   late TextEditingController _actionParamController;
   String _selectedActionType = 'none';
   String _mixerOperation = 'toggleMute';
+  // Mixer: alvo do botão — 'app' (sessão de um processo) ou 'device' (dispositivo do Windows)
+  String _mixerTarget = 'app';
+  // 'default' = dispositivo padrão do Windows. É o valor recomendado: o id do endpoint muda
+  // quando o usuário troca de fone/monitor e o botão passaria a apontar pra nada.
+  String _mixerDeviceId = 'default';
+  String _mixerDeviceKind = 'output'; // output | input
+  int _mixerVolume = 50; // usado com setVolume
+  int _mixerStep = 5; // passo do volumeUp/volumeDown
+  List<MixerEntity> _mixerOutputs = [];
+  List<MixerEntity> _mixerInputs = [];
+  bool _mixerDevicesLoading = false;
   String _discordOp = 'toggleMute';
   String _mediaCommand = 'playpause';
   String _tuyaOp = 'toggle';
@@ -144,10 +155,18 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
         _mediaCommand =
             widget.button.action!.parameters['command'] ?? 'playpause';
       } else if (_selectedActionType == 'mixer') {
-        _actionParamController = TextEditingController(
-            text: widget.button.action!.parameters['processName'] ?? '');
-        _mixerOperation =
-            widget.button.action!.parameters['operation'] ?? 'toggleMute';
+        final mp = widget.button.action!.parameters;
+        _actionParamController =
+            TextEditingController(text: mp['processName'] ?? '');
+        _mixerOperation = mp['operation'] ?? 'toggleMute';
+        _mixerTarget = (mp['deviceId'] ?? '').isNotEmpty ? 'device' : 'app';
+        _mixerDeviceId = (mp['deviceId'] ?? '').isNotEmpty
+            ? mp['deviceId']!
+            : 'default';
+        _mixerDeviceKind = mp['deviceKind'] ?? 'output';
+        _mixerVolume = int.tryParse(mp['volume'] ?? '') ?? 50;
+        _mixerStep = int.tryParse(mp['step'] ?? '') ?? 5;
+        if (_mixerTarget == 'device') _loadMixerDevices();
       } else if (_selectedActionType == 'open_profile') {
         _actionParamController = TextEditingController();
         _targetProfileId = widget.button.action!.parameters['profileId'];
@@ -351,7 +370,18 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       }
     } else if (_selectedActionType == 'mixer') {
       params['operation'] = _mixerOperation;
-      params['processName'] = _actionParamController.text.trim();
+      if (_mixerTarget == 'device') {
+        params['deviceId'] = _mixerDeviceId;
+        params['deviceKind'] = _mixerDeviceKind;
+        if (_mixerOperation == 'setVolume') {
+          params['volume'] = '$_mixerVolume';
+        } else if (_mixerOperation == 'volumeUp' ||
+            _mixerOperation == 'volumeDown') {
+          params['step'] = '$_mixerStep';
+        }
+      } else {
+        params['processName'] = _actionParamController.text.trim();
+      }
     } else if (_selectedActionType == 'open_profile') {
       if (_targetProfileId != null) params['profileId'] = _targetProfileId!;
     } else if (_selectedActionType == 'multi') {
@@ -664,31 +694,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                   ..._buildTuyaFields(),
                 ],
                 if (_selectedActionType == 'mixer') ...[
-                  DropdownButtonFormField<String>(
-                    value: _mixerOperation,
-                    decoration: const InputDecoration(
-                      labelText: 'Operação',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'toggleMute', child: Text('Alternar mudo')),
-                      DropdownMenuItem(value: 'mute', child: Text('Mutar')),
-                      DropdownMenuItem(value: 'unmute', child: Text('Desmutar')),
-                    ],
-                    onChanged: (val) =>
-                        setState(() => _mixerOperation = val ?? 'toggleMute'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _actionParamController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome do app (processo)',
-                      hintText: 'Spotify, Discord, chrome…',
-                      helperText: 'Sem .exe — o nome do processo no Windows',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                  ..._buildMixerFields(),
                 ],
 
                 const SizedBox(height: 24),
@@ -1462,6 +1468,188 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     } catch (_) {
       return const {};
     }
+  }
+
+  // ---- Mixer (volume/mudo de app ou de dispositivo do Windows) ----
+
+  /// Operações que existem para os dois alvos. Volume só faz sentido no dispositivo:
+  /// o IAudioControlService do backend só expõe mudo por processo.
+  static const _mixerMuteOps = ['toggleMute', 'mute', 'unmute'];
+
+  List<MixerEntity> get _mixerDevices =>
+      _mixerDeviceKind == 'input' ? _mixerInputs : _mixerOutputs;
+
+  Future<void> _loadMixerDevices() async {
+    if (_mixerDevicesLoading) return;
+    setState(() => _mixerDevicesLoading = true);
+    try {
+      final client = Injector.get<DroidDeckClient>();
+      final outputs = await client.getOutputs();
+      final inputs = await client.getInputs();
+      if (!mounted) return;
+      setState(() {
+        _mixerOutputs = outputs;
+        _mixerInputs = inputs;
+      });
+    } catch (_) {
+      // Sem a lista o botão ainda funciona apontando pro dispositivo padrão.
+    } finally {
+      if (mounted) setState(() => _mixerDevicesLoading = false);
+    }
+  }
+
+  String _mixerDeviceLabel(MixerEntity e) =>
+      e.device.title?.trim().isNotEmpty == true
+          ? e.device.title!.trim()
+          : (e.id ?? 'Dispositivo');
+
+  List<Widget> _buildMixerFields() {
+    final isDevice = _mixerTarget == 'device';
+    final devices = _mixerDevices;
+    final knownIds = {'default', ...devices.map((d) => d.id ?? '')};
+
+    return [
+      DropdownButtonFormField<String>(
+        value: _mixerTarget,
+        decoration: const InputDecoration(
+          labelText: 'Alvo',
+          border: OutlineInputBorder(),
+        ),
+        items: const [
+          DropdownMenuItem(
+              value: 'app', child: Text('Aplicativo (processo)')),
+          DropdownMenuItem(
+              value: 'device', child: Text('Dispositivo do Windows')),
+        ],
+        onChanged: (val) {
+          setState(() {
+            _mixerTarget = val ?? 'app';
+            if (_mixerTarget == 'app' &&
+                !_mixerMuteOps.contains(_mixerOperation)) {
+              _mixerOperation = 'toggleMute';
+            }
+          });
+          if (_mixerTarget == 'device') _loadMixerDevices();
+        },
+      ),
+      const SizedBox(height: 16),
+      if (isDevice) ...[
+        DropdownButtonFormField<String>(
+          value: _mixerDeviceKind,
+          decoration: const InputDecoration(
+            labelText: 'Tipo',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(
+                value: 'output', child: Text('Saída (alto-falante/fone)')),
+            DropdownMenuItem(
+                value: 'input', child: Text('Entrada (microfone)')),
+          ],
+          onChanged: (val) => setState(() {
+            _mixerDeviceKind = val ?? 'output';
+            // O id salvo pertence à outra lista; volta pro padrão.
+            _mixerDeviceId = 'default';
+          }),
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<String>(
+          value: knownIds.contains(_mixerDeviceId) ? _mixerDeviceId : null,
+          decoration: InputDecoration(
+            labelText: 'Dispositivo',
+            border: const OutlineInputBorder(),
+            helperText: _mixerDeviceId == 'default'
+                ? 'Acompanha a troca de fone/monitor'
+                : 'Id fixo: se você trocar de dispositivo, o botão para de valer',
+          ),
+          // Um id salvo que não está na lista (dispositivo desconectado) continua
+          // selecionável, senão salvar de novo trocaria a configuração sem avisar.
+          items: [
+            const DropdownMenuItem(
+                value: 'default', child: Text('Padrão do Windows')),
+            ...devices.map((d) => DropdownMenuItem(
+                  value: d.id,
+                  child: Text(_mixerDeviceLabel(d),
+                      overflow: TextOverflow.ellipsis),
+                )),
+            if (!knownIds.contains(_mixerDeviceId))
+              DropdownMenuItem(
+                value: _mixerDeviceId,
+                child: const Text('Dispositivo salvo (desconectado)'),
+              ),
+          ],
+          onChanged: (val) =>
+              setState(() => _mixerDeviceId = val ?? 'default'),
+        ),
+        if (_mixerDevicesLoading)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: LinearProgressIndicator(minHeight: 2),
+          ),
+        const SizedBox(height: 16),
+      ],
+      DropdownButtonFormField<String>(
+        value: _mixerOperation,
+        decoration: const InputDecoration(
+          labelText: 'Operação',
+          border: OutlineInputBorder(),
+        ),
+        items: [
+          const DropdownMenuItem(
+              value: 'toggleMute', child: Text('Alternar mudo')),
+          const DropdownMenuItem(value: 'mute', child: Text('Mutar')),
+          const DropdownMenuItem(value: 'unmute', child: Text('Desmutar')),
+          if (isDevice) ...[
+            const DropdownMenuItem(
+                value: 'volumeUp', child: Text('Volume +')),
+            const DropdownMenuItem(
+                value: 'volumeDown', child: Text('Volume −')),
+            const DropdownMenuItem(
+                value: 'setVolume', child: Text('Definir volume')),
+          ],
+        ],
+        onChanged: (val) =>
+            setState(() => _mixerOperation = val ?? 'toggleMute'),
+      ),
+      if (isDevice && _mixerOperation == 'setVolume') ...[
+        const SizedBox(height: 16),
+        Text('Volume: $_mixerVolume%'),
+        Slider(
+          value: _mixerVolume.toDouble(),
+          min: 0,
+          max: 100,
+          divisions: 100,
+          label: '$_mixerVolume%',
+          onChanged: (v) => setState(() => _mixerVolume = v.round()),
+        ),
+      ],
+      if (isDevice &&
+          (_mixerOperation == 'volumeUp' ||
+              _mixerOperation == 'volumeDown')) ...[
+        const SizedBox(height: 16),
+        Text('Passo: $_mixerStep pontos'),
+        Slider(
+          value: _mixerStep.toDouble(),
+          min: 1,
+          max: 25,
+          divisions: 24,
+          label: '$_mixerStep',
+          onChanged: (v) => setState(() => _mixerStep = v.round()),
+        ),
+      ],
+      if (!isDevice) ...[
+        const SizedBox(height: 16),
+        TextField(
+          controller: _actionParamController,
+          decoration: const InputDecoration(
+            labelText: 'Nome do app (processo)',
+            hintText: 'Spotify, Discord, chrome…',
+            helperText: 'Sem .exe — o nome do processo no Windows',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    ];
   }
 
   List<Widget> _buildTuyaFields() {

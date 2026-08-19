@@ -33,6 +33,29 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     return null;
   }
 
+  /// Operação de volume de um botão de mixer com alvo dispositivo
+  /// (volumeup/volumedown/setvolume), em minúsculas; null se não for esse caso.
+  String? get _mixerVolumeOp {
+    final a = widget.button.action;
+    if (a == null || a.type != 'mixer') return null;
+    if ((a.parameters['deviceId'] ?? '').isEmpty) return null;
+    final op = (a.parameters['operation'] ?? '').toLowerCase();
+    return const ['volumeup', 'volumedown', 'setvolume'].contains(op)
+        ? op
+        : null;
+  }
+
+  IconData _mixerVolumeIconData(String op) {
+    switch (op) {
+      case 'volumeup':
+        return Icons.volume_up;
+      case 'volumedown':
+        return Icons.volume_down;
+      default: // setvolume
+        return Icons.tune;
+    }
+  }
+
   // Operação do Discord (crua, minúscula) se for um botão de Discord; senão null.
   String? get _discordOp {
     final a = widget.button.action;
@@ -572,6 +595,11 @@ class _DeckGridButtonState extends State<DeckGridButton> {
     if (widget.button.iconName != null && widget.button.iconName!.isNotEmpty) {
       return Icon(_getIconData(widget.button.iconName!),
           size: 32, color: Colors.white);
+    }
+    // Botão de volume de dispositivo sem ícone custom: o ícone sai da operação.
+    final mv = _mixerVolumeOp;
+    if (mv != null) {
+      return Icon(_mixerVolumeIconData(mv), size: 32, color: Colors.white);
     }
     // Botão de mídia sem ícone custom: usa o ícone do comando.
     final mc = _mediaCommand;
