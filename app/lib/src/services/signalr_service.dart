@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:companion/core/core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:signalr_netcore/signalr_client.dart';
@@ -100,7 +102,60 @@ class SignalRService {
   // ReceiveTuyaDeviceState e é fundida aqui, pra não repassar a lista inteira a cada clique.
   final tuyaState = signal<Map<String, dynamic>>({'paired': false, 'devices': []});
 
+  // ---- Reconexao quando o hub nunca chegou a conectar ----
+  //
+  // O withAutomaticReconnect do signalr_netcore so vale para conexoes que FORAM
+  // estabelecidas e cairam depois. Se o start() inicial falha (backend fora do ar
+  // na hora em que o app abriu, ou queda enquanto o app ficou aberto), nao existe
+  // nenhuma nova tentativa: o servico ficava morto ate reiniciar o app, enquanto o
+  // REST voltava sozinho — dando o sintoma "os controles funcionam mas os dados
+  // nao atualizam", porque comando e REST e todo estado ao vivo e hub.
+  String? _lastBaseUrl;
+  String? _lastApiKey;
+  Timer? _retryTimer;
+  int _retryCount = 0;
+
+  /// Parada deliberada (updateUrl/dispose): nao reagendar reconexao.
+  bool _stopped = false;
+
   SignalRService();
+
+  void _scheduleRetry() {
+    if (_stopped) return;
+    final url = _lastBaseUrl;
+    if (url == null || url.isEmpty) return;
+    if (_retryTimer?.isActive ?? false) return; // ja tem uma tentativa agendada
+
+    const steps = [2000, 5000, 10000, 20000, 30000];
+    final delay = steps[_retryCount < steps.length ? _retryCount : steps.length - 1];
+    _retryCount++;
+    connectionStatus.value = 'Reconnecting in ${delay ~/ 1000}s...';
+
+    _retryTimer = Timer(Duration(milliseconds: delay), () async {
+      // init() e no-op enquanto _hubConnection nao for null, entao a instancia
+      // morta precisa sair da frente antes da nova tentativa.
+      final dead = _hubConnection;
+      _hubConnection = null;
+      try {
+        await dead?.stop();
+      } catch (_) {
+        // Conexao ja estava quebrada; nada a fazer.
+      }
+      await init(url, apiKey: _lastApiKey);
+    });
+  }
+
+  /// Encerra a conexao e cancela reconexoes pendentes.
+  Future<void> dispose() async {
+    _stopped = true;
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    final conn = _hubConnection;
+    _hubConnection = null;
+    try {
+      await conn?.stop();
+    } catch (_) {}
+  }
 
   /// Mascara o access_token da URL para log/exibição (a chave é um segredo).
   static String _redactUrl(String url) =>
@@ -108,6 +163,11 @@ class SignalRService {
 
   Future<void> init(String baseUrl, {String? apiKey}) async {
     if (_hubConnection != null) return;
+
+    // Guardado para as retentativas — sem isto nao ha como refazer a conexao.
+    _lastBaseUrl = baseUrl;
+    _lastApiKey = apiKey;
+    _stopped = false;
 
     // Normalize Base URL (handle relative path)
     String hubUrl = baseUrl;
@@ -322,6 +382,9 @@ class SignalRService {
 
     _hubConnection?.onclose(({error}) {
       connectionStatus.value = "Disconnected: $error";
+      // Cai aqui quando o servidor fecha a conexao ou o reconnect automatico
+      // desiste. Sem reagendar, o estado ao vivo nunca mais voltava.
+      _scheduleRetry();
     });
 
     _hubConnection?.onreconnecting(({error}) {
@@ -330,22 +393,36 @@ class SignalRService {
 
     _hubConnection?.onreconnected(({connectionId}) {
       connectionStatus.value = "Connected";
+      _retryCount = 0;
     });
 
     try {
       await _hubConnection?.start();
       _logger.info('SignalR Connected');
       connectionStatus.value = "Connected";
+      _retryCount = 0;
+      _retryTimer?.cancel();
     } catch (e) {
       _logger.severe('SignalR Connection Failed: $e');
       connectionStatus.value = "Conn Error: $e";
+      _scheduleRetry();
     }
   }
 
   Future<void> updateUrl(String baseUrl, {String? apiKey}) async {
+    // Marca como parada deliberada para o onclose do stop() abaixo nao agendar
+    // uma reconexao para a URL ANTIGA; o init() em seguida limpa a flag.
+    _stopped = true;
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    _retryCount = 0;
+
     if (_hubConnection != null) {
-      await _hubConnection!.stop();
+      final conn = _hubConnection!;
       _hubConnection = null;
+      try {
+        await conn.stop();
+      } catch (_) {}
     }
     await init(baseUrl, apiKey: apiKey);
   }
