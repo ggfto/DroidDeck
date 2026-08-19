@@ -1,3 +1,16 @@
+# [1.5.0](https://github.com/ggfto/DroidDeck/compare/v1.4.0...v1.5.0) (2026-08-19)
+
+
+### Bug Fixes
+
+* **app:** reconecta o SignalR quando a conexao inicial falha ([1b1e812](https://github.com/ggfto/DroidDeck/commit/1b1e812673db4cb76fc61276f4bb755674ce454b))
+* **media:** comando do usuario para de ser descartado em silencio ([36ea4d1](https://github.com/ggfto/DroidDeck/commit/36ea4d1d58fc51919561cc46f77bcf8f81c27c99))
+
+
+### Features
+
+* **mixer:** botoes de volume de dispositivo do Windows ([c0a3f7e](https://github.com/ggfto/DroidDeck/commit/c0a3f7eb34a8cb650973053d1f6f7e18e66052dd))
+
 # [1.4.0](https://github.com/ggfto/DroidDeck/compare/v1.3.1...v1.4.0) (2026-08-18)
 
 
