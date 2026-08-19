@@ -56,6 +56,35 @@ class MediaSession {
 
   Map<String, dynamic> toJson() => _$MediaSessionToJson(this);
 
+  /// Copia trocando so o que foi passado. Usado para aplicar o estado que o
+  /// backend devolve junto do comando, sem esperar o proximo fetch.
+  MediaSession copyWith({
+    String? id,
+    String? title,
+    String? artist,
+    String? albumTitle,
+    String? thumbnailBase64,
+    String? playbackStatus,
+    bool? canPlayPause,
+    bool? canGoNext,
+    bool? canGoPrevious,
+    double? position,
+    double? duration,
+  }) =>
+      MediaSession(
+        id: id ?? this.id,
+        title: title ?? this.title,
+        artist: artist ?? this.artist,
+        albumTitle: albumTitle ?? this.albumTitle,
+        thumbnailBase64: thumbnailBase64 ?? this.thumbnailBase64,
+        playbackStatus: playbackStatus ?? this.playbackStatus,
+        canPlayPause: canPlayPause ?? this.canPlayPause,
+        canGoNext: canGoNext ?? this.canGoNext,
+        canGoPrevious: canGoPrevious ?? this.canGoPrevious,
+        position: position ?? this.position,
+        duration: duration ?? this.duration,
+      );
+
   bool get isPlaying => playbackStatus?.toLowerCase() == 'playing';
   bool get isPaused => playbackStatus?.toLowerCase() == 'paused';
 }

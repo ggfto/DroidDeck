@@ -160,43 +160,42 @@ namespace DroidDeck.Services
 
         private async Task ExecuteMediaAction(DeckAction action)
         {
-            if (action.Parameters.TryGetValue("command", out var command))
+            if (!action.Parameters.TryGetValue("command", out var command)) return;
+
+            // sessionId vazio = "a sessao que esta tocando" (como as teclas de midia). Quem
+            // resolve isso agora e o MediaControlService, dentro da MESMA operacao serializada
+            // que envia o comando: antes eram duas idas ao WinRT por toque (listar sessoes,
+            // com capa de album e tudo, e so depois mandar o comando) e perder a disputa pelo
+            // semaforo em qualquer uma delas fazia o botao nao fazer nada, sem log.
+            var sessionId = action.Parameters.TryGetValue("sessionId", out var sess) ? sess : null;
+
+            var result = await _mediaService.SendCommandAsync(sessionId, command);
+            if (!result.Success)
             {
-                string sessionId = action.Parameters.TryGetValue("sessionId", out var sess) ? sess : "";
-
-                if (string.IsNullOrEmpty(sessionId))
-                {
-                    // Sem sessão específica: controla a que está TOCANDO (como as teclas de mídia);
-                    // se nenhuma estiver tocando, usa a primeira disponível.
-                    var sessions = await _mediaService.GetAllSessionsAsync();
-                    if (sessions.Count > 0)
-                    {
-                        sessionId = sessions[0].Id!;
-                        foreach (var s in sessions)
-                        {
-                            if (string.Equals(s.PlaybackStatus, "Playing", StringComparison.OrdinalIgnoreCase))
-                            {
-                                sessionId = s.Id!;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(sessionId))
-                {
-                    await _mediaService.SendCommandAsync(sessionId, command);
-                }
+                _logger.LogWarning("Midia: comando '{Command}' do deck nao foi aplicado.", command);
+                return;
             }
+
+            // Empurra o estado real pros clientes: o botao pinta otimista no toque e precisa
+            // ser corrigido se o comando pegou uma sessao diferente da esperada.
+            if (result.Playing.HasValue)
+                await _hubContext.Clients.All.SendAsync("ReceiveMediaStatus",
+                    new { playing = result.Playing.Value });
         }
 
         /// <summary>
         /// Executa ações de mixer disparadas por um botão do deck.
         /// Parâmetros aceitos:
-        ///   operation : "toggleMute" (padrão) | "mute" | "unmute" | "setVolume"
+        ///   operation   : "toggleMute" (padrão) | "mute" | "unmute" | "setVolume"
+        ///                 | "volumeUp" | "volumeDown"
         ///   processName : nome do processo (ex.: "Spotify") -> controla o áudio daquele app
-        ///   deviceId    : id do dispositivo -> controla o dispositivo inteiro
-        ///   volume      : 0-100 (usado com setVolume em deviceId)
+        ///                 (só as operações de mudo)
+        ///   deviceId    : id do dispositivo -> controla o dispositivo inteiro.
+        ///                 "default" = dispositivo padrão do Windows (preferir isto a um id
+        ///                 fixo: o id muda quando o usuário troca de fone/monitor)
+        ///   deviceKind  : "output" (padrão) | "input" — só importa para deviceId="default"
+        ///   volume      : 0-100 (usado com setVolume)
+        ///   step        : passo em pontos percentuais do volumeUp/volumeDown (padrão 5)
         /// </summary>
         private async Task ExecuteMixerAction(DeckAction action)
         {
@@ -207,14 +206,32 @@ namespace DroidDeck.Services
 
             p.TryGetValue("processName", out var processName);
             p.TryGetValue("deviceId", out var deviceId);
+            p.TryGetValue("deviceKind", out var deviceKindRaw);
 
             int? volume = null;
             if (p.TryGetValue("volume", out var volStr) && int.TryParse(volStr, out var v))
                 volume = Math.Clamp(v, 0, 100);
 
-            // Alvo = aplicativo (por nome de processo): mute/toggle por sessão de áudio.
+            // Passo do volumeUp/volumeDown, em pontos percentuais.
+            var step = 5;
+            if (p.TryGetValue("step", out var stepStr) && int.TryParse(stepStr, out var st))
+                step = Math.Clamp(st, 1, 50);
+
+            var isVolumeOp = operation is "setvolume" or "volumeup" or "volumedown";
+
+            // Alvo = aplicativo (por nome de processo): mute/toggle por sessao de audio.
             if (!string.IsNullOrWhiteSpace(processName))
             {
+                if (isVolumeOp)
+                {
+                    // O IAudioControlService so expoe mudo por processo; volume por app ainda
+                    // nao existe. Avisa em vez de silenciosamente nao fazer nada.
+                    _logger.LogWarning(
+                        "Mixer: '{Op}' nao e suportado por processo ('{Proc}'). " +
+                        "Use um dispositivo como alvo para controlar volume.", operation, processName);
+                    return;
+                }
+
                 switch (operation)
                 {
                     case "mute":
@@ -234,27 +251,50 @@ namespace DroidDeck.Services
                 return;
             }
 
-            // Alvo = dispositivo (por id): volume/mute do dispositivo inteiro.
+            // Alvo = dispositivo (por id): volume/mudo do dispositivo inteiro.
             if (!string.IsNullOrWhiteSpace(deviceId))
             {
-                var data = new MixerData { Session = -1 };
-                switch (operation)
+                var isInput = string.Equals(deviceKindRaw, "input", StringComparison.OrdinalIgnoreCase);
+
+                // "default" em vez de um id fixo: o id do endpoint muda quando o usuario troca
+                // de fone/monitor, e ai o botao apontaria pra um dispositivo que nao existe mais.
+                var resolvedId = deviceId;
+                if (string.Equals(deviceId, "default", StringComparison.OrdinalIgnoreCase))
                 {
-                    case "mute":
-                        data.Mute = true;
-                        break;
-                    case "unmute":
-                        data.Mute = false;
-                        break;
-                    case "setvolume":
-                        data.Volume = volume;
-                        break;
-                    default: // toggleMute
-                        data.Mute = !(_mixerService.FindOne(deviceId)?.Mute ?? false);
-                        break;
+                    resolvedId = _mixerService.GetDefaultDeviceId(
+                        isInput ? NAudio.CoreAudioApi.DataFlow.Capture : NAudio.CoreAudioApi.DataFlow.Render) ?? "";
+                    if (string.IsNullOrEmpty(resolvedId))
+                    {
+                        _logger.LogWarning("Mixer: nao ha dispositivo padrao de {Kind}.", isInput ? "entrada" : "saida");
+                        return;
+                    }
                 }
-                new MixerMaster(deviceId).SetOptions(deviceId, data);
-                _logger.LogInformation("Mixer: '{Op}' no dispositivo '{Dev}' (vol={Vol})", operation, deviceId, volume);
+
+                var state = operation switch
+                {
+                    "mute" => _mixerService.SetDeviceAudio(resolvedId, mute: true),
+                    "unmute" => _mixerService.SetDeviceAudio(resolvedId, mute: false),
+                    "setvolume" => _mixerService.SetDeviceAudio(resolvedId, volume: volume ?? 0),
+                    "volumeup" => _mixerService.SetDeviceAudio(resolvedId, delta: step),
+                    "volumedown" => _mixerService.SetDeviceAudio(resolvedId, delta: -step),
+                    _ => _mixerService.SetDeviceAudio(resolvedId, toggleMute: true),
+                };
+
+                if (state == null)
+                {
+                    _logger.LogWarning("Mixer: '{Op}' falhou no dispositivo '{Dev}'", operation, resolvedId);
+                    return;
+                }
+
+                await _hubContext.Clients.All.SendAsync("ReceiveVolumeChange", new
+                {
+                    deviceId = state.Id,
+                    type = isInput ? "input" : "output",
+                    data = state
+                });
+
+                _logger.LogInformation("Mixer: '{Op}' em '{Title}' -> volume={Vol} mudo={Mute}",
+                    operation, state.Title, state.Volume, state.Mute);
                 return;
             }
 

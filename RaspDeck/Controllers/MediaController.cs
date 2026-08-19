@@ -47,22 +47,29 @@ namespace DroidDeck.Controllers
         public async Task<IActionResult> SendCommand(string id, [FromBody] MediaCommandData command)
         {
             _logger.LogInformation("SendCommand called for {id}: {command}", id, command.Command);
-            var success = await _mediaService.SendCommandAsync(id, command.Command);
+            var result = await _mediaService.SendCommandAsync(id, command.Command);
 
-            if (success)
+            if (result.Success)
             {
-                // Fetch updated session state after command
-                var updatedSession = await _mediaService.GetSessionByIdAsync(id);
-
-                // Broadcast media state change to all connected clients
+                // O estado ja vem junto do comando. Buscar a sessao de novo aqui custava uma
+                // terceira passagem pelo portao do WinRT (e a leitura da capa) so pra
+                // preencher um campo que nenhum cliente le -- e, quando essa terceira
+                // chamada perdia o portao, o endpoint ainda devolvia 400 para um comando que
+                // ja tinha funcionado.
                 await _hubContext.Clients.All.SendAsync("ReceiveMediaState", new
                 {
-                    sessionId = id,
+                    sessionId = result.SessionId,
                     command = command.Command,
-                    session = updatedSession
+                    playing = result.Playing
                 });
 
-                return Ok();
+                // Corrige na hora o estado otimista dos botoes de play/pause do deck, em vez
+                // de esperar ate 3s pelo proximo tique do SystemMonitorService.
+                if (result.Playing.HasValue)
+                    await _hubContext.Clients.All.SendAsync("ReceiveMediaStatus",
+                        new { playing = result.Playing.Value });
+
+                return Ok(new { sessionId = result.SessionId, playing = result.Playing });
             }
 
             return BadRequest();

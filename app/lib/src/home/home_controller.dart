@@ -15,12 +15,23 @@ class HomeController {
 
   Timer? _pollingTimer;
   Timer? _signalRRefreshDebounce;
+  Timer? _mediaRefreshDebounce;
   void Function()? _volumeSubDispose;
+  void Function()? _mediaSubDispose;
 
   HomeController() {
     // Subscribe to SignalR volume updates and refresh when they arrive.
     // Guarda o dispose da assinatura pra cancelar no dispose() — senao o callback
     // continua vivo e dispara fetch num controller ja descartado (leak + erro).
+    // Estado de midia mudou em OUTRO lugar (botao do deck, outro celular): recarrega
+    // o card de midia. Sem isto, o app so descobria a troca no poll de 60s.
+    _mediaSubDispose = _signalR.mediaStateUpdates.subscribe((update) {
+      if (update == null) return;
+      _mediaRefreshDebounce?.cancel();
+      _mediaRefreshDebounce =
+          Timer(const Duration(milliseconds: 400), fetchMediaSessions);
+    });
+
     _volumeSubDispose = _signalR.volumeUpdates.subscribe((updates) {
       if (updates.isEmpty) return;
 
@@ -150,8 +161,11 @@ class HomeController {
   void dispose() {
     stopPolling();
     _signalRRefreshDebounce?.cancel();
+    _mediaRefreshDebounce?.cancel();
     _volumeSubDispose?.call();
     _volumeSubDispose = null;
+    _mediaSubDispose?.call();
+    _mediaSubDispose = null;
   }
 
   void toggleFullscreen() {
@@ -182,12 +196,28 @@ class HomeController {
 
   Future<void> sendMediaCommand(String sessionId, String command) async {
     try {
-      await _client.sendMediaCommand(sessionId, command);
+      // A resposta ja traz o estado logo apos o comando — antes havia um
+      // Future.delayed(500ms) as cegas antes de recarregar tudo, que tanto podia
+      // ser cedo demais (voltava o estado velho) quanto atraso puro na UI.
+      final result = await _client.sendMediaCommand(sessionId, command);
 
-      // Wait a bit for the system to process the command and update status
-      await Future.delayed(const Duration(milliseconds: 500));
+      final playing = result['playing'];
+      // O backend redireciona o comando quando o id salvo nao existe mais, entao
+      // o estado tem que ser aplicado na sessao que REALMENTE recebeu.
+      final applied = result['sessionId'] as String? ?? sessionId;
 
-      // Refresh immediately for instant UI feedback
+      if (playing is bool) {
+        final known = mediaSessions.value[applied];
+        if (known != null) {
+          mediaSessions.value = {
+            ...mediaSessions.value,
+            applied: known.copyWith(
+                playbackStatus: playing ? 'Playing' : 'Paused'),
+          };
+        }
+      }
+
+      // Recarrega para pegar faixa/capa novas (next/previous trocam a musica).
       fetchMediaSessions();
     } catch (e) {
       debugPrint('DEBUG ERROR (send media command): $e');

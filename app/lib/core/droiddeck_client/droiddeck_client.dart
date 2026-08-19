@@ -290,11 +290,16 @@ class DroidDeckClient {
     return MediaSession.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<void> sendMediaCommand(String id, String command) async {
-    await _dio.post(
+  /// Envia um comando de transporte e devolve o que o backend aplicou:
+  /// `sessionId` (pode diferir do pedido, quando o id salvo nao existe mais) e
+  /// `playing` (estado logo apos o comando). Mapa vazio se a resposta vier sem corpo.
+  Future<Map<String, dynamic>> sendMediaCommand(String id, String command) async {
+    final response = await _dio.post(
       '/api/v1/Media/sessions/$id/command',
       data: {'command': command},
     );
+    final data = response.data;
+    return data is Map<String, dynamic> ? data : <String, dynamic>{};
   }
 
   // StreamDeck methods

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:companion/core/core.dart';
 import 'package:flutter/material.dart';
@@ -17,23 +18,46 @@ class MediaControlWidget extends StatefulWidget {
 }
 
 class _MediaControlWidgetState extends State<MediaControlWidget> {
+  /// Palpite mostrado entre o toque e a chegada do estado real. O backend responde
+  /// ao comando ja com o estado aplicado, entao isto cobre so o tempo de rede — nao
+  /// e mais a fonte da verdade por varios segundos, como quando o app dependia do
+  /// poll seguinte pra descobrir o que tinha acontecido.
   String? _optimisticPlaybackStatus;
-  DateTime? _lastCommandTime;
+
+  /// Estado real vigente quando o palpite foi feito. Enquanto o servidor nao disser
+  /// algo DIFERENTE disto, o palpite continua valendo.
+  String? _statusWhenGuessed;
+
+  Timer? _optimisticTimer;
 
   @override
   void didUpdateWidget(MediaControlWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // If we recently sent a command (within 2s), ignore updates that match the OLD state
-    // This prevents "flicker" where the polling returns the old state before the command takes effect
-    if (_lastCommandTime != null &&
-        DateTime.now().difference(_lastCommandTime!).inMilliseconds < 2000) {
-      // Keep optimistic state
-    } else if (oldWidget.session.playbackStatus !=
-        widget.session.playbackStatus) {
-      // State changed from outside and enough time passed, reset optimistic
-      _optimisticPlaybackStatus = null;
+    // Chegou estado novo do servidor: o palpite cumpriu o papel.
+    //
+    // A comparacao e contra o estado de QUANDO o palpite foi feito, nao contra o
+    // widget anterior. Comparar oldWidget com o novo (como antes) so limpava o
+    // palpite quando o status mudava entre dois updates consecutivos — se o comando
+    // falhasse e o status ficasse parado no valor antigo, os dois eram iguais, a
+    // limpeza nunca acontecia, e o botao mentia ate o timer de seguranca estourar.
+    if (_optimisticPlaybackStatus != null &&
+        widget.session.playbackStatus != _statusWhenGuessed) {
+      _clearOptimistic();
     }
+  }
+
+  @override
+  void dispose() {
+    _optimisticTimer?.cancel();
+    super.dispose();
+  }
+
+  void _clearOptimistic() {
+    _optimisticTimer?.cancel();
+    _optimisticTimer = null;
+    _optimisticPlaybackStatus = null;
+    _statusWhenGuessed = null;
   }
 
   void _handlePlayPause() {
@@ -42,23 +66,18 @@ class _MediaControlWidgetState extends State<MediaControlWidget> {
     final isPlaying = currentStatus.toLowerCase() == 'playing';
 
     setState(() {
-      _lastCommandTime = DateTime.now();
+      _optimisticTimer?.cancel();
+      _statusWhenGuessed = widget.session.playbackStatus;
       _optimisticPlaybackStatus = isPlaying ? 'Paused' : 'Playing';
+
+      // Rede de seguranca: se nenhuma atualizacao chegar (backend fora do ar, comando
+      // recusado), o botao volta a mostrar o estado real em vez de ficar mentindo.
+      _optimisticTimer = Timer(const Duration(seconds: 4), () {
+        if (mounted) setState(_clearOptimistic);
+      });
     });
 
     widget.onCommand('playpause');
-
-    // Clear optimistic state after timeout just in case
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted &&
-          _lastCommandTime != null &&
-          DateTime.now().difference(_lastCommandTime!).inSeconds >= 4) {
-        setState(() {
-          _optimisticPlaybackStatus = null;
-          _lastCommandTime = null;
-        });
-      }
-    });
   }
 
   @override
@@ -66,10 +85,6 @@ class _MediaControlWidgetState extends State<MediaControlWidget> {
     final displayStatus =
         _optimisticPlaybackStatus ?? widget.session.playbackStatus ?? '';
     final isPlaying = displayStatus.toLowerCase() == 'playing';
-
-    // Debug: print playback status
-    debugPrint(
-        'DEBUG MediaControl: playbackStatus="${widget.session.playbackStatus}", optimistic="$_optimisticPlaybackStatus", isPlaying=$isPlaying');
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
