@@ -604,7 +604,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                     controller: _actionParamController,
                     decoration: const InputDecoration(
                       labelText: 'Keys (e.g. ^C for Ctrl+C)',
-                      helperText: '^=Ctrl, +=Shift, %=Alt',
+                      helperText: '^=Ctrl, +=Shift, %=Alt, #=Win',
                       border: OutlineInputBorder(),
                     ),
                   ),

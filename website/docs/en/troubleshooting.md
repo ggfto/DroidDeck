@@ -28,7 +28,7 @@ on the machine where DroidDeck runs.
 
 - The keys go to the **focused window** — make sure the right app is in front.
 - Apps running **as administrator** ignore input from a non-administrator DroidDeck.
-- Some games ignore simulated keys.
+- Games with anti-cheat may ignore simulated keys.
 - Check the syntax in [Hotkey](guide/actions.md#hotkey).
 
 ## Media buttons do nothing

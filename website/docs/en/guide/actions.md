@@ -26,19 +26,30 @@ change according to the type.
 
 Sends keys to **the window that has focus** on the PC.
 
-**Keys** uses Windows *SendKeys* syntax:
+**Keys** uses the Windows *SendKeys* syntax, plus `#` for the Windows key:
 
 | Symbol | Key | Example |
 |---|---|---|
 | `^` | Ctrl | `^c` → Ctrl+C |
 | `+` | Shift | `^+s` → Ctrl+Shift+S |
 | `%` | Alt | `%{F4}` → Alt+F4 |
-| `{NAME}` | Special key | `{ENTER}`, `{TAB}`, `{ESC}`, `{F5}`, `{DEL}`, `{HOME}`, `{PGDN}` |
+| `#` | Windows | `#d` → show desktop, `#+s` → screenshot tool |
+| `( )` | Hold modifiers for a group | `+(abc)` → ABC |
+| `~` | Enter | `^a~` |
+| `{NAME}` | Special key | `{ENTER}`, `{TAB}`, `{ESC}`, `{SPACE}`, `{F1}`…`{F24}`, `{UP}`, `{DOWN}`, `{LEFT}`, `{RIGHT}`, `{HOME}`, `{END}`, `{PGUP}`, `{PGDN}`, `{INS}`, `{DEL}`, `{BS}`, `{PRTSC}`, `{NUMPAD0}`…`{NUMPAD9}`, `{VOLUME_UP}`, `{VOLUME_DOWN}`, `{VOLUME_MUTE}`, `{MEDIA_PLAY_PAUSE}`, `{MEDIA_NEXT}`, `{MEDIA_PREV}` |
+| `{NAME n}` | Repeat | `{TAB 3}` |
+| `{x}` | The character itself | `{+}`, `{^}`, `{%}`, `{#}`, `{~}`, `{(}`, `{{}` |
+
+Any other character is typed as is. With Ctrl, Alt or Windows, letters ignore case: `^C` is Ctrl+C;
+use `+` for Shift.
+
+Keys are sent with their hardware scan codes and held for a moment, so most games that read the
+keyboard directly also receive them.
 
 !!! warning "Limitations"
-    - The **Windows key** cannot be sent.
-    - Some games that read input directly (DirectInput/Raw Input) ignore these keys.
     - Windows blocks input to apps running **as administrator** unless DroidDeck also runs as administrator.
+    - Games with anti-cheat may ignore simulated keys.
+    - Some combinations are reserved by Windows and can't be simulated, such as Ctrl+Alt+Del and Win+L.
 
 ## Launch app
 

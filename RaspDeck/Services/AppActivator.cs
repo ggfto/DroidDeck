@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
+using DroidDeck.Lib.Input;
 
 namespace DroidDeck.Services
 {
@@ -19,10 +19,14 @@ namespace DroidDeck.Services
                 SetForegroundWindow(h);
         }
 
+        /// <summary>
+        /// Sintaxe do SendKeys (^ Ctrl, + Shift, % Alt, {ENTER}...) mais # = Win, enviada
+        /// com SendInput. Sintaxe invalida lanca FormatException antes de apertar qualquer tecla.
+        /// </summary>
         public void SendKeys(string keys)
         {
             if (string.IsNullOrEmpty(keys)) return;
-            System.Windows.Forms.SendKeys.SendWait(keys);
+            KeyboardInput.Send(KeySequence.Parse(keys));
         }
 
         public void LaunchApp(string path, string? arguments = null)

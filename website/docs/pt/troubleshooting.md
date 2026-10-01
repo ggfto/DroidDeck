@@ -28,7 +28,7 @@ onde o DroidDeck está rodando.
 
 - As teclas vão para a **janela em foco** — confira se o app certo está na frente.
 - Apps rodando **como administrador** ignoram entradas de um DroidDeck sem privilégios de administrador.
-- Alguns jogos ignoram teclas simuladas.
+- Jogos com anti-cheat podem ignorar teclas simuladas.
 - Confira a sintaxe em [Atalho de teclado](guide/actions.md#hotkey).
 
 ## Os botões de mídia não fazem nada

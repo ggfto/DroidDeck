@@ -26,20 +26,30 @@ dele mudam de acordo com o tipo.
 
 Envia teclas para **a janela que está em foco** no PC.
 
-O campo **Keys** usa a sintaxe *SendKeys* do Windows:
+O campo **Keys** usa a sintaxe *SendKeys* do Windows, mais `#` para a tecla Windows:
 
 | Símbolo | Tecla | Exemplo |
 |---|---|---|
 | `^` | Ctrl | `^c` → Ctrl+C |
 | `+` | Shift | `^+s` → Ctrl+Shift+S |
 | `%` | Alt | `%{F4}` → Alt+F4 |
-| `{NOME}` | Tecla especial | `{ENTER}`, `{TAB}`, `{ESC}`, `{F5}`, `{DEL}`, `{HOME}`, `{PGDN}` |
+| `#` | Windows | `#d` → mostrar a área de trabalho, `#+s` → ferramenta de captura |
+| `( )` | Segura os modificadores num grupo | `+(abc)` → ABC |
+| `~` | Enter | `^a~` |
+| `{NOME}` | Tecla especial | `{ENTER}`, `{TAB}`, `{ESC}`, `{SPACE}`, `{F1}`…`{F24}`, `{UP}`, `{DOWN}`, `{LEFT}`, `{RIGHT}`, `{HOME}`, `{END}`, `{PGUP}`, `{PGDN}`, `{INS}`, `{DEL}`, `{BS}`, `{PRTSC}`, `{NUMPAD0}`…`{NUMPAD9}`, `{VOLUME_UP}`, `{VOLUME_DOWN}`, `{VOLUME_MUTE}`, `{MEDIA_PLAY_PAUSE}`, `{MEDIA_NEXT}`, `{MEDIA_PREV}` |
+| `{NOME n}` | Repetir | `{TAB 3}` |
+| `{x}` | O próprio caractere | `{+}`, `{^}`, `{%}`, `{#}`, `{~}`, `{(}`, `{{}` |
+
+Qualquer outro caractere é digitado como está. Com Ctrl, Alt ou Windows, letras ignoram maiúsculas:
+`^C` é Ctrl+C; use `+` para o Shift.
+
+As teclas saem com o scancode do teclado e ficam apertadas por um instante, então a maioria dos
+jogos que leem o teclado diretamente também as recebe.
 
 !!! warning "Limitações"
-    - A **tecla Windows** não pode ser enviada.
-    - Alguns jogos que leem a entrada diretamente (DirectInput/Raw Input) ignoram essas teclas.
-    - O Windows bloqueia entradas para apps rodando **como administrador**, a menos que o DroidDeck
-      também rode como administrador.
+    - O Windows bloqueia entradas para apps rodando **como administrador**, a menos que o DroidDeck também rode como administrador.
+    - Jogos com anti-cheat podem ignorar teclas simuladas.
+    - Algumas combinações são reservadas pelo Windows e não podem ser simuladas, como Ctrl+Alt+Del e Win+L.
 
 ## Abrir app { #launch-app }
 
