@@ -17,6 +17,18 @@ rejects cross-site browser requests. CORS only allows origins on loopback and pr
 
 Integration failures return `502` with `{error}`.
 
+## Privileged actions
+
+**Hotkey**, **launch app** and **activate window** run code on the PC, so they are protected even
+from clients that have the key. Requests that don't come from the PC itself (loopback) cannot:
+
+- run them through `execute` — use `press` with a button that was saved on the PC;
+- create a button with one of these actions, or change its parameters, through `POST profiles`.
+  Moving, renaming, recolouring and deleting such buttons is allowed.
+
+A multi-action counts as privileged when any of its steps is. Refused requests return `403` with
+`{error}`.
+
 ## Examples
 
 ```bash
@@ -42,7 +54,8 @@ curl -X POST http://192.168.0.10:4787/api/StreamDeck/execute \
 | GET | `profiles/{id}` | Get a profile. |
 | POST | `profiles` | Create or update a profile. Broadcasts `ReceiveDeckUpdate`. |
 | DELETE | `profiles/{id}` | Delete a profile. Broadcasts `ReceiveDeckUpdate`. |
-| POST | `execute` | Run an action (`{type, parameters}`). |
+| POST | `press` | Press a saved button (`{profileId, buttonId}`): the server runs the action stored in the profile. This is what the phone uses. |
+| POST | `execute` | Run an ad-hoc action (`{type, parameters}`). From outside the PC, privileged actions return `403`. |
 | GET / POST | `layout` | Read / set the grid size (`{rows, columns}`). |
 
 ### Action payload

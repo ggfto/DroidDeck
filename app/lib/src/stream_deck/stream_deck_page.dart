@@ -114,11 +114,22 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
   }
 
   void _editButton(DeckButton button) {
+    // O diálogo já fechou quando a resposta do PC chega: o aviso usa o messenger da
+    // página, não o context do diálogo.
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
       builder: (context) => ButtonEditorDialog(
         button: button,
-        onSave: controller.updateButton,
+        onSave: (b) async {
+          final refused = await controller.updateButton(b);
+          if (refused != null) {
+            messenger.showSnackBar(SnackBar(
+              content: Text(refused),
+              duration: const Duration(seconds: 6),
+            ));
+          }
+        },
       ),
     );
   }

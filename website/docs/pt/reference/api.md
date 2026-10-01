@@ -17,6 +17,18 @@ requisições cross-site do navegador. O CORS só permite origens em loopback e 
 
 Falhas de integração retornam `502` com `{error}`.
 
+## Ações privilegiadas
+
+**Atalho de teclado**, **abrir app** e **ativar janela** executam código no PC, então ficam protegidas
+até de quem tem a chave. Requisições que não vêm do próprio PC (loopback) não podem:
+
+- executá-las pelo `execute` — use o `press` com um botão salvo no PC;
+- criar um botão com uma dessas ações, ou mudar os parâmetros dela, pelo `POST profiles`. Mover,
+  renomear, mudar a cor e apagar esses botões continua liberado.
+
+Uma multi-ação conta como privilegiada se qualquer passo dela for. Requisições recusadas retornam
+`403` com `{error}`.
+
 ## Exemplos
 
 ```bash
@@ -42,7 +54,8 @@ curl -X POST http://192.168.0.10:4787/api/StreamDeck/execute \
 | GET | `profiles/{id}` | Retorna um perfil. |
 | POST | `profiles` | Cria ou atualiza um perfil. Dispara `ReceiveDeckUpdate`. |
 | DELETE | `profiles/{id}` | Apaga um perfil. Dispara `ReceiveDeckUpdate`. |
-| POST | `execute` | Executa uma ação (`{type, parameters}`). |
+| POST | `press` | Aperta um botão salvo (`{profileId, buttonId}`): o servidor executa a ação gravada no perfil. É o que o celular usa. |
+| POST | `execute` | Executa uma ação avulsa (`{type, parameters}`). De fora do PC, ações privilegiadas retornam `403`. |
 | GET / POST | `layout` | Lê / define o tamanho da grade (`{rows, columns}`). |
 
 ### Payload da ação

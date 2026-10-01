@@ -44,6 +44,11 @@ You can also edit on the phone itself:
 - **Tap an empty cell** to create a button there.
 - The gear icon in the title bar renames the profile.
 
+!!! note "Hotkey, launch app and multi-actions are edited on the PC"
+    Buttons that send keys or open programs can run anything on your PC, so they can only be created
+    or changed in the configurator on the PC itself. On the phone you can still use them and change
+    their label, icon and colour; the editor shows a lock with what the button does.
+
 ## Button properties
 
 | Property | Description |

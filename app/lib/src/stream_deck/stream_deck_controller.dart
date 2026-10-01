@@ -30,17 +30,36 @@ class StreamDeckController {
   Future<void> executeButtonAction(DeckButton button) async {
     if (button.action == null) return;
 
+    // O PC executa a ação salva no perfil, pelo id do botão: o celular não escolhe o
+    // que roda. Procura o perfil dono do botão (a página atual, ou uma pasta aberta).
+    final current = currentProfile.value;
+    final owner = current != null && current.buttons.any((b) => b.id == button.id)
+        ? current
+        : profiles.value
+            .where((p) => p.buttons.any((b) => b.id == button.id))
+            .firstOrNull;
+    if (owner == null) return;
+
     try {
-      // Execute the single action
-      await _client.executeAction(button.action!);
+      await _client.pressButton(owner.id, button.id);
     } catch (e) {
       debugPrint('Error executing action: $e');
     }
   }
 
-  Future<void> updateButton(DeckButton newButton) async {
+  /// Mensagem que o PC mandou ao recusar o pedido (403), se houver.
+  static String? _forbiddenMessage(Object e) {
+    if (e is! DioException || e.response?.statusCode != 403) return null;
+    final data = e.response?.data;
+    if (data is Map && data['error'] is String) return data['error'] as String;
+    return 'O PC recusou a alteração.';
+  }
+
+  /// Salva o botão. Devolve a mensagem de recusa do PC (ex.: tentar criar no celular um
+  /// botão que abre programas) para a tela mostrar; outros erros vão para [error].
+  Future<String?> updateButton(DeckButton newButton) async {
     final profile = currentProfile.value;
-    if (profile == null) return;
+    if (profile == null) return null;
 
     try {
       isLoading.value = true;
@@ -86,10 +105,13 @@ class StreamDeckController {
         profiles.value = List.from(profiles.value); // Trigger notify
       }
     } catch (e) {
+      final forbidden = _forbiddenMessage(e);
+      if (forbidden != null) return forbidden;
       error.value = e.toString();
     } finally {
       isLoading.value = false;
     }
+    return null;
   }
 
   Future<void> updateProfileFull(DeckProfile updatedProfile) async {

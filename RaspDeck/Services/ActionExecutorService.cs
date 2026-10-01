@@ -515,12 +515,5 @@ namespace DroidDeck.Services
                     break;
             }
         }
-
-        private class MultiStep
-        {
-            public string? Type { get; set; }
-            public Dictionary<string, string>? Parameters { get; set; }
-            public int DelayMs { get; set; }
-        }
     }
 }

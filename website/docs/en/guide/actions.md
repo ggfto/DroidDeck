@@ -3,6 +3,11 @@
 Each button runs one **action**. Pick the action type in the properties panel; the fields below it
 change according to the type.
 
+!!! info "Hotkey and Launch app are created on the PC"
+    For security, buttons that send keys or open programs (including multi-actions with those steps)
+    can only be created or changed in the [configurator](../getting-started/configurator.md) on the PC.
+    The phone runs them normally.
+
 | Action type | Runs on | Summary |
 |---|---|---|
 | [Hotkey](#hotkey) | PC | Sends a key combination to the focused window. |

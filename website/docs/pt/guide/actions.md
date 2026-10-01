@@ -3,6 +3,11 @@
 Cada botão executa uma **ação**. Escolha o tipo de ação no painel de propriedades; os campos abaixo
 dele mudam de acordo com o tipo.
 
+!!! info "Atalho de teclado e Abrir app são criados no PC"
+    Por segurança, botões que enviam teclas ou abrem programas (inclusive multi-ações com esses passos)
+    só podem ser criados ou alterados no [configurador](../getting-started/configurator.md), no PC.
+    O celular executa esses botões normalmente.
+
 | Tipo de ação | Roda no | Resumo |
 |---|---|---|
 | [Atalho de teclado](#hotkey) | PC | Envia uma combinação de teclas para a janela em foco. |

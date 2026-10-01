@@ -43,6 +43,11 @@ Você também pode editar no próprio celular:
 - **Toque em uma célula vazia** para criar um botão ali.
 - O ícone de engrenagem na barra de título renomeia o perfil.
 
+!!! note "Atalho, abrir app e multi-ação são editados no PC"
+    Botões que enviam teclas ou abrem programas conseguem rodar qualquer coisa no seu PC, por isso só
+    podem ser criados ou alterados no configurador, no próprio PC. No celular você continua usando
+    esses botões e pode mudar nome, ícone e cor; o editor mostra um cadeado com o que o botão faz.
+
 ## Propriedades do botão
 
 | Propriedade | Descrição |

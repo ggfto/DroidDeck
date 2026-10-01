@@ -3,6 +3,7 @@ import 'package:companion/core/core.dart';
 import 'package:companion/src/services/signalr_service.dart';
 import 'package:companion/src/config/discord_settings_page.dart';
 import 'package:companion/src/config/obs_settings_page.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -86,6 +87,38 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
       _selectedActionType == 'discord' ||
       _selectedActionType == 'mixer' ||
       _selectedActionType == 'tuya';
+
+  // Abrir app, atalho e ativar janela executam código no PC. O backend só aceita
+  // criá-los ou alterá-los pelo configurador em localhost (ActionPolicy): no celular o
+  // painel não oferece esses tipos e trava a ação dos botões que já os têm — label,
+  // ícone e cores continuam editáveis, e o botão continua funcionando.
+  static const _privilegedTypes = {
+    'hotkey',
+    'launch_app',
+    'launchApp',
+    'activatewindow',
+  };
+
+  static bool _isPrivileged(DeckAction? action) {
+    if (action == null) return false;
+    if (_privilegedTypes.contains(action.type)) return true;
+    if (action.type != 'multi') return false;
+    try {
+      final steps = jsonDecode(action.parameters['steps'] ?? '[]') as List;
+      return steps.any((s) => _privilegedTypes.contains((s as Map)['type']));
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// No navegador o painel roda no configurador (localhost); fora dele, no celular.
+  bool get _remote => !kIsWeb;
+  late final bool _lockedAction =
+      _remote && _isPrivileged(widget.button.action);
+
+  List<String> get _availableActionTypes => _remote && !_lockedAction
+      ? _actionTypes.where((t) => !_privilegedTypes.contains(t)).toList()
+      : _actionTypes;
 
   final List<String> _actionTypes = [
     'none',
@@ -421,7 +454,9 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     final isDynamic = _dynamicType != null && _dynamicType!.isNotEmpty;
     final newAction = (isDynamic || _selectedActionType == 'none')
         ? null
-        : DeckAction(type: _selectedActionType, parameters: params);
+        : _lockedAction
+            ? widget.button.action
+            : DeckAction(type: _selectedActionType, parameters: params);
 
     final newButton = DeckButton(
       id: widget.button.id.isEmpty
@@ -439,6 +474,53 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
     );
 
     widget.onSave(newButton);
+  }
+
+  /// Aviso no lugar dos campos de uma ação que só pode mudar no PC.
+  Widget _buildLockedActionNotice() {
+    final a = widget.button.action!;
+    final String summary;
+    switch (a.type) {
+      case 'hotkey':
+        summary = 'Atalho: ${a.parameters['keys'] ?? ''}';
+      case 'launch_app':
+      case 'launchApp':
+        summary = 'Abre: ${a.parameters['path'] ?? ''}';
+      case 'multi':
+        summary = 'Multi-ação';
+      default:
+        summary = a.type;
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lock_outline, color: Colors.amber),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(summary,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                const Text(
+                  'Ações que abrem programas ou enviam atalhos só podem ser '
+                  'alteradas no configurador do PC (http://localhost:4787). '
+                  'Aqui você pode mudar o nome, o ícone e as cores.',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _delete() {
@@ -482,22 +564,27 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                 ),
                 const SizedBox(height: 16),
 
+                if (_lockedAction) ...[
+                  _buildLockedActionNotice(),
+                  const SizedBox(height: 16),
+                ],
+
                 // Action Type
                 DropdownButtonFormField<String>(
-                  value: _actionTypes.contains(_selectedActionType)
+                  value: _availableActionTypes.contains(_selectedActionType)
                       ? _selectedActionType
                       : 'none',
                   decoration: const InputDecoration(
                     labelText: 'Action Type',
                     border: OutlineInputBorder(),
                   ),
-                  items: _actionTypes.map((type) {
+                  items: _availableActionTypes.map((type) {
                     return DropdownMenuItem(
                       value: type,
                       child: Text(type.toUpperCase().replaceAll('_', ' ')),
                     );
                   }).toList(),
-                  onChanged: (val) {
+                  onChanged: _lockedAction ? null : (val) {
                     setState(() {
                       _selectedActionType = val!;
                       // Ação e monitor (dynamicType) são exclusivos.
@@ -512,7 +599,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                 const SizedBox(height: 16),
 
                 // Dynamic Parameters
-                if (_selectedActionType == 'hotkey') ...[
+                if (!_lockedAction && _selectedActionType == 'hotkey') ...[
                   TextField(
                     controller: _actionParamController,
                     decoration: const InputDecoration(
@@ -522,7 +609,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                     ),
                   ),
                 ],
-                if (_selectedActionType == 'launch_app') ...[
+                if (!_lockedAction && _selectedActionType == 'launch_app') ...[
                   TextField(
                     controller: _actionParamController,
                     decoration: const InputDecoration(
@@ -594,7 +681,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                     ),
                   ),
                 ],
-                if (_selectedActionType == 'multi') ...[
+                if (!_lockedAction && _selectedActionType == 'multi') ...[
                   const Text('Passos (executados em sequência):',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
@@ -615,13 +702,16 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                                     decoration: const InputDecoration(
                                         labelText: 'Tipo',
                                         border: OutlineInputBorder()),
-                                    items: const [
-                                      DropdownMenuItem(
-                                          value: 'hotkey', child: Text('Hotkey')),
-                                      DropdownMenuItem(
-                                          value: 'launch_app',
-                                          child: Text('Abrir app')),
-                                      DropdownMenuItem(
+                                    items: [
+                                      if (!_remote) ...const [
+                                        DropdownMenuItem(
+                                            value: 'hotkey',
+                                            child: Text('Hotkey')),
+                                        DropdownMenuItem(
+                                            value: 'launch_app',
+                                            child: Text('Abrir app')),
+                                      ],
+                                      const DropdownMenuItem(
                                           value: 'mute',
                                           child: Text('Mutar app')),
                                     ],
@@ -671,7 +761,7 @@ class _ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
                       onPressed: () => setState(() => _multiSteps.add({
-                            'type': 'hotkey',
+                            'type': _remote ? 'mute' : 'hotkey',
                             'param': '',
                             'delayMs': 0,
                             '_k': _stepSeq++,

@@ -33,6 +33,14 @@ namespace DroidDeck.Models
         public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
     }
 
+    /// <summary>Um passo de multi-ação: parameters["steps"] guarda uma lista destes em JSON.</summary>
+    public class MultiStep
+    {
+        public string? Type { get; set; }
+        public Dictionary<string, string>? Parameters { get; set; }
+        public int DelayMs { get; set; }
+    }
+
     /// <summary>
     /// Grade física do deck. Definida pelo celular (quantos botões cabem inteiros na tela)
     /// e enviada ao PC; o configurador web usa estes valores (não há seletor manual).

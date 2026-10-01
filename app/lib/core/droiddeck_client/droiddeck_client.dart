@@ -326,6 +326,15 @@ class DroidDeckClient {
     await _dio.delete('/api/StreamDeck/profiles/$id');
   }
 
+  /// Aperta um botão salvo: o PC lê a ação do perfil. É o caminho do deck — o
+  /// /execute com ação avulsa recusa (403), de fora do PC, ações que rodam código.
+  Future<void> pressButton(String profileId, String buttonId) async {
+    await _dio.post(
+      '/api/StreamDeck/press',
+      data: {'profileId': profileId, 'buttonId': buttonId},
+    );
+  }
+
   Future<void> executeAction(DeckAction action) async {
     await _dio.post(
       '/api/StreamDeck/execute',
