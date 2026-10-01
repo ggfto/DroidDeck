@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'src/pages/splash/splash_page.dart';
 import 'src/home/home_page.dart';
 import 'src/config/config_page.dart';
+import 'src/welcome/welcome_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CompanionCoreConfig(
-      title: 'Companion App',
+      title: 'DroidDeck',
       bindings: CompanionApplicationBinding(),
       pageBuilders: [
         FlutterGetItPageBuilder(
@@ -30,6 +31,10 @@ class MyApp extends StatelessWidget {
         FlutterGetItPageBuilder(
           page: (_) => const ConfigPage(),
           path: '/config',
+        ),
+        FlutterGetItPageBuilder(
+          page: (_) => const WelcomePage(),
+          path: '/welcome',
         ),
       ],
     );

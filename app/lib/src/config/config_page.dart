@@ -10,6 +10,7 @@ import 'discord_settings_page.dart';
 import 'obs_settings_page.dart';
 import 'tuya_settings_page.dart';
 import 'soundboard_settings_page.dart';
+import '../welcome/welcome_page.dart';
 
 class ConfigPage extends StatefulWidget {
   const ConfigPage({super.key});
@@ -158,6 +159,16 @@ class ConfigPageState extends State<ConfigPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const WelcomePage()),
+                ),
+                icon: const Icon(Icons.help_outline),
+                label: const Text('Ainda não instalou no PC? Veja como'),
+              ),
+            ),
             TextField(
               controller: _ipController,
               decoration: const InputDecoration(

@@ -57,7 +57,8 @@ class SplashPageState extends State<SplashPage> {
       if (!mounted) return; // o widget pode ter sido descartado durante o await
       Navigator.of(context).pushReplacementNamed('/home');
     } else if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/config');
+      // Ainda não pareou: explica que precisa do DroidDeck no PC antes de pedir o IP.
+      Navigator.of(context).pushReplacementNamed('/welcome');
     }
   }
 
@@ -73,9 +74,14 @@ class SplashPageState extends State<SplashPage> {
               width: 150,
               height: 150,
             ),
-            Image.asset(
-              'assets/images/app_name.png',
-              width: 150,
+            const SizedBox(height: 16),
+            const Text(
+              'DroidDeck',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
             ),
             const SizedBox(height: 200),
             LoadingAnimationWidget.staggeredDotsWave(

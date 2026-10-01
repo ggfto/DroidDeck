@@ -5,4 +5,9 @@ class Constants {
 
   /// Porta padrão do backend (usada quando o pareamento não informa outra).
   static const defaultPort = "4787";
+
+  /// Site do projeto (download do DroidDeck para Windows). [siteDisplay] é a forma curta,
+  /// para a pessoa digitar no navegador do PC.
+  static const siteUrl = "https://me.gf2.in/DroidDeck/?lang=pt";
+  static const siteDisplay = "me.gf2.in/DroidDeck";
 }
