@@ -17,7 +17,7 @@
 | `discord.json` | Client ID, Client Secret e tokens do Discord. |
 | `obs.json` | Host, porta e senha do OBS. A presença dele ativa a conexão automática com o OBS. |
 | `soundboard.json` | Dispositivos de saída e volume do soundboard. |
-| `SoundCache\*.mp3` | Sons baixados do MyInstants. Pode apagar sem problema. |
+| `SoundCache\*.mp3` | Sons baixados do MyInstants (até 5 MB cada). Limitado a 200 MB: os tocados há mais tempo saem primeiro. Pode apagar sem problema. |
 | `tuya.json` | Código de usuário da Tuya, token de sessão e registro do app (`ClientId`, `Schema`). |
 
 **`%LocalAppData%\DroidDeck.log`** — o arquivo de log.

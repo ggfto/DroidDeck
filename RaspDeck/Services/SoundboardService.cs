@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using DroidDeck.Hubs;
@@ -181,24 +183,96 @@ namespace DroidDeck.Services
             return true;
         }
 
-        private static string CacheFileFor(string id, string url)
+        // Um efeito sonoro tem dezenas de KB; o teto barra uma url que aponte para um arquivo
+        // enorme. O cache inteiro tambem tem teto: antes crescia sem limite.
+        internal const long MaxSoundBytes = 5L * 1024 * 1024;
+        internal const long MaxCacheBytes = 200L * 1024 * 1024;
+
+        internal static string CacheFileFor(string id, string url)
         {
-            var name = IsSafeId(id) ? id : Math.Abs(url.GetHashCode()).ToString();
+            // Hash estavel entre execucoes. O GetHashCode() de string e randomizado por
+            // processo no .NET Core: o mesmo som virava outro arquivo a cada boot, era
+            // baixado de novo e a pasta so crescia.
+            var name = IsSafeId(id)
+                ? id
+                : "u-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(url)))[..32].ToLowerInvariant();
             return Path.Combine(CacheDir, name + ".mp3");
         }
 
         private async Task<string> EnsureCachedAsync(string id, string url)
         {
             var path = CacheFileFor(id, url);
-            if (File.Exists(path) && new FileInfo(path).Length > 0) return path;
+            if (File.Exists(path) && new FileInfo(path).Length > 0)
+            {
+                // Marca o uso para a limpeza por LRU (o Windows nao atualiza o LastAccessTime).
+                try { File.SetLastWriteTimeUtc(path, DateTime.UtcNow); } catch { }
+                return path;
+            }
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                throw new InvalidOperationException("URL de som invalida (so http/https).");
 
             var http = _httpFactory.CreateClient();
             http.Timeout = TimeSpan.FromSeconds(20);
-            var bytes = await http.GetByteArrayAsync(url);
+            using var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+            if (response.Content.Headers.ContentLength > MaxSoundBytes)
+                throw new InvalidOperationException("Arquivo de som grande demais.");
+
             var tmp = path + ".tmp";
-            await File.WriteAllBytesAsync(tmp, bytes);
-            File.Move(tmp, path, overwrite: true);
+            try
+            {
+                await using (var source = await response.Content.ReadAsStreamAsync())
+                await using (var target = File.Create(tmp))
+                {
+                    // Content-Length pode faltar ou mentir: conta o que chega de fato.
+                    var buffer = new byte[81920];
+                    long total = 0;
+                    int read;
+                    while ((read = await source.ReadAsync(buffer)) > 0)
+                    {
+                        total += read;
+                        if (total > MaxSoundBytes)
+                            throw new InvalidOperationException("Arquivo de som grande demais.");
+                        await target.WriteAsync(buffer.AsMemory(0, read));
+                    }
+                }
+                File.Move(tmp, path, overwrite: true);
+            }
+            catch
+            {
+                try { File.Delete(tmp); } catch { }
+                throw;
+            }
+
+            PruneCache(CacheDir, MaxCacheBytes, keep: path);
             return path;
+        }
+
+        /// <summary>Apaga os sons usados ha mais tempo ate o cache caber em <paramref name="maxBytes"/>.</summary>
+        internal static void PruneCache(string dir, long maxBytes, string? keep = null)
+        {
+            try
+            {
+                var files = new DirectoryInfo(dir).GetFiles("*.mp3")
+                    .OrderBy(f => f.LastWriteTimeUtc)
+                    .ToList();
+                var total = files.Sum(f => f.Length);
+                foreach (var f in files)
+                {
+                    if (total <= maxBytes) break;
+                    if (keep != null && string.Equals(f.FullName, Path.GetFullPath(keep), StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    // O tamanho antes: depois do Delete o FileInfo relê o disco e lança.
+                    var length = f.Length;
+                    try { f.Delete(); total -= length; } catch { }
+                }
+            }
+            catch
+            {
+                // limpeza e best-effort: nunca impede o som de tocar
+            }
         }
 
         // ---- Playback ----
