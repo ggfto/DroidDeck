@@ -21,6 +21,7 @@ namespace DroidDeck.Services
         private readonly TuyaService _tuya;
         private readonly ILogger<TuyaAutoConnect> _logger;
         private CancellationTokenSource? _cts;
+        private int _consecutiveFailures;
 
         public TuyaAutoConnect(TuyaService tuya, ILogger<TuyaAutoConnect> logger)
         {
@@ -47,13 +48,22 @@ namespace DroidDeck.Services
                     if (_tuya.HasSavedSession() && !_tuya.Connected)
                     {
                         await _tuya.ConnectAsync();
+                        _consecutiveFailures = 0;
                         _logger.LogInformation("Tuya auto-connect: conectado.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Sem internet ou token revogado: tenta de novo no proximo ciclo.
-                    _logger.LogDebug("Tuya auto-connect: {Msg}", ex.Message);
+                    // Sem internet ou token revogado: tenta de novo no proximo ciclo. A
+                    // primeira falha costuma ser so a rede ainda subindo depois de um boot,
+                    // entao fica em Debug; da segunda em diante o problema e persistente e
+                    // precisa aparecer -- ficar mudo aqui ja custou dois dias de deck quebrado.
+                    _consecutiveFailures++;
+                    if (_consecutiveFailures > 1)
+                        _logger.LogWarning("Tuya auto-connect: {N} tentativas seguidas falharam ({Msg})",
+                            _consecutiveFailures, ex.Message);
+                    else
+                        _logger.LogDebug("Tuya auto-connect: {Msg}", ex.Message);
                 }
 
                 try { await Task.Delay(Interval, ct); } catch { return; }

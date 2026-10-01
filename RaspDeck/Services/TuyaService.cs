@@ -80,10 +80,30 @@ namespace DroidDeck.Services
 
         public bool HasSavedSession() => _config.HasSession;
 
+        /// <summary>
+        /// Grava em arquivo temporario e troca, em vez de escrever por cima. Uma queda de luz
+        /// no meio de um WriteAllText deixa o tuya.json truncado, o LoadConfig cai no catch e
+        /// a sessao evapora -- o usuario tem que refazer o pareamento por QR. Aqui o arquivo
+        /// bom so e substituido depois que o novo esta inteiro no disco.
+        /// </summary>
         private void SaveConfig()
         {
-            try { SecretFile.WriteAllText(ConfigPath, JsonSerializer.Serialize(_config)); }
-            catch (Exception ex) { _logger.LogError("Tuya: falha ao salvar config: {Msg}", ex.Message); }
+            var path = ConfigPath;
+            var tmp = path + ".tmp";
+            try
+            {
+                SecretFile.WriteAllText(tmp, JsonSerializer.Serialize(_config));
+
+                if (File.Exists(path))
+                    File.Replace(tmp, path, null);
+                else
+                    File.Move(tmp, path);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Tuya: falha ao salvar config: {Msg}", ex.Message);
+                try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+            }
         }
 
         // ---- Pareamento por QR ----
@@ -154,8 +174,22 @@ namespace DroidDeck.Services
                 _api = api;
                 _repo = new TuyaDeviceRepository(api, _logger);
 
-                await RefreshDevicesInternalAsync();
-                await StartPushAsync();
+                try
+                {
+                    await RefreshDevicesInternalAsync();
+                    await StartPushAsync();
+                }
+                catch
+                {
+                    // Sem isso o servico fica preso em "conectado" com zero dispositivo: o
+                    // watchdog so reage a !Connected, e Connected e so _api != null. Foi o que
+                    // aconteceu numa queda de energia -- o connect do boot pegou a rede ainda
+                    // subindo, falhou aqui, e ninguem tentou de novo por dois dias.
+                    _api = null;
+                    _repo = null;
+                    throw;
+                }
+
                 await BroadcastStateAsync();
             }
             finally
