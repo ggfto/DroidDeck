@@ -1,6 +1,6 @@
 site_name: DroidDeck
 site_description: Turn an Android phone into a Stream Deck for your Windows PC.
-site_url: https://ggfto.github.io/DroidDeck/docs/
+site_url: https://me.gf2.in/DroidDeck/docs/
 repo_url: https://github.com/ggfto/DroidDeck
 repo_name: ggfto/DroidDeck
 edit_uri: edit/main/website/docs/
@@ -100,7 +100,7 @@ plugins:
             Smart home (Tuya): Casa inteligente (Tuya)
 
 extra:
-  homepage: https://ggfto.github.io/DroidDeck/
+  homepage: https://me.gf2.in/DroidDeck/
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/ggfto/DroidDeck

@@ -6,7 +6,7 @@ e um **plugin de Discord** (mute/deafen, entrar em canal de voz, volume, modo de
 
 Monorepo com as duas metades do projeto, que evoluem juntas.
 
-**Site:** https://ggfto.github.io/DroidDeck/ · **Documentação:** [português](https://ggfto.github.io/DroidDeck/docs/pt/) | [English](https://ggfto.github.io/DroidDeck/docs/)
+**Site:** https://me.gf2.in/DroidDeck/ · **Documentação:** [português](https://me.gf2.in/DroidDeck/docs/pt/) | [English](https://me.gf2.in/DroidDeck/docs/)
 
 ## Estrutura
 
