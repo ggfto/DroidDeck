@@ -1,3 +1,4 @@
+using DroidDeck.Lib;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -30,10 +31,7 @@ namespace DroidDeck.Services
                 PropertyNameCaseInsensitive = true
             };
 
-            var baseDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "DroidDeck"
-            );
+            var baseDir = AppPaths.RoamingDir;
             _profilesDirectory = Path.Combine(baseDir, "Profiles");
             _layoutPath = Path.Combine(baseDir, "layout.json");
 

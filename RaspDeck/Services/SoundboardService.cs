@@ -1,3 +1,4 @@
+using DroidDeck.Lib;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -95,9 +96,7 @@ namespace DroidDeck.Services
         {
             get
             {
-                var dir = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DroidDeck");
-                Directory.CreateDirectory(dir);
+                var dir = AppPaths.LocalDir;
                 return dir;
             }
         }

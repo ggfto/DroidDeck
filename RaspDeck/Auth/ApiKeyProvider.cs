@@ -19,11 +19,7 @@ namespace DroidDeck.Auth
         {
             get
             {
-                var dir = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "DroidDeck");
-                Directory.CreateDirectory(dir);
-                return Path.Combine(dir, "apikey");
+                return Path.Combine(AppPaths.LocalDir, "apikey");
             }
         }
 
