@@ -1,3 +1,21 @@
+# [1.6.0](https://github.com/ggfto/DroidDeck/compare/v1.5.0...v1.6.0) (2026-10-01)
+
+
+### Bug Fixes
+
+* **app:** remove o OneSignal ([e8a650f](https://github.com/ggfto/DroidDeck/commit/e8a650f7b91b8fd6a21c9ffbf24e5db3a5750e7b))
+* **discovery:** responde com o IP da interface que alcanca o celular ([f523ed4](https://github.com/ggfto/DroidDeck/commit/f523ed40ebbc8eb802e9ec4114ab0546c4f09e98))
+* **security:** acoes que executam codigo so sao criadas no PC ([c3214e0](https://github.com/ggfto/DroidDeck/commit/c3214e097acc68e5997d891a9dada6b13d8062ec))
+* **security:** cifra os segredos em disco com DPAPI ([9b7c44f](https://github.com/ggfto/DroidDeck/commit/9b7c44fc99f73ff73f4cd8158e9b66d6ea113eed))
+* **soundboard:** cache com nome estavel, download limitado e teto de tamanho ([74dab64](https://github.com/ggfto/DroidDeck/commit/74dab64c983ff80ec0978dd19257478ed83bbc88))
+* **tuya:** reconecta apos falha no boot e grava o tuya.json de forma atomica ([924cd8f](https://github.com/ggfto/DroidDeck/commit/924cd8fd989fb120acae32b86da077260bbefea5))
+
+
+### Features
+
+* **app:** tela de boas-vindas que leva ao DroidDeck para Windows ([99c7688](https://github.com/ggfto/DroidDeck/commit/99c76889686fb7fa11e934d54a1240eeb4f43beb))
+* **hotkey:** envia teclas com SendInput e aceita a tecla Windows (#) ([15ba488](https://github.com/ggfto/DroidDeck/commit/15ba488c360b214b51583d9f2129399b1bdbe188))
+
 # [1.5.0](https://github.com/ggfto/DroidDeck/compare/v1.4.0...v1.5.0) (2026-08-19)
 
 
