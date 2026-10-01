@@ -22,15 +22,16 @@
 
 **`%LocalAppData%\DroidDeck.log`** — o arquivo de log.
 
-!!! warning "Segredos"
-    `apikey`, `discord.json`, `obs.json` e `tuya.json` guardam credenciais em texto puro. Não
-    compartilhe esses arquivos nem sincronize em lugares públicos.
+!!! info "Os segredos são cifrados"
+    `apikey`, `discord.json`, `obs.json` e `tuya.json` são cifrados com a DPAPI do Windows e só podem
+    ser lidos pela sua conta do Windows neste PC. Arquivos de versões antigas, em texto puro, são
+    cifrados automaticamente na primeira leitura. Para editar um deles à mão (ex.: o `ClientId` da
+    Tuya), salve-o como JSON puro; o DroidDeck cifra de novo na próxima inicialização.
 
 ## Backup e troca de PC
 
-Copie `%AppData%\DroidDeck\Profiles\` para guardar seus decks. As integrações precisam ser
-configuradas de novo no PC novo (ou copie também os arquivos de `%LocalAppData%\DroidDeck\`), e os
-celulares precisam parear outra vez.
+Copie `%AppData%\DroidDeck\Profiles\` para guardar seus decks. Os segredos ficam presos a este PC e
+à sua conta do Windows, então num PC novo você configura as integrações e pareia os celulares de novo.
 
 ## Opções de linha de comando
 

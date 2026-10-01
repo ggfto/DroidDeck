@@ -1,3 +1,4 @@
+using DroidDeck.Lib;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -70,7 +71,7 @@ namespace DroidDeck.Services
             try
             {
                 if (File.Exists(ConfigPath))
-                    return JsonSerializer.Deserialize<TuyaConfig>(File.ReadAllText(ConfigPath)) ?? new TuyaConfig();
+                    return JsonSerializer.Deserialize<TuyaConfig>(SecretFile.ReadAllText(ConfigPath)) ?? new TuyaConfig();
             }
             catch (Exception ex)
             {
@@ -83,7 +84,7 @@ namespace DroidDeck.Services
 
         private void SaveConfig()
         {
-            try { File.WriteAllText(ConfigPath, JsonSerializer.Serialize(_config)); }
+            try { SecretFile.WriteAllText(ConfigPath, JsonSerializer.Serialize(_config)); }
             catch (Exception ex) { _logger.LogError("Tuya: falha ao salvar config: {Msg}", ex.Message); }
         }
 

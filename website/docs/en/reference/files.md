@@ -22,14 +22,16 @@
 
 **`%LocalAppData%\DroidDeck.log`** — the log file.
 
-!!! warning "Secrets"
-    `apikey`, `discord.json`, `obs.json` and `tuya.json` hold credentials in plain text. Don't share
-    them, and don't sync them to public places.
+!!! info "Secrets are encrypted"
+    `apikey`, `discord.json`, `obs.json` and `tuya.json` are encrypted with Windows DPAPI and can only
+    be read by your Windows account on this PC. Files from older versions, saved in plain text, are
+    encrypted automatically the first time they are read. To edit one by hand (e.g. a Tuya `ClientId`),
+    save it as plain JSON; DroidDeck encrypts it again on the next start.
 
 ## Backup and moving to another PC
 
-Copy `%AppData%\DroidDeck\Profiles\` to keep your decks. Integrations need to be set up again on the
-new PC (or copy the `%LocalAppData%\DroidDeck\` files too), and phones must pair again.
+Copy `%AppData%\DroidDeck\Profiles\` to keep your decks. Secrets are tied to this PC and Windows
+account, so on a new PC you set up the integrations again and pair the phones again.
 
 ## Command-line options
 

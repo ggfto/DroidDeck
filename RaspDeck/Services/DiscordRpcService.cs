@@ -1,3 +1,4 @@
+using DroidDeck.Lib;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -103,7 +104,7 @@ namespace DroidDeck.Services
             try
             {
                 if (File.Exists(ConfigPath))
-                    return JsonSerializer.Deserialize<DiscordConfig>(File.ReadAllText(ConfigPath)) ?? new DiscordConfig();
+                    return JsonSerializer.Deserialize<DiscordConfig>(SecretFile.ReadAllText(ConfigPath)) ?? new DiscordConfig();
             }
             catch { }
             return new DiscordConfig();
@@ -111,7 +112,7 @@ namespace DroidDeck.Services
 
         public void SaveConfig(DiscordConfig c)
         {
-            try { File.WriteAllText(ConfigPath, JsonSerializer.Serialize(c)); } catch { }
+            try { SecretFile.WriteAllText(ConfigPath, JsonSerializer.Serialize(c)); } catch { }
         }
 
         public void SetCredentials(string clientId, string clientSecret)

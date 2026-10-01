@@ -1,3 +1,4 @@
+using DroidDeck.Lib;
 using System;
 using System.IO;
 using System.Security.Cryptography;
@@ -7,7 +8,7 @@ namespace DroidDeck.Auth
     /// <summary>
     /// Carrega (ou gera na primeira vez) a chave de API forte usada para autenticar o app.
     /// Persistida em %LocalAppData%\DroidDeck\apikey — fora do código e do repositório.
-    /// Substitui a antiga chave fixa "changeme".
+    /// Substitui a antiga chave fixa "changeme". Cifrada com DPAPI (ver <see cref="SecretFile"/>).
     /// </summary>
     public static class ApiKeyProvider
     {
@@ -38,12 +39,12 @@ namespace DroidDeck.Auth
                     var path = KeyFilePath;
                     if (File.Exists(path))
                     {
-                        var existing = File.ReadAllText(path).Trim();
+                        var existing = SecretFile.ReadAllText(path).Trim();
                         if (!string.IsNullOrWhiteSpace(existing))
                             return _cached = existing;
                     }
                     var generated = Generate();
-                    File.WriteAllText(path, generated);
+                    SecretFile.WriteAllText(path, generated);
                     return _cached = generated;
                 }
                 catch

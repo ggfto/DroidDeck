@@ -1,3 +1,4 @@
+using DroidDeck.Lib;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -67,7 +68,7 @@ namespace DroidDeck.Services
 
         public ObsConfig LoadConfig()
         {
-            try { if (File.Exists(ConfigPath)) return JsonSerializer.Deserialize<ObsConfig>(File.ReadAllText(ConfigPath)) ?? new ObsConfig(); }
+            try { if (File.Exists(ConfigPath)) return JsonSerializer.Deserialize<ObsConfig>(SecretFile.ReadAllText(ConfigPath)) ?? new ObsConfig(); }
             catch { }
             return new ObsConfig();
         }
@@ -77,7 +78,7 @@ namespace DroidDeck.Services
 
         public void SaveConfig(ObsConfig c)
         {
-            try { File.WriteAllText(ConfigPath, JsonSerializer.Serialize(c)); } catch { }
+            try { SecretFile.WriteAllText(ConfigPath, JsonSerializer.Serialize(c)); } catch { }
         }
 
         public object GetStatePayload() => new
