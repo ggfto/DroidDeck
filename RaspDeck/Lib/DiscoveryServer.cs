@@ -20,26 +20,12 @@ namespace DroidDeck.Lib
             _logger = logger;
         }
 
-        private string FindMyIP()
-        {
-            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
-            {
-                socket.Connect("8.8.8.8", 65530);
-                var endPoint = socket.LocalEndPoint as IPEndPoint;
-                if (endPoint == null)
-                {
-                    return "127.0.0.1";
-                }
-                return endPoint.Address.ToString();
-            }
-        }
         protected override async Task ExecuteAsync(CancellationToken token)
         {
             try
             {
                 udpServer = new UdpClient(DiscoveryPort);
                 _logger.LogInformation("[Discovery] Servidor iniciado na porta {Port}", DiscoveryPort);
-                string ipAddress = FindMyIP();
                 string computerName = Environment.MachineName;
 
                 while (!token.IsCancellationRequested)
@@ -61,6 +47,12 @@ namespace DroidDeck.Lib
 
                         if ("DroidDeckDiscoveryRequest".Equals(dataReceived))
                         {
+                            // Calculado a cada pedido, a partir de quem perguntou: antes era um
+                            // Connect("8.8.8.8") unico no boot, que derrubava o discovery inteiro
+                            // num PC sem rota para a internet, seguia anunciando o IP antigo
+                            // depois de uma troca pelo DHCP e, com VPN/WSL, podia anunciar a placa
+                            // errada.
+                            string ipAddress = NetworkInfo.GetLocalIpFor(result.RemoteEndPoint.Address);
                             // Serializa de verdade pra escapar aspas/barras em MachineName.
                             string responseMessage = System.Text.Json.JsonSerializer.Serialize(
                                 new { ip = ipAddress, name = computerName });
