@@ -1,0 +1,127 @@
+site_name: DroidDeck
+site_description: Turn an Android phone into a Stream Deck for your Windows PC.
+site_url: https://ggfto.github.io/DroidDeck/docs/
+repo_url: https://github.com/ggfto/DroidDeck
+repo_name: ggfto/DroidDeck
+edit_uri: edit/main/website/docs/
+copyright: DroidDeck · <a href="https://github.com/ggfto/DroidDeck/blob/main/LICENSE">Apache License 2.0</a>
+docs_dir: docs
+site_dir: ../_site/docs
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+  features:
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: getting-started/installation.md
+      - Pairing: getting-started/pairing.md
+      - Configurator: getting-started/configurator.md
+  - Buttons & actions:
+      - Buttons & actions: guide/actions.md
+      - Monitors: guide/monitors.md
+  - Integrations:
+      - Discord: integrations/discord.md
+      - OBS Studio: integrations/obs.md
+      - Soundboard: integrations/soundboard.md
+      - Smart home (Tuya): integrations/tuya.md
+      - Mixer & media: integrations/mixer-media.md
+  - Troubleshooting: troubleshooting.md
+  - Reference:
+      - Files & settings: reference/files.md
+      - API: reference/api.md
+  - Developers:
+      - Architecture: developers/architecture.md
+      - Building from source: developers/building.md
+
+extra_css:
+  - assets/extra.css
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: pt
+          name: Português
+          build: true
+          site_description: Transforme um celular Android num Stream Deck para o seu PC Windows.
+          nav_translations:
+            Getting started: Primeiros passos
+            Installation: Instalação
+            Pairing: Pareamento
+            Configurator: Configurador
+            Buttons & actions: Botões e ações
+            Integrations: Integrações
+            Troubleshooting: Solução de problemas
+            Reference: Referência
+            Files & settings: Arquivos e configurações
+            Developers: Desenvolvedores
+            Architecture: Arquitetura
+            API: API
+            Building from source: Compilando do código
+            Home: Início
+            Monitors: Monitores
+            Mixer & media: Mixer e mídia
+            Smart home (Tuya): Casa inteligente (Tuya)
+
+extra:
+  homepage: https://ggfto.github.io/DroidDeck/
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ggfto/DroidDeck
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - def_list
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.keys

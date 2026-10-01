@@ -6,6 +6,8 @@ e um **plugin de Discord** (mute/deafen, entrar em canal de voz, volume, modo de
 
 Monorepo com as duas metades do projeto, que evoluem juntas.
 
+**Site:** https://ggfto.github.io/DroidDeck/ · **Documentação:** [português](https://ggfto.github.io/DroidDeck/docs/pt/) | [English](https://ggfto.github.io/DroidDeck/docs/)
+
 ## Estrutura
 
 ```
@@ -14,6 +16,7 @@ DroidDeck/
   app/           App Flutter (companion): runtime no celular + configurador web (mesmo código).
   tests/         Testes do backend.
   scripts/       Utilitários (deploy do web para o wwwroot).
+  website/       Landing page + documentação (MkDocs, EN/PT) publicadas no GitHub Pages.
 ```
 
 O app e o backend compartilham um contrato: **REST** (`/api/...`), **SignalR** (`/deckHub`) e
@@ -74,7 +77,7 @@ são todas rebrand da mesma plataforma.
 **Não precisa de conta de desenvolvedor.** O pareamento é por QR:
 
 1. No app **Smart Life** (ou Tuya Smart): **Eu → ⚙️ → Conta e segurança → Código de usuário**
-2. No configurador: **Configurações → Casa inteligente (Tuya)**, cole o código, **Gerar QR**
+2. No app do celular: **Configurações → Casa inteligente (Tuya)**, cole o código, **Gerar QR**
 3. Escaneie o QR com o app (aba Home → ícone de scan). Ele pede para confirmar login
    **"Home Assistant"** — ver a ressalva abaixo.
 
@@ -139,3 +142,7 @@ A assinatura do APK usa os secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS
 
 `app/` foi incorporado a partir do antigo repositório `companion` via `git subtree`
 (histórico preservado). O repo `companion` foi arquivado.
+
+## Licença
+
+[Apache License 2.0](LICENSE).

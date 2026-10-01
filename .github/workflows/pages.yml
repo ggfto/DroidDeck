@@ -1,0 +1,56 @@
+name: Pages
+
+# Publica o site (landing one-page na raiz) + a documentação MkDocs (EN/PT em /docs/)
+# no GitHub Pages. Roda a cada push em main que mexa em website/ ou manualmente.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: website/requirements.txt
+
+      - name: Instala o MkDocs
+        run: pip install -r website/requirements.txt
+
+      - name: Build da documentação (-> _site/docs)
+        working-directory: website
+        run: mkdocs build --strict
+
+      - name: Copia a landing para a raiz do site
+        run: cp -r website/landing/. _site/
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

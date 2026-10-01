@@ -1,0 +1,4 @@
+:root { --md-accent-fg-color: #e0a800; }
+[data-md-color-scheme="slate"] { --md-accent-fg-color: #FDD400; }
+.md-header { background: #111; }
+.md-tabs { background: #111; }
