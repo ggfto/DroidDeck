@@ -177,13 +177,24 @@ namespace DroidDeck.Services
                         authed = true;
                     }
                 }
-                catch (Exception ex) { _logger.LogDebug(ex, "Discord: refresh de token falhou"); }
+                catch (DiscordGrantRevokedException ex)
+                {
+                    // O Discord recusou o refresh_token: a autorização foi revogada ou expirou de
+                    // vez. Sem apagar os tokens, o watchdog repetia handshake + AUTHENTICATE +
+                    // chamada HTTP a cada 10 s, para sempre, e nada mudava. Apagados, ele para
+                    // de tentar até o usuário tocar "Conectar" (que pede o popup de novo).
+                    cfg.AccessToken = null;
+                    cfg.RefreshToken = null;
+                    SaveConfig(cfg);
+                    _logger.LogWarning("Discord: autorização revogada ou expirada ({Msg}); é preciso reconectar pelo app", ex.Message);
+                }
+                catch (Exception ex) { _logger.LogWarning("Discord: renovação do token falhou: {Msg}", ex.Message); }
             }
             if (!authed)
             {
                 // Auto-conexão (startup) nunca abre popup; só reusa/renova o token salvo.
                 if (!interactive)
-                    throw new InvalidOperationException("Sem token válido para auto-conexão.");
+                    throw new InvalidOperationException("A autorização do Discord expirou: abra Configurações → Discord e toque em Conectar.");
                 await AuthorizeAndGetTokenAsync(cfg); // salva access+refresh internamente
                 await SendCommandAsync("AUTHENTICATE", new { access_token = cfg.AccessToken });
             }
@@ -240,7 +251,13 @@ namespace DroidDeck.Services
                 new FormUrlEncodedContent(form));
             var body = await tokenResp.Content.ReadAsStringAsync();
             if (!tokenResp.IsSuccessStatusCode)
+            {
+                // 400 invalid_grant = refresh_token/código que o Discord não aceita mais. O corpo
+                // é só {"error": ...}: não carrega segredo, pode ir para o log.
+                if ((int)tokenResp.StatusCode == 400 && body.Contains("invalid_grant"))
+                    throw new DiscordGrantRevokedException(body);
                 throw new Exception($"Troca de token falhou ({(int)tokenResp.StatusCode}): {body}");
+            }
 
             var root = JsonDocument.Parse(body).RootElement;
             cfg.AccessToken = root.TryGetProperty("access_token", out var at) ? at.GetString() : null;
@@ -660,5 +677,11 @@ namespace DroidDeck.Services
             foreach (var kv in _pending) kv.Value.TrySetCanceled();
             _pending.Clear();
         }
+    }
+
+    /// <summary>O Discord recusou o refresh_token (invalid_grant): só uma nova autorização resolve.</summary>
+    public class DiscordGrantRevokedException : Exception
+    {
+        public DiscordGrantRevokedException(string message) : base(message) { }
     }
 }
