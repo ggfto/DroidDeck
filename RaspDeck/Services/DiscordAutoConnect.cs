@@ -22,6 +22,8 @@ namespace DroidDeck.Services
         private readonly DiscordRpcService _discord;
         private readonly ILogger<DiscordAutoConnect> _logger;
         private CancellationTokenSource? _cts;
+        private int _consecutiveFailures;
+        private string? _lastWarning;
 
         public DiscordAutoConnect(DiscordRpcService discord, ILogger<DiscordAutoConnect> logger)
         {
@@ -51,13 +53,34 @@ namespace DroidDeck.Services
                         !_discord.Connected)
                     {
                         await _discord.ConnectAsync(interactive: false);
-                        _logger.LogInformation("Discord auto-connect: conectado.");
+                        _logger.LogInformation("Discord auto-connect: conectado{Apos}.",
+                            _consecutiveFailures > 1 ? $" depois de {_consecutiveFailures} tentativas" : "");
+                        _consecutiveFailures = 0;
+                        _lastWarning = null;
                     }
+                }
+                catch (IOException ex)
+                {
+                    // Pipe inexistente = Discord fechado: estado normal, nao e problema.
+                    _logger.LogDebug("Discord auto-connect: {Msg}", ex.Message);
                 }
                 catch (Exception ex)
                 {
-                    // Discord fechado / token expirado: tenta de novo no próximo ciclo.
-                    _logger.LogDebug("Discord auto-connect: {Msg}", ex.Message);
+                    // Discord aberto mas a conexao falha (RPC travado, token revogado...): da
+                    // segunda falha seguida em diante precisa aparecer no log -- antes ficava
+                    // em Debug e o deck so dizia "Discord nao esta conectado", sem pista do porque.
+                    // Avisa uma vez por mensagem, para nao repetir a cada 10 s.
+                    _consecutiveFailures++;
+                    if (_consecutiveFailures > 1 && ex.Message != _lastWarning)
+                    {
+                        _logger.LogWarning("Discord auto-connect: {N} tentativas seguidas falharam ({Msg})",
+                            _consecutiveFailures, ex.Message);
+                        _lastWarning = ex.Message;
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Discord auto-connect: {Msg}", ex.Message);
+                    }
                 }
 
                 try { await Task.Delay(Interval, ct); } catch { return; }

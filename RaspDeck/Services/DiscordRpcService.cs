@@ -156,7 +156,7 @@ namespace DroidDeck.Services
             await WriteFrameAsync(0, new { v = 1, client_id = cfg.ClientId }); // handshake
             await Task.WhenAny(_readyTcs.Task, Task.Delay(10000));
             if (!_readyTcs.Task.IsCompletedSuccessfully)
-                throw new Exception("Discord não respondeu ao handshake (READY).");
+                throw new Exception("Discord não respondeu ao handshake (READY). Se continuar, feche o Discord pela bandeja (Sair do Discord) e abra de novo.");
 
             bool authed = false;
             if (!string.IsNullOrEmpty(cfg.AccessToken))
