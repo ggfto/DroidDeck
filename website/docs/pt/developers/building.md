@@ -35,6 +35,22 @@ flutter build apk --debug --target-platform android-arm64
 adb install -r build\app\outputs\flutter-apk\app-debug.apk
 ```
 
+## Testes e CI
+
+```powershell
+dotnet test DroidDeck.sln              # backend (tests/DroidDeck.Tests)
+cd app; flutter analyze; flutter test  # app
+```
+
+Os testes do backend nunca tocam nos seus dados reais: um module initializer aponta as pastas de
+dados do servidor para um diretório temporário via `DROIDDECK_DATA_DIR`. Os testes da categoria
+`RequiresDesktop` enviam teclas de verdade (engolidas por um hook de teclado) e precisam de uma
+sessão interativa do Windows.
+
+O workflow de **CI** (`.github/workflows/ci.yml`) roda a cada push na `main` e em todo pull request:
+testes do backend (menos `RequiresDesktop`), `flutter analyze --no-fatal-infos`, `flutter test` e o
+build estrito da documentação. O workflow de Release roda os testes de novo antes de compilar.
+
 ## Releases
 
 As releases são feitas pelo workflow **Release** (`.github/workflows/release.yml`), disparado

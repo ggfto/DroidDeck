@@ -76,7 +76,10 @@ namespace DroidDeck.Tests
     /// <summary>
     /// Envia de verdade com SendInput e confere o que o Windows recebeu num hook de teclado de
     /// baixo nivel. O hook engole os eventos injetados, entao nada chega ao app em foco.
+    /// Precisa de uma sessao de desktop interativa: o CI exclui a categoria (o runner pode nao
+    /// ter uma); localmente roda junto com o resto.
     /// </summary>
+    [Trait("Category", "RequiresDesktop")]
     public class KeyboardInputTests
     {
         private record Event(uint Vk, uint Scan, bool Up, bool Extended);

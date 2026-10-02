@@ -23,7 +23,6 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <Compile Remove="DroidDeck.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>

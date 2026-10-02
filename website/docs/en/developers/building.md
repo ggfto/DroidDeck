@@ -35,6 +35,22 @@ flutter build apk --debug --target-platform android-arm64
 adb install -r build\app\outputs\flutter-apk\app-debug.apk
 ```
 
+## Tests and CI
+
+```powershell
+dotnet test DroidDeck.sln              # backend (tests/DroidDeck.Tests)
+cd app; flutter analyze; flutter test  # app
+```
+
+Backend tests never touch your real data: a module initializer points the server's data folders
+to a temporary directory through `DROIDDECK_DATA_DIR`. Tests in the `RequiresDesktop` category send
+real keystrokes (swallowed by a keyboard hook) and need an interactive Windows session.
+
+The **CI** workflow (`.github/workflows/ci.yml`) runs on every push to `main` and on every pull
+request: backend tests (except `RequiresDesktop`), `flutter analyze --no-fatal-infos`,
+`flutter test` and a strict documentation build. The Release workflow runs the tests again before
+building.
+
 ## Releases
 
 Releases are made by the **Release** workflow (`.github/workflows/release.yml`), started manually
