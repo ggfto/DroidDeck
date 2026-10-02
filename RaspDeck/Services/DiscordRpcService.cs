@@ -70,6 +70,9 @@ namespace DroidDeck.Services
         public object GetStatePayload() => new
         {
             configured = Configured,
+            // O Client ID e o ID publico do app no Discord (vai em toda URL de OAuth), entao pode
+            // ir para o celular preencher o formulario. O Secret nunca sai do PC.
+            clientId = LoadConfig().ClientId,
             connected = Connected,
             mute = SelfMute,
             deaf = SelfDeaf,

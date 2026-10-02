@@ -21,6 +21,10 @@ class _DiscordSettingsPageState extends State<DiscordSettingsPage> {
   bool _busy = false;
   bool _obscure = true;
 
+  /// O PC já tem Client ID + Secret: não precisa preencher nada para reconectar.
+  bool get _secretSaved =>
+      Injector.get<SignalRService>().discordState.value['configured'] == true;
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +33,11 @@ class _DiscordSettingsPageState extends State<DiscordSettingsPage> {
       if (s != null && mounted) {
         Injector.get<SignalRService>().discordState.value =
             Map<String, dynamic>.from(s);
+        // Os campos abriam sempre vazios, e parecia que o PC tinha perdido as
+        // credenciais. O Client ID vem do PC; o Secret fica lá e não é mostrado.
+        final savedId = s['clientId'];
+        if (savedId is String && _idCtrl.text.isEmpty) _idCtrl.text = savedId;
+        setState(() {}); // o hint do Secret depende do estado que acabou de chegar
       }
     }).catchError((_) {});
   }
@@ -108,6 +117,11 @@ class _DiscordSettingsPageState extends State<DiscordSettingsPage> {
             obscureText: _obscure,
             decoration: InputDecoration(
               labelText: 'Client Secret',
+              hintText: _secretSaved
+                  ? 'Salvo no PC (preencha só para trocar)'
+                  : null,
+              floatingLabelBehavior:
+                  _secretSaved ? FloatingLabelBehavior.always : null,
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
@@ -167,7 +181,8 @@ class _DiscordSettingsPageState extends State<DiscordSettingsPage> {
       } else if (!connected) {
         color = Colors.blueGrey;
         icon = Icons.link_off;
-        text = 'Configurado, mas desconectado. Abra o Discord no PC e toque em "Conectar".';
+        text = 'Configurado, mas desconectado. Com o Discord aberto no PC, toque em '
+            '"Conectar" (não precisa preencher os campos de novo).';
       } else {
         color = Colors.green;
         icon = Icons.check_circle;
