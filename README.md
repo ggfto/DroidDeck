@@ -1,148 +1,132 @@
+<div align="center">
+
+<img src="website/landing/logo.svg" alt="DroidDeck" width="96" height="96">
+
 # DroidDeck
 
-Transforma um celular Android num **Stream Deck** para o PC Windows: atalhos, macros,
-monitores ao vivo (CPU/GPU/RAM/Rede), **controle de volume por app**, controle de **mídia**
-e um **plugin de Discord** (mute/deafen, entrar em canal de voz, volume, modo de voz, por-usuário).
+**Turn an Android phone into a Stream Deck for your Windows PC.**
 
-Monorepo com as duas metades do projeto, que evoluem juntas.
+**English** · [Português](README.pt-BR.md)
 
-**Site:** https://me.gf2.in/DroidDeck/ · **Documentação:** [português](https://me.gf2.in/DroidDeck/docs/pt/) | [English](https://me.gf2.in/DroidDeck/docs/)
+[![GitHub stars](https://img.shields.io/github/stars/ggfto/DroidDeck?style=for-the-badge&logo=github&label=Stars&color=f5b301)](https://github.com/ggfto/DroidDeck/stargazers)
+[![Latest release](https://img.shields.io/github/v/release/ggfto/DroidDeck?style=for-the-badge&label=Release)](https://github.com/ggfto/DroidDeck/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/ggfto/DroidDeck/total?style=for-the-badge&label=Downloads)](https://github.com/ggfto/DroidDeck/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/ggfto/DroidDeck/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/ggfto/DroidDeck/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/ggfto/DroidDeck?style=for-the-badge)](LICENSE)
 
-## Estrutura
+[**Download**](https://github.com/ggfto/DroidDeck/releases/latest) ·
+[**Website**](https://me.gf2.in/DroidDeck/) ·
+[**Documentation**](https://me.gf2.in/DroidDeck/docs/)
+
+</div>
+
+---
+
+Set up a grid of buttons on your phone that fire shortcuts, open apps, control audio and media, drive
+Discord and OBS, play sounds and switch your smart lights. The PC side is a small tray app; the phone
+talks to it over your local network.
+
+## ✨ Features
+
+| | |
+|---|---|
+| ⌨️ **Shortcuts & apps** | Send key combinations, open programs, files and URLs, chain steps in a multi-action. |
+| 🔊 **Audio mixer** | Mute apps, change device volume, toggle the mic. The phone also has a full per-app mixer. |
+| ⏯️ **Media** | Play/pause, next, previous for whatever is playing in Windows (Spotify, browser, players). |
+| 📊 **Live monitors** | CPU, GPU, RAM and network gauges that update every second. |
+| 💬 **Discord** | Mute/deafen, join channels, voice volume, push-to-talk, per-user volume, native soundboard. |
+| 🎥 **OBS Studio** | Scenes, recording, streaming, virtual camera, replay buffer, mute sources — with live state. |
+| 🎵 **Soundboard** | Search and play sounds from MyInstants, routed to your mic through VB-Cable. |
+| 💡 **Smart home** | Tuya / Smart Life lights, plugs and switches — toggles, dimmers and colours, with real state. |
+
+## 🚀 Getting started
+
+**Requirements:** Windows 10 1809+ (64-bit) · Android 7.0+ · phone and PC on the same local network.
+
+1. **Windows** — download `DroidDeck-win-x64.zip` from the [latest release](https://github.com/ggfto/DroidDeck/releases/latest),
+   extract it and run `DroidDeck.exe`. It lives in the system tray. No .NET install needed.
+2. **Android** — install `DroidDeck.apk` from the same release.
+3. **Pair** — right-click the tray icon → **Parear dispositivo (QR)…** and scan the code with the app.
+4. **Configure** — open `http://localhost:4787/` on the PC to edit your buttons. Changes show up on the phone instantly.
+
+> [!NOTE]
+> The app interface is currently in Portuguese. The [documentation](https://me.gf2.in/DroidDeck/docs/)
+> is available in English and Portuguese.
+
+Having trouble (SmartScreen, firewall, phone not finding the PC)? See
+[Installation](https://me.gf2.in/DroidDeck/docs/getting-started/installation/) and
+[Troubleshooting](https://me.gf2.in/DroidDeck/docs/troubleshooting/).
+
+## 🔌 Integrations
+
+| Integration | Guide |
+|---|---|
+| Discord (uses your own Discord app — ~2 min setup) | [Discord](https://me.gf2.in/DroidDeck/docs/integrations/discord/) |
+| OBS Studio (obs-websocket) | [OBS Studio](https://me.gf2.in/DroidDeck/docs/integrations/obs/) |
+| Soundboard (MyInstants + VB-Cable) | [Soundboard](https://me.gf2.in/DroidDeck/docs/integrations/soundboard/) |
+| Tuya / Smart Life (Nova Digital, Positivo, RSmart, Elgin…) | [Smart home](https://me.gf2.in/DroidDeck/docs/integrations/tuya/) |
+| Per-app mixer & media | [Mixer & media](https://me.gf2.in/DroidDeck/docs/integrations/mixer-media/) |
+
+## 🧩 How it works
+
+```mermaid
+flowchart LR
+  phone["Android phone<br/>(button grid)"] -- "REST + SignalR<br/>port 4787" --> pc["DroidDeck on Windows<br/>(tray app)"]
+  browser["Browser on the PC<br/>(configurator)"] -- "http://localhost:4787" --> pc
+  pc --> win["Windows: keys, apps,<br/>audio, media"]
+  pc --> ext["Discord · OBS · Tuya<br/>MyInstants"]
+```
+
+This is a monorepo with both halves of the project, which evolve together:
 
 ```
 DroidDeck/
-  RaspDeck/      Backend C# (.NET 8 / WinForms tray + ASP.NET Core + SignalR). Serve a API e o web.
-  app/           App Flutter (companion): runtime no celular + configurador web (mesmo código).
-  tests/         Testes do backend.
-  scripts/       Utilitários (deploy do web para o wwwroot).
-  website/       Landing page + documentação (MkDocs, EN/PT) publicadas no GitHub Pages.
+  RaspDeck/   C# backend (.NET 8 / WinForms tray + ASP.NET Core + SignalR). Serves the API and the web configurator.
+  app/        Flutter app: phone runtime + web configurator (same codebase).
+  tests/      Backend tests.
+  scripts/    Utilities (deploy the web build to wwwroot).
+  website/    Landing page + documentation (MkDocs, EN/PT) published to GitHub Pages.
 ```
 
-O app e o backend compartilham um contrato: **REST** (`/api/...`), **SignalR** (`/deckHub`) e
-**discovery UDP** (porta 7573). Autenticação por API key (`X-API-KEY` no REST, `access_token`
-na query do SignalR), com a chave em `%LocalAppData%\DroidDeck\apikey`. Pareamento por QR.
+App and backend share a contract: **REST** (`/api/...`), **SignalR** (`/deckHub`) and **UDP discovery**
+(port 7573), authenticated with an API key obtained through QR pairing.
 
-## Backend (RaspDeck)
-
-```powershell
-# rodar (app de bandeja + servidor web em http://localhost:4787)
-Set-Location 'G:\ggfto\DroidDeck\RaspDeck'; dotnet run
-
-# build
-dotnet build 'G:\ggfto\DroidDeck\DroidDeck.sln' -c Debug
-```
-
-Modos: padrão (bandeja), `--headless` (só servidor), `--print-pairing` (imprime a URI/QR e sai).
-
-## App (Flutter, em `app/`)
+## 🛠️ Building from source
 
 ```powershell
-Set-Location 'G:\ggfto\DroidDeck\app'
+# Backend: tray app + web server at http://localhost:4787
+dotnet run --project RaspDeck
 
-# Web (configurador) -> deploya no wwwroot que o backend serve:
-..\scripts\deploy-web.ps1            # flutter build web + copia para RaspDeck/wwwroot
+# Web configurator: flutter build web + copy to RaspDeck/wwwroot
+.\scripts\deploy-web.ps1
 
-# APK (celular):
+# Android APK
+cd app
 flutter build apk --debug --target-platform android-arm64
-adb install -r build\app\outputs\flutter-apk\app-debug.apk
 ```
 
-- No **navegador** (servido pelo PC) o app abre direto no **configurador** (edição de perfis,
-  drag-and-drop, propriedades). No **celular** ele é o **runtime** (a grade de botões que cabe
-  na tela; o celular reporta as dimensões da grade ao PC).
-- O configurador autentica sem QR via `/api/pairing/local-key` (só em loopback).
+Backend modes: default (tray), `--headless` (server only), `--print-pairing` (prints the pairing URI/QR and exits).
 
-## Discord
+Full details — architecture, tests, releases with semantic-release — in
+[Architecture](https://me.gf2.in/DroidDeck/docs/developers/architecture/) and
+[Building from source](https://me.gf2.in/DroidDeck/docs/developers/building/).
 
-**Cada usuário usa o próprio app do Discord** — o RPC só libera o dono do app (sem precisar de
-aprovação da Discord), e o Client Secret não pode ser compartilhado. Setup (1 vez, ~2 min):
+## 🤝 Contributing
 
-1. discord.com/developers/applications → **New Application**
-2. Em **OAuth2**, copie o **Client ID** e o **Client Secret**
-3. Em **OAuth2 → Redirects**, adicione `http://localhost:4787/discord` e **Salve**
+Issues and pull requests are welcome. Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
+(`feat:`, `fix:`, …), since releases and the changelog are generated from them.
 
-No app/configurador: **Configurações → Plugin do Discord** (ou o botão "Configurar Discord" na
-sidebar do configurador web). Cole Client ID + Secret → **Salvar** → **Conectar** (aprove o
-popup que abre no Discord do PC). O token fica em `%LocalAppData%\DroidDeck\discord.json` e
-reconecta sozinho no startup. No editor, ações de Discord mostram um **aviso** se ainda não
-estiver configurado/conectado. Câmera/compartilhar tela não são possíveis (RPC privado da Discord).
+If DroidDeck is useful to you, consider leaving a ⭐ — it helps the project reach more people.
 
-## Casa inteligente (Tuya / Smart Life)
+## ⭐ Star history
 
-Controla lâmpadas, tomadas e interruptores pelo deck. Vale para **qualquer marca que use
-Tuya por baixo** — Nova Digital, Positivo Casa Inteligente, RSmart, Elgin, Geonav, Aubess…
-são todas rebrand da mesma plataforma.
+<a href="https://star-history.com/#ggfto/DroidDeck&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ggfto%2Fdroiddeck&type=Date&theme=dark">
+    <img alt="Star history chart" src="https://api.star-history.com/svg?repos=ggfto%2Fdroiddeck&type=Date">
+  </picture>
+</a>
 
-**Não precisa de conta de desenvolvedor.** O pareamento é por QR:
-
-1. No app **Smart Life** (ou Tuya Smart): **Eu → ⚙️ → Conta e segurança → Código de usuário**
-2. No app do celular: **Configurações → Casa inteligente (Tuya)**, cole o código, **Gerar QR**
-3. Escaneie o QR com o app (aba Home → ícone de scan). Ele pede para confirmar login
-   **"Home Assistant"** — ver a ressalva abaixo.
-
-A sessão fica em `%LocalAppData%\DroidDeck\tuya.json` e reconecta sozinha no startup.
-
-### ⚠️ Se você usa o app da marca (Nova Digital, Positivo, RSmart…)
-
-**O scan vai falhar** com _"please use the designated app to scan the code to login"_. O QR
-carrega o registro de app do Home Assistant, e só **Smart Life** e **Tuya Smart** aceitam —
-apps de marca recusam. Compartilhar o dispositivo não resolve (vários OEMs nem oferecem
-a opção).
-
-Solução: **remova o aparelho do app da marca e pareie de novo pelo Smart Life**. É o mesmo
-hardware e funciona igual; você perde só as automações configuradas no app da marca.
-
-> Usamos o registro público do Home Assistant porque a Tuya não abre esse cadastro no
-> autoatendimento — depende de _business review_. Por isso o app mostra o nome dele na
-> autorização. O `clientId`/`schema` ficam em `tuya.json`, então trocar por um registro
-> próprio é mudança de configuração, não de código.
-
-### Botões
-
-No editor, tipo de ação **`tuya`**: escolha o dispositivo, depois o que controlar. Os campos
-se adaptam ao aparelho (o `specifications` da Tuya diz o tipo de cada função): liga/desliga
-vira switch, brilho vira slider já na faixa certa, modo vira lista de opções.
-
-- **Alternar** — liga se estiver desligado e vice-versa. É o uso comum de um deck.
-- **Sempre ligar / valor fixo** — manda um valor determinístico.
-
-Configure a **Cor ativa** para o botão acender quando o aparelho estiver ligado. O estado
-chega por push (MQTT) e reflete inclusive mudanças feitas no interruptor de parede ou no app.
-
-### Cota da API
-
-O plano gratuito da Tuya permite ~26 mil chamadas/mês (≈0,6 por minuto), com cota separada
-para as mensagens de push. Por isso o estado vem **por push, nunca por polling**, e a
-reenumeração de dispositivos (botão "atualizar") só roda quando você pede. Apertar botões
-não é problema — cada clique é uma chamada.
-
-### Limitações conhecidas
-
-- **Sem controle local.** Tudo passa pela nuvem; sem internet, os botões não funcionam.
-  O protocolo local dos aparelhos recentes (3.4/3.5) exige um handshake que nenhuma
-  biblioteca .NET implementa hoje. Também renderia pouco em latência: medimos ~240 ms no
-  canal local contra ~310 ms pela nuvem.
-- **Aparelho offline** falha com erro 2001 da Tuya.
-
-## Releases (download pronto pro usuário)
-
-CI em `.github/workflows/release.yml`, disparo **manual** em **Actions → Release → Run workflow**.
-Usa **semantic-release**: a versão sai dos commits (Conventional Commits) — `feat:` → minor,
-`fix:`/`perf:` → patch, `BREAKING CHANGE`/`feat!:` → major. Ele gera o `CHANGELOG.md`, cria a
-tag + a Release e anexa:
-- **`DroidDeck-win-x64.zip`** — backend self-contained (não precisa instalar .NET). Descompacte e rode `DroidDeck.exe`.
-- **`DroidDeck.apk`** — app Android assinado (instale no celular; "fontes desconhecidas").
-
-Se não houver commit releasable (só `chore:`/`ci:`/`docs:`…) desde a última versão, ele não publica nada.
-A assinatura do APK usa os secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS`,
-`ANDROID_KEY_PASSWORD`, `ANDROID_STORE_PASSWORD` (já configurados); sem eles, cai pra debug.
-
-## Histórico
-
-`app/` foi incorporado a partir do antigo repositório `companion` via `git subtree`
-(histórico preservado). O repo `companion` foi arquivado.
-
-## Licença
+## 📄 License
 
 [Apache License 2.0](LICENSE).
