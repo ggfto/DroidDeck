@@ -28,6 +28,7 @@
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="alternate" hreflang="en" href="https://me.gf2.in/DroidDeck/?lang=en">
 <link rel="alternate" hreflang="pt-BR" href="https://me.gf2.in/DroidDeck/?lang=pt">
+<link rel="alternate" hreflang="es" href="https://me.gf2.in/DroidDeck/?lang=es">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -190,6 +191,7 @@ footer{border-top:1px solid var(--line);padding:32px 0;color:#71717a;font-size:1
       <div class="lang" role="group" aria-label="Language">
         <button type="button" data-lang="en" aria-pressed="true">EN</button>
         <button type="button" data-lang="pt" aria-pressed="false">PT</button>
+        <button type="button" data-lang="es" aria-pressed="false">ES</button>
       </div>
     </nav>
   </div>
@@ -365,17 +367,52 @@ const PT = {
   "namesake":"Procurando o app que roda jogos da Steam no Android? É <a href=\"https://github.com/Droid-Deck/DroidDeck\">outro projeto, com o mesmo nome</a>. Este aqui controla o seu PC com Windows.",
   "foot.made":"Feito no Brasil","foot.releases":"Versões","foot.issues":"Reportar um problema"
 };
+const ES = {
+  "nav.features":"Funciones","nav.how":"Cómo funciona","nav.docs":"Documentación",
+  "hero.badge":"Gratis y de código abierto",
+  "hero.title":"Tu teléfono ahora es un <em>Stream Deck</em>.",
+  "hero.lead":"DroidDeck convierte ese teléfono Android guardado en un panel de control para tu PC: atajos, audio, multimedia, monitores en tiempo real, Discord, OBS, caja de sonidos y luces inteligentes, todo a un toque.",
+  "cta.download":"Descargar gratis","cta.docs":"Leer la documentación",
+  "hero.meta":"Windows 10/11 · Android 7+ · Sin cuenta, sin suscripción y sin hardware que comprar.",
+  "mock.connected":"Conectado","mock.mute":"Silenciar","mock.rec":"Grabar","mock.scene":"Escena de juego","mock.sound":"Bocina","mock.lamp":"Lámpara","mock.deaf":"Desactivar audio","mock.audio":"Audio","mock.hint":"Adelante, toca los botones.",
+  "feat.eyebrow":"Funciones","feat.title":"Todo lo que debe hacer un deck. En el hardware que ya tienes.",
+  "feat.lead":"Botones adaptados a tu pantalla y con estado en tiempo real: se iluminan cuando silencias el micrófono, grabas o enciendes la lámpara.",
+  "f1.t":"Atajos y aplicaciones","f1.d":"Combinaciones de teclas, apertura de programas, archivos y enlaces, y acciones múltiples que encadenan pasos con pausas.",
+  "f2.t":"Mezclador de audio","f2.d":"Silencia cualquier aplicación, controla los altavoces y el micrófono, y usa un mezclador completo por aplicación en el teléfono.",
+  "f3.t":"Multimedia","f3.d":"Reproduce, pausa y salta contenido en Spotify, YouTube o cualquier reproductor reconocido por Windows.",
+  "f4.t":"Monitores en tiempo real","f4.d":"Medidores de CPU, GPU, RAM y red, actualizados cada segundo.",
+  "f5.d":"Silencia, desactiva el audio, únete a canales, usa pulsar para hablar, ajusta el volumen por usuario y accede a la caja de sonidos nativa.",
+  "f6.d":"Escenas, grabación, transmisión, cámara virtual y búfer de repetición, sincronizados con OBS.",
+  "f7.t":"Caja de sonidos","f7.d":"Busca en la biblioteca de MyInstants y reproduce sonidos directamente por el micrófono durante llamadas y transmisiones.",
+  "f8.t":"Hogar inteligente","f8.d":"Home Assistant y luces y enchufes Tuya / Smart Life, con reguladores, colores y estado real.",
+  "f9.t":"Perfiles y carpetas","f9.d":"Desliza entre páginas, anida carpetas y edítalo todo arrastrando y soltando en el navegador.",
+  "how.eyebrow":"Cómo funciona","how.title":"Listo en tres minutos.",
+  "s1.t":"Ejecuta la app en el PC","s1.d":"Ejecuta <code>DroidDeck-Setup.exe</code>. Permanece discretamente en la bandeja del sistema y se actualiza solo. No necesitas instalar .NET.",
+  "s2.t":"Vincula el teléfono","s2.d":"Instala la aplicación y escanea el código QR desde el menú de la bandeja. A partir de entonces se reconectará automáticamente.",
+  "s3.t":"Crea tu deck","s3.d":"Abre <code>localhost:4787</code> en el navegador del PC, arrastra los botones y elige las acciones. Los cambios llegan al teléfono al instante.",
+  "int.eyebrow":"Integraciones","int.title":"Encaja con tu configuración.",
+  "int.lead":"Integraciones nativas, sin buscar plugins. Funciona con cualquier marca basada en Tuya, como Nova Digital, Positivo y RSmart.",
+  "c1":"<b>Local primero.</b> El teléfono y el PC se comunican directamente por tu propia red. No hace falta crear una cuenta.",
+  "c2":"<b>Emparejado, no abierto.</b> Cada solicitud necesita la clave de tu código QR; el editor del navegador solo funciona en el propio PC.",
+  "c3":"<b>Ligero en el PC.</b> Las estadísticas solo se recopilan mientras hay un teléfono conectado.",
+  "c4":"<b>Personalizable.</b> Una API REST + SignalR documentada te permite automatizarlo o crear tu propio cliente.",
+  "dl.title":"Dale un nuevo trabajo a ese teléfono antiguo.","dl.lead":"Gratis y de código abierto. Necesitas las dos partes: la aplicación de Windows ejecuta las acciones y la del teléfono muestra los botones.",
+  "dl.win":"1. Aplicación para Windows","dl.android":"2. Aplicación para Android","dl.guide":"Guía de instalación","dl.gh":"Destacar en GitHub",
+  "namesake":"¿Buscas la aplicación que ejecuta juegos de Steam en Android? Es <a href=\"https://github.com/Droid-Deck/DroidDeck\">otro proyecto con el mismo nombre</a>. Este controla tu PC con Windows.",
+  "foot.made":"Hecho en Brasil","foot.releases":"Versiones","foot.issues":"Informar de un problema"
+};
 const EN = {};
 document.querySelectorAll("[data-i18n]").forEach(el => EN[el.dataset.i18n] = el.textContent);
 document.querySelectorAll("[data-i18n-html]").forEach(el => EN[el.dataset.i18nHtml] = el.innerHTML);
 const META = {
   en:{title:document.title, desc:document.querySelector('meta[name=description]').content},
-  pt:{title:"DroidDeck — seu celular é um Stream Deck", desc:"O DroidDeck transforma um celular Android num Stream Deck para o PC Windows: atalhos, mixer, mídia, monitores, Discord, OBS, soundboard e casa inteligente. Grátis e open source."}
+  pt:{title:"DroidDeck — seu celular é um Stream Deck", desc:"O DroidDeck transforma um celular Android num Stream Deck para o PC Windows: atalhos, mixer, mídia, monitores, Discord, OBS, soundboard e casa inteligente. Grátis e open source."},
+  es:{title:"DroidDeck — tu teléfono es un Stream Deck", desc:"DroidDeck convierte un teléfono Android en un Stream Deck para tu PC con Windows: atajos, mezclador, multimedia, monitores, Discord, OBS, caja de sonidos y hogar inteligente. Gratis y de código abierto."}
 };
 
 function setLang(lang){
-  const d = lang === "pt" ? PT : EN;
-  document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+  const d = lang === "pt" ? PT : lang === "es" ? ES : EN;
+  document.documentElement.lang = lang === "pt" ? "pt-BR" : lang;
   document.querySelectorAll("[data-i18n]").forEach(el => { const v = d[el.dataset.i18n]; if (v != null) el.textContent = v; });
   document.querySelectorAll("[data-i18n-html]").forEach(el => { const v = d[el.dataset.i18nHtml]; if (v != null) el.innerHTML = v; });
   document.querySelectorAll("[data-docs]").forEach(a => {
@@ -390,8 +427,11 @@ function setLang(lang){
 
 let initial = new URLSearchParams(location.search).get("lang");
 if (!initial) { try { initial = localStorage.getItem("dd-lang"); } catch (e) {} }
-if (!initial) initial = (navigator.language || "").toLowerCase().startsWith("pt") ? "pt" : "en";
-setLang(initial === "pt" ? "pt" : "en");
+if (!initial) {
+  const browserLang = (navigator.language || "").toLowerCase();
+  initial = browserLang.startsWith("pt") ? "pt" : browserLang.startsWith("es") ? "es" : "en";
+}
+setLang(initial === "pt" || initial === "es" ? initial : "en");
 document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
 
 // mock deck interactions
