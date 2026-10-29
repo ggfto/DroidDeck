@@ -1,3 +1,13 @@
+## [1.12.1](https://github.com/ggfto/DroidDeck/compare/v1.12.0...v1.12.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* **botoes:** acao que falha no PC reenvia o estado real e o botao desfaz o toque ([195970e](https://github.com/ggfto/DroidDeck/commit/195970e3e5bf75cdc739686afcc1f4645ca05a45))
+* **discord:** dois toques seguidos no mudo/surdo nao voltam sozinhos e o estado chega mais rapido ([4bca39b](https://github.com/ggfto/DroidDeck/commit/4bca39b022d745b926382ca373dd643f3fe7832a))
+* **pc:** uma instancia so ([76e041f](https://github.com/ggfto/DroidDeck/commit/76e041fe1772e9a6890438c9becaa46a05ec0557))
+* **tuya:** toque duplo deixa o botao igual a lampada e o estado volta depois de queda do push ([3a6d096](https://github.com/ggfto/DroidDeck/commit/3a6d09656f49b292aae40a824cb9179af4758857))
+
 # [1.12.0](https://github.com/ggfto/DroidDeck/compare/v1.11.0...v1.12.0) (2026-10-23)
 
 
