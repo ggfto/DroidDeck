@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DroidDeck.Actions;
+using DroidDeck.Hubs;
 using DroidDeck.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
 namespace DroidDeck.Services
@@ -15,12 +17,15 @@ namespace DroidDeck.Services
     public class ActionExecutorService
     {
         private readonly ILogger<ActionExecutorService> _logger;
+        private readonly IHubContext<DeckHub>? _hub;
         private readonly IReadOnlyList<IActionProvider> _providers;
         private readonly Dictionary<string, IActionProvider> _byType = new(StringComparer.OrdinalIgnoreCase);
 
-        public ActionExecutorService(ILogger<ActionExecutorService> logger, IEnumerable<IActionProvider> providers)
+        public ActionExecutorService(ILogger<ActionExecutorService> logger, IEnumerable<IActionProvider> providers,
+            IHubContext<DeckHub>? hub = null)
         {
             _logger = logger;
+            _hub = hub;
             _providers = providers.ToList();
             foreach (var p in _providers)
             {
@@ -64,6 +69,15 @@ namespace DroidDeck.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error executing action {Type}", action.Type);
+
+                // O app ja inverteu o botao na hora do toque (otimista). Se a acao falhou
+                // (Discord desconectado, nuvem da Tuya recusou...), ninguem mais mandaria o
+                // estado e o botao ficava mostrando o que nao aconteceu ate a proxima mudanca.
+                if (provider is IStatefulActionProvider stateful && _hub != null)
+                {
+                    try { await _hub.Clients.All.SendAsync(stateful.StateEvent, stateful.GetState()); }
+                    catch { }
+                }
             }
         }
     }
