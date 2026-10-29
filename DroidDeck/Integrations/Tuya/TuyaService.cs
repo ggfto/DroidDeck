@@ -241,19 +241,57 @@ namespace DroidDeck.Services
             var mqtt = new TuyaMqttClient(_api, _logger);
             mqtt.UpdateDevices(_homes, _devices.Values.ToList());
             mqtt.StatusReported += OnStatusReported;
-            mqtt.ConnectionChanged += connected => { _ = BroadcastStateAsync(); };
+            var first = true;
+            mqtt.ConnectionChanged += connected =>
+            {
+                // A primeira conexao vem logo depois da enumeracao, que ja trouxe o estado.
+                // Nas seguintes (queda, renovacao da credencial) o que mudou enquanto o push
+                // estava fora nunca chegaria: o botao ficava com a luz apagada que alguem
+                // acendeu pelo interruptor. Uma chamada por casa traz tudo de volta.
+                if (connected && !first) _ = ResyncStatusAsync();
+                if (connected) first = false;
+                _ = BroadcastStateAsync();
+            };
             mqtt.Start();
             _mqtt = mqtt;
         }
 
         private void OnStatusReported(TuyaStatusReport report) => ApplyStatus(report.DeviceId, report.Changes);
 
+        /// <summary>Le o estado atual de todos os aparelhos (sem specifications: 1 chamada por casa).</summary>
+        private async Task ResyncStatusAsync()
+        {
+            var repo = _repo;
+            if (repo == null) return;
+            try
+            {
+                foreach (var home in _homes)
+                {
+                    foreach (var (deviceId, online, status) in await repo.QueryStatusAsync(home.Id))
+                    {
+                        if (_devices.TryGetValue(deviceId, out var device)) device.Online = online;
+                        ApplyStatus(deviceId, status);
+                    }
+                }
+                await BroadcastStateAsync(); // leva o "online" junto
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Tuya: ressincronizar estado falhou: {Msg}", ex.Message);
+            }
+        }
+
         private void ApplyStatus(string deviceId, Dictionary<string, object?> changes)
         {
             if (!_devices.TryGetValue(deviceId, out var device)) return;
 
-            foreach (var change in changes)
-                device.Status[change.Key] = change.Value;
+            // Push (thread do MQTT), comando e o snapshot de quem conecta mexem no mesmo
+            // Dictionary; sem a trava a serializacao do snapshot podia estourar no meio.
+            lock (device.Status)
+            {
+                foreach (var change in changes)
+                    device.Status[change.Key] = change.Value;
+            }
 
             // Empurra so o que mudou: o app usa isso para repintar o botao (ActiveColor).
             _ = _hub.Clients.All.SendAsync("ReceiveTuyaDeviceState", new
@@ -273,13 +311,36 @@ namespace DroidDeck.Services
         public async Task SendCommandAsync(string deviceId, string code, object? value)
         {
             if (_repo == null) throw new InvalidOperationException("Tuya nao conectado.");
-            await _repo.SendCommandAsync(deviceId, code, value);
 
-            // A nuvem aceitou: guarda o valor enviado sem esperar o push. Sem isso, com o push
-            // fora do ar (ou o aparelho sem relatar, como apos uma troca de rede), o toggle lia
-            // sempre o mesmo estado velho e mandava o mesmo valor para sempre. Se o aparelho
-            // relatar outra coisa depois, o push corrige.
+            // Guarda o valor enviado ANTES da resposta da nuvem (que leva ~1 s). Sem isso, com
+            // o push fora do ar o toggle lia sempre o mesmo estado velho; e dois toques
+            // seguidos liam o mesmo valor e mandavam o mesmo comando duas vezes, deixando a luz
+            // acesa com o botao mostrando apagada. Se a nuvem recusar, volta o valor anterior;
+            // se o aparelho relatar outra coisa depois, o push corrige.
+            var device = GetDevice(deviceId);
+            object? previous = null;
+            var hadPrevious = false;
+            if (device != null)
+                lock (device.Status) hadPrevious = device.Status.TryGetValue(code, out previous);
+
             ApplyStatus(deviceId, new Dictionary<string, object?> { [code] = value });
+            try
+            {
+                await _repo.SendCommandAsync(deviceId, code, value);
+            }
+            catch
+            {
+                if (device != null)
+                {
+                    lock (device.Status)
+                    {
+                        if (hadPrevious) device.Status[code] = previous;
+                        else device.Status.Remove(code);
+                    }
+                }
+                await BroadcastStateAsync();
+                throw;
+            }
         }
 
         /// <summary>
@@ -296,7 +357,10 @@ namespace DroidDeck.Services
 
         /// <summary>O valor que o toggle manda: o contrario do ultimo estado conhecido.</summary>
         public static bool ToggleTarget(TuyaDevice device, string code)
-            => !(device.Status.TryGetValue(code, out var v) && v is bool b && b);
+        {
+            lock (device.Status)
+                return !(device.Status.TryGetValue(code, out var v) && v is bool b && b);
+        }
 
         public object GetStatePayload() => new
         {
@@ -312,10 +376,15 @@ namespace DroidDeck.Services
                 productName = d.ProductName,
                 online = d.Online,
                 icon = d.Icon,
-                status = d.Status,
+                status = SnapshotStatus(d),
                 functions = d.Functions.ToDictionary(f => f.Key, f => new { type = f.Value.Type, values = f.Value.Values }),
             }),
         };
+
+        private static Dictionary<string, object?> SnapshotStatus(TuyaDevice d)
+        {
+            lock (d.Status) return new Dictionary<string, object?>(d.Status);
+        }
 
         private async Task BroadcastStateAsync()
         {

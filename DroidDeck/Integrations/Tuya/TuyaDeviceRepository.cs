@@ -85,6 +85,36 @@ namespace DroidDeck.Services.Tuya
             return devices;
         }
 
+        /// <summary>
+        /// So o estado (online + status) dos aparelhos de uma casa, numa chamada. Para
+        /// ressincronizar depois de o push cair; a enumeracao completa custa ~4 por aparelho.
+        /// </summary>
+        public async Task<List<(string Id, bool Online, Dictionary<string, object?> Status)>> QueryStatusAsync(string homeId)
+        {
+            var result = await _api.GetAsync("/v1.0/m/life/ha/home/devices",
+                new Dictionary<string, object?> { ["homeId"] = homeId });
+
+            var list = new List<(string, bool, Dictionary<string, object?>)>();
+            if (result.ValueKind != JsonValueKind.Array) return list;
+
+            foreach (var item in result.EnumerateArray())
+            {
+                var status = new Dictionary<string, object?>();
+                if (item.TryGetProperty("status", out var st) && st.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var s in st.EnumerateArray())
+                    {
+                        if (s.TryGetProperty("code", out var c) && s.TryGetProperty("value", out var v))
+                            status[c.GetString() ?? ""] = ToClr(v);
+                    }
+                }
+                list.Add((Str(item, "id"),
+                    item.TryGetProperty("online", out var on) && on.ValueKind == JsonValueKind.True,
+                    status));
+            }
+            return list;
+        }
+
         /// <summary>Funcoes comandaveis + faixas de valor. E o que alimenta o editor de botao.</summary>
         private async Task LoadSpecificationsAsync(TuyaDevice device)
         {
