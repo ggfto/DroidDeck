@@ -12,8 +12,13 @@ class DiscordButtonRenderer extends ButtonRenderer {
   void init(ButtonLook look) {
     try {
       final sr = Injector.get<SignalRService>();
+      final before = sr.discordState.value;
       Injector.get<DroidDeckClient>().getDiscordState().then((s) {
-        if (s != null) sr.discordState.value = Map<String, dynamic>.from(s);
+        // Se o hub (ou um toque) mudou o estado enquanto isso, a resposta já é velha:
+        // escrevê-la desfazia o toque e o botão piscava de volta.
+        if (s != null && identical(sr.discordState.value, before)) {
+          sr.discordState.value = Map<String, dynamic>.from(s);
+        }
       }).catchError((_) {});
     } catch (_) {}
   }
@@ -68,10 +73,14 @@ class DiscordButtonRenderer extends ButtonRenderer {
     // Só os liga/desliga; entrar em canal, volume etc. esperam o PC.
     final op = look.op('toggleMute');
     final cur = Map<String, dynamic>.from(signalR.discordState.value);
+    // Como o Discord faz: ensurdecer também muta, e desmutar tira o surdo. Sem isso o
+    // botão de mudo ficava errado até a confirmação do PC.
     if (op == 'togglemute') {
       cur['mute'] = !(cur['mute'] == true);
+      if (cur['mute'] == false) cur['deaf'] = false;
     } else if (op.contains('deaf')) {
       cur['deaf'] = !(cur['deaf'] == true);
+      if (cur['deaf'] == true) cur['mute'] = true;
     } else if (op.contains('voicemode') || op.contains('ptt')) {
       cur['voiceMode'] = cur['voiceMode'] == 'PUSH_TO_TALK' ? 'VOICE_ACTIVITY' : 'PUSH_TO_TALK';
     } else {

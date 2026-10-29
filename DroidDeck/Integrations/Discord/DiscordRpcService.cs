@@ -107,21 +107,38 @@ namespace DroidDeck.Services
             }
         }
 
+        // O estado vai para o app a cada VOICE_SETTINGS_UPDATE (arrastar o volume no Discord
+        // dispara dezenas), e cada envio lia e decifrava (DPAPI) o discord.json duas vezes.
+        // A copia em memoria e trocada inteira a cada gravacao.
+        private DiscordConfig? _configCache;
+
         public DiscordConfig LoadConfig()
         {
+            if (_configCache is { } cached) return Clone(cached);
+            var cfg = new DiscordConfig();
             try
             {
                 if (File.Exists(ConfigPath))
-                    return JsonSerializer.Deserialize<DiscordConfig>(SecretFile.ReadAllText(ConfigPath)) ?? new DiscordConfig();
+                    cfg = JsonSerializer.Deserialize<DiscordConfig>(SecretFile.ReadAllText(ConfigPath)) ?? new DiscordConfig();
             }
             catch { }
-            return new DiscordConfig();
+            _configCache = cfg;
+            return Clone(cfg);
         }
 
         public void SaveConfig(DiscordConfig c)
         {
+            _configCache = Clone(c);
             try { SecretFile.WriteAllText(ConfigPath, JsonSerializer.Serialize(c)); } catch { }
         }
+
+        private static DiscordConfig Clone(DiscordConfig c) => new()
+        {
+            ClientId = c.ClientId,
+            ClientSecret = c.ClientSecret,
+            AccessToken = c.AccessToken,
+            RefreshToken = c.RefreshToken,
+        };
 
         public void SetCredentials(string clientId, string clientSecret)
         {
@@ -277,22 +294,46 @@ namespace DroidDeck.Services
         }
 
         // ---- Comandos de voz ----
+        // O alvo do toggle e gravado ANTES de esperar o Discord: dois toques seguidos liam o
+        // mesmo estado velho, mandavam o mesmo valor duas vezes e o botao voltava sozinho.
+        // A resposta do SET_VOICE_SETTINGS traz as configuracoes completas e vale sobre o
+        // palpite -- desmutar estando surdo, por exemplo, tambem tira o surdo.
         public async Task SetMuteAsync(bool? mute)
         {
             EnsureConnected();
+            var previous = SelfMute;
             var target = mute ?? !SelfMute;
-            await SendCommandAsync("SET_VOICE_SETTINGS", new { mute = target });
             SelfMute = target;
-            await BroadcastStateAsync();
+            try
+            {
+                var r = await SendCommandAsync("SET_VOICE_SETTINGS", new { mute = target });
+                if (r.TryGetProperty("data", out var d)) UpdateVoiceFromData(d);
+                else await BroadcastStateAsync();
+            }
+            catch
+            {
+                SelfMute = previous;
+                throw;
+            }
         }
 
         public async Task SetDeafAsync(bool? deaf)
         {
             EnsureConnected();
+            var previous = SelfDeaf;
             var target = deaf ?? !SelfDeaf;
-            await SendCommandAsync("SET_VOICE_SETTINGS", new { deaf = target });
             SelfDeaf = target;
-            await BroadcastStateAsync();
+            try
+            {
+                var r = await SendCommandAsync("SET_VOICE_SETTINGS", new { deaf = target });
+                if (r.TryGetProperty("data", out var d)) UpdateVoiceFromData(d);
+                else await BroadcastStateAsync();
+            }
+            catch
+            {
+                SelfDeaf = previous;
+                throw;
+            }
         }
 
         // ---- Servidores / canais de voz ----
@@ -612,6 +653,11 @@ namespace DroidDeck.Services
             {
                 _logger.LogWarning("Discord RPC desconectado: {Msg}", ex.Message);
                 Connected = false;
+                // Comando em voo nao vai ter resposta: falha agora em vez de segurar o toque
+                // ate o timeout de 10 s.
+                foreach (var kv in _pending)
+                    if (_pending.TryRemove(kv.Key, out var t))
+                        t.TrySetException(new IOException("Discord desconectou."));
                 await BroadcastStateAsync();
             }
         }
