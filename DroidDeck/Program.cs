@@ -248,8 +248,17 @@ namespace DroidDeck
                         app.UseLanguage();
 
                         // Enable static files for Web Editor
+                        app.UseWebBuildStamp(app.ApplicationServices.GetRequiredService<IWebHostEnvironment>());
                         app.UseDefaultFiles();
-                        app.UseStaticFiles();
+                        // Sem Cache-Control o navegador guarda por um tempo que ele mesmo
+                        // estima, e depois de uma atualizacao misturava o JS novo com a fonte
+                        // de icones antiga (enxuta pelo build): icone novo saia em branco.
+                        // no-cache revalida pelo ETag: em localhost custa um 304.
+                        app.UseStaticFiles(new StaticFileOptions
+                        {
+                            OnPrepareResponse = ctx =>
+                                ctx.Context.Response.Headers.CacheControl = "no-cache",
+                        });
 
                         app.UseRouting();
                         app.UseCors("_myAllowSpecificOrigins"); // CORS em qualquer ambiente (web client)

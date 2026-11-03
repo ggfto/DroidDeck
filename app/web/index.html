@@ -44,9 +44,14 @@
   <script>
     window.addEventListener('load', function(ev) {
       // Sem service worker (não passamos a opção serviceWorker de propósito).
+      // O PC troca o carimbo abaixo a cada build e serve /v/<carimbo>/ como a raiz: o
+      // navegador baixa JS e fonte de ícones novos juntos, sem misturar com o cache velho.
+      var build = '__WEB_BUILD__';
+      var base = build.charAt(0) === '_' ? '' : 'v/' + build + '/';
       _flutter.loader.loadEntrypoint({
+        entrypointUrl: base + 'main.dart.js',
         onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
+          engineInitializer.initializeEngine({ assetBase: base }).then(function(appRunner) {
             appRunner.runApp();
           });
         }
