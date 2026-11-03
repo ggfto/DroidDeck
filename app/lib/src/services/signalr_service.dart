@@ -530,37 +530,22 @@ class SignalRService {
     }
   }
 
-  /// Emulador de teclado: pressiona uma tecla no PC em tempo real.
-  Future<void> sendKeyDown(String key) async {
-    final conn = _hubConnection;
-    if (conn == null || conn.state != HubConnectionState.Connected) return;
-    try {
-      await conn.invoke("SendKeyDown", args: [key]);
-    } catch (e) {
-      _logger.warning("Error invoking SendKeyDown: $e");
-    }
-  }
+  /// Tecla em modo "segurar": aperta no PC a tecla salva no botão (o PC lê qual é pelo
+  /// id). Devolve false sem conexão com o hub, para quem chamou cair no /press.
+  bool holdKey(String buttonId) => _invokeKey("HoldKey", buttonId);
 
-  /// Emulador de teclado: solta uma tecla no PC em tempo real.
-  Future<void> sendKeyUp(String key) async {
-    final conn = _hubConnection;
-    if (conn == null || conn.state != HubConnectionState.Connected) return;
-    try {
-      await conn.invoke("SendKeyUp", args: [key]);
-    } catch (e) {
-      _logger.warning("Error invoking SendKeyUp: $e");
-    }
-  }
+  /// Solta a tecla do [holdKey]. Se a conexão cair antes, o PC solta sozinho.
+  bool releaseKey(String buttonId) => _invokeKey("ReleaseKey", buttonId);
 
-  /// Emulador de teclado: solta todas as teclas que possam estar presas no PC.
-  Future<void> releaseAllKeys() async {
+  bool _invokeKey(String method, String buttonId) {
     final conn = _hubConnection;
-    if (conn == null || conn.state != HubConnectionState.Connected) return;
-    try {
-      await conn.invoke("ReleaseAllKeys", args: []);
-    } catch (e) {
-      _logger.warning("Error invoking ReleaseAllKeys: $e");
-    }
+    if (conn == null || conn.state != HubConnectionState.Connected) return false;
+    // Sem await: a ordem aperta/solta é a do envio, e o dedo não espera a resposta.
+    conn.invoke(method, args: [buttonId]).catchError((e) {
+      _logger.warning("Error invoking $method: $e");
+      return null;
+    });
+    return true;
   }
 
   Future<void> updateUrl(String baseUrl, {String? apiKey}) async {

@@ -448,6 +448,7 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
     final hasLongPress = existing.longPressAction != null;
     final tile = DynamicDeckButton(
       button: existing,
+      liveKeys: !_editMode,
       onTap: _editMode
           ? () => _editButton(existing)
           : () => _handlePress(existing, profiles),

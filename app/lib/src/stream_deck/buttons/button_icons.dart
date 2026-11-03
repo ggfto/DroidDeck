@@ -67,6 +67,18 @@ const Map<String, IconData> buttonIcons = {
   'hub': Icons.hub,
   'smart_toy': Icons.smart_toy,
   'face': Icons.face,
+  // Teclado (perfil "Teclado" e atalhos).
+  'arrow_upward': Icons.arrow_upward,
+  'arrow_downward': Icons.arrow_downward,
+  'arrow_forward': Icons.arrow_forward,
+  'backspace': Icons.backspace,
+  'keyboard_return': Icons.keyboard_return,
+  'content_copy': Icons.content_copy,
+  'content_paste': Icons.content_paste,
+  'content_cut': Icons.content_cut,
+  'undo': Icons.undo,
+  'select_all': Icons.select_all,
+  'close': Icons.close,
 };
 
 IconData buttonIconData(String name) =>

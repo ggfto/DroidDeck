@@ -44,6 +44,9 @@ class ActionPicker extends StatefulWidget {
   /// ação dos botões que já os têm — o botão continua funcionando.
   static const privilegedTypes = {
     'hotkey',
+    'key',
+    'keyboard_key',
+    'send_key',
     'launch_app',
     'launchApp',
     'activatewindow',

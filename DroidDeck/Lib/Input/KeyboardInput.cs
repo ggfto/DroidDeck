@@ -18,51 +18,18 @@ namespace DroidDeck.Lib.Input
         /// <summary>Quanto cada tecla fica apertada.</summary>
         public static int HoldMs { get; set; } = 20;
 
-        private static readonly HashSet<ushort> _heldKeys = new();
-        private static readonly object _sync = new();
+        /// <summary>
+        /// Aperta uma tecla e deixa apertada (quem solta e o <see cref="KeyUp(ushort)"/>).
+        /// Quem precisa saber o que esta preso e o <see cref="HeldKeys"/>.
+        /// </summary>
+        public static void KeyDown(ushort vk) => SendKey(vk, up: false);
 
-        /// <summary>Teclas atualmente marcadas como pressionadas.</summary>
-        public static IReadOnlyCollection<ushort> HeldKeys
-        {
-            get
-            {
-                lock (_sync) return new HashSet<ushort>(_heldKeys);
-            }
-        }
+        public static void KeyUp(ushort vk) => SendKey(vk, up: true);
 
-        public static void KeyDown(ushort vk)
-        {
-            lock (_sync)
-            {
-                _heldKeys.Add(vk);
-            }
-            SendKey(vk, up: false);
-        }
-
-        public static void KeyUp(ushort vk)
-        {
-            lock (_sync)
-            {
-                _heldKeys.Remove(vk);
-            }
-            SendKey(vk, up: true);
-        }
-
-        public static void ReleaseAll()
-        {
-            List<ushort> keysToRelease;
-            lock (_sync)
-            {
-                if (_heldKeys.Count == 0) return;
-                keysToRelease = new List<ushort>(_heldKeys);
-                _heldKeys.Clear();
-            }
-            foreach (var vk in keysToRelease)
-            {
-                SendKey(vk, up: true);
-            }
-        }
-
+        /// <summary>
+        /// Nome de uma tecla so (UP, F5, SHIFT, {ENTER}, A, 0x41...) para virtual-key.
+        /// Combinacoes (^C) nao: para isso ha o <see cref="KeySequence"/>.
+        /// </summary>
         public static bool TryResolveKey(string keyName, out ushort vk)
         {
             vk = 0;
@@ -82,6 +49,7 @@ namespace DroidDeck.Lib.Input
                 if (c >= 'A' && c <= 'Z') { vk = (ushort)c; return true; }
                 if (c >= '0' && c <= '9') { vk = (ushort)c; return true; }
 
+                // Pontuacao: a tecla que produz o caractere no layout do app em foco.
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     var hwnd = GetForegroundWindow();
@@ -97,28 +65,9 @@ namespace DroidDeck.Lib.Input
 
             if (clean.StartsWith("0x", StringComparison.OrdinalIgnoreCase) &&
                 ushort.TryParse(clean[2..], System.Globalization.NumberStyles.HexNumber, null, out vk))
-                return true;
-
-            if (ushort.TryParse(clean, out vk))
-                return true;
+                return vk is > 0 and <= 0xFE;
 
             return false;
-        }
-
-        public static void KeyDown(string keyName)
-        {
-            if (TryResolveKey(keyName, out var vk))
-            {
-                KeyDown(vk);
-            }
-        }
-
-        public static void KeyUp(string keyName)
-        {
-            if (TryResolveKey(keyName, out var vk))
-            {
-                KeyUp(vk);
-            }
         }
 
         private static void SendKey(ushort vk, bool up)
@@ -128,8 +77,7 @@ namespace DroidDeck.Lib.Input
 
             var hwnd = GetForegroundWindow();
             var hkl = GetKeyboardLayout(hwnd == IntPtr.Zero ? 0 : GetWindowThreadProcessId(hwnd, out _));
-            var input = Key(vk, hkl, up);
-            Dispatch(new List<INPUT> { input });
+            Dispatch(new List<INPUT> { Key(vk, hkl, up) });
         }
 
         private const ushort VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_LWIN = 0x5B;

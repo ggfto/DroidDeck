@@ -87,6 +87,9 @@ namespace DroidDeck
 
             Application.Run(FrmPrincipal);
 
+            // Tecla presa pelo deck (seta segurada, Shift travado) nao fica apertada no Windows.
+            DroidDeck.Lib.Input.HeldKeys.Shared.ReleaseAll();
+
             // Solicita encerramento gracioso do servidor web e discovery
             try
             {

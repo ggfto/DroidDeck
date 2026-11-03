@@ -145,31 +145,37 @@ namespace DroidDeck.Controllers
             return Ok(saved);
         }
 
+        /// <summary>
+        /// Tecla avulsa para scripts e automacoes do proprio PC. De fora dele, 403: tecla
+        /// livre e o mesmo que um atalho (ActionPolicy); o celular usa os botoes salvos.
+        /// </summary>
         [HttpPost("key")]
-        public ActionResult SendKey([FromBody] KeyRequest request)
+        public async Task<ActionResult> SendKey([FromBody] KeyRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Key))
-                return BadRequest();
+            if (!IsLocalRequest) return PrivilegedOnlyOnPc(null);
+            if (request == null || !KeyboardInput.TryResolveKey(request.Key, out var vk))
+                return BadRequest(new { error = $"Tecla desconhecida: '{request?.Key}'." });
 
-            var state = request.State?.Trim().ToLowerInvariant() ?? "tap";
-            switch (state)
+            switch (request.State?.Trim().ToLowerInvariant() ?? "tap")
             {
                 case "down":
-                    KeyboardInput.KeyDown(request.Key);
+                    HeldKeys.Shared.Down(ApiKeyOwner, vk);
                     break;
                 case "up":
-                    KeyboardInput.KeyUp(request.Key);
+                    HeldKeys.Shared.Up(ApiKeyOwner, vk);
                     break;
                 case "tap":
-                    KeyboardInput.KeyDown(request.Key);
-                    System.Threading.Thread.Sleep(KeyboardInput.HoldMs);
-                    KeyboardInput.KeyUp(request.Key);
+                    KeyboardInput.KeyDown(vk);
+                    await Task.Delay(KeyboardInput.HoldMs);
+                    KeyboardInput.KeyUp(vk);
                     break;
                 default:
                     return BadRequest(new { error = $"Estado desconhecido: '{request.State}'. Use 'down', 'up' ou 'tap'." });
             }
             return Ok();
         }
+
+        private const string ApiKeyOwner = "api";
     }
 
     public class KeyRequest

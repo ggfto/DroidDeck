@@ -60,7 +60,7 @@ namespace DroidDeck.Tests
 
         [Fact]
         public void TextoComum_EDigitado() =>
-            Assert.Equal("olá", new string(KeySequence.Parse("olá").Select(s => s.Char).ToArray()));
+            Assert.Equal("olÃ¡", new string(KeySequence.Parse("olÃ¡").Select(s => s.Char).ToArray()));
 
         [Theory]
         [InlineData("^")]
@@ -162,7 +162,7 @@ namespace DroidDeck.Tests
 
         [Fact]
         public void CaractereForaDoLayout_VaiComoUnicode() =>
-            Assert.All(Capture("☃"), e => Assert.Equal(0xE7u, e.Vk)); // VK_PACKET
+            Assert.All(Capture("â˜ƒ"), e => Assert.Equal(0xE7u, e.Vk)); // VK_PACKET
 
         // ---- Win32 ----
         private const int WH_KEYBOARD_LL = 13;
@@ -222,44 +222,156 @@ namespace DroidDeck.Tests
             Assert.Equal(expectedVk, vk);
         }
 
-        [Fact]
-        public void KeyDownEKeyUp_RastreiaTeclasPressionadas()
+        [Theory]
+        [InlineData("^C")]
+        [InlineData("{ENTER}{TAB}")]
+        [InlineData("0x00")]
+        [InlineData("")]
+        public void TryResolveKey_ComboOuInvalida_Recusa(string keyName)
         {
-            KeyboardInput.ReleaseAll();
-            Assert.Empty(KeyboardInput.HeldKeys);
-
-            KeyboardInput.KeyDown(0x26); // UP
-            Assert.Contains(0x26, KeyboardInput.HeldKeys);
-
-            KeyboardInput.KeyUp(0x26);
-            Assert.DoesNotContain(0x26, KeyboardInput.HeldKeys);
+            Assert.False(KeyboardInput.TryResolveKey(keyName, out _));
         }
 
         [Fact]
-        public void KeyDownPorNomeEKeyUpPorNome_RastreiaTeclas()
+        public void Tecla_Privilegiada()
         {
-            KeyboardInput.ReleaseAll();
+            foreach (var type in new[] { "key", "keyboard_key", "send_key" })
+                Assert.True(DroidDeck.Services.ActionPolicy.IsPrivileged(new DroidDeck.Models.DeckAction { Type = type }));
+        }
+    }
 
-            KeyboardInput.KeyDown("F5");
-            Assert.Contains((ushort)0x74, KeyboardInput.HeldKeys);
+    /// <summary>HeldKeys com um envio falso: nada chega ao teclado do PC.</summary>
+    public class HeldKeysTests
+    {
+        private readonly List<(ushort vk, bool down)> _sent = new();
 
-            KeyboardInput.KeyUp("F5");
-            Assert.DoesNotContain((ushort)0x74, KeyboardInput.HeldKeys);
+        private HeldKeys Make() => new(vk => { lock (_sent) _sent.Add((vk, true)); }, vk => { lock (_sent) _sent.Add((vk, false)); })
+        {
+            RepeatDelay = TimeSpan.FromHours(1),
+        };
+
+        private (ushort, bool)[] Sent() { lock (_sent) return _sent.ToArray(); }
+
+        [Fact]
+        public void ApertaESolta()
+        {
+            using var keys = Make();
+            keys.Down("cel", 0x26);
+            Assert.Contains((ushort)0x26, keys.Keys);
+            keys.Up("cel", 0x26);
+            Assert.Empty(keys.Keys);
+            Assert.Equal(new (ushort, bool)[] { (0x26, true), (0x26, false) }, Sent());
         }
 
         [Fact]
-        public void ReleaseAll_LiberaTodasAsTeclasPresas()
+        public void MesmaTeclaPorDoisDonos_SoSobeQuandoOsDoisSoltam()
         {
-            KeyboardInput.ReleaseAll();
+            using var keys = Make();
+            keys.Down("a", 0x26);
+            keys.Down("b", 0x26);
+            keys.Up("a", 0x26);
+            Assert.DoesNotContain(((ushort)0x26, false), Sent());
+            keys.Up("b", 0x26);
+            Assert.Equal(((ushort)0x26, false), Sent().Last());
+        }
 
-            KeyboardInput.KeyDown("SHIFT");
-            KeyboardInput.KeyDown("CTRL");
-            KeyboardInput.KeyDown("UP");
-            Assert.Equal(3, KeyboardInput.HeldKeys.Count);
+        [Fact]
+        public void ConexaoQueCai_SoltaSoAsDela()
+        {
+            using var keys = Make();
+            keys.Down("cel1", 0x10);
+            keys.Down("cel1", 0x26);
+            keys.Down("latch:x", 0x11);
+            keys.ReleaseOwner("cel1");
+            Assert.Equal(new ushort[] { 0x11 }, keys.Keys.ToArray());
+            Assert.Contains(((ushort)0x10, false), Sent());
+            Assert.Contains(((ushort)0x26, false), Sent());
+        }
 
-            KeyboardInput.ReleaseAll();
-            Assert.Empty(KeyboardInput.HeldKeys);
+        [Fact]
+        public void SoltarSemTerApertado_NaoMandaNada()
+        {
+            using var keys = Make();
+            keys.Up("cel", 0x26);
+            keys.ReleaseOwner("cel");
+            Assert.Empty(Sent());
+        }
+
+        [Fact]
+        public void TravaAteAProximaTecla_SoltaQuandoOutraTeclaSobe()
+        {
+            using var keys = Make();
+            var soltos = new List<string>();
+            keys.OneShotReleased += soltos.Add;
+
+            keys.Down(HeldKeys.OneShotPrefix + "shift", 0x10);
+            keys.Down(HeldKeys.OneShotPrefix + "ctrl", 0x11);
+            keys.Down("latch:alt", 0x12);
+
+            // Outro modificador nao conta; a seta segurada mantem o Shift ate ela subir.
+            keys.Down("cel", 0x5B);
+            keys.Up("cel", 0x5B);
+            keys.Down("cel", 0x26);
+            Assert.Contains((ushort)0x10, keys.Keys);
+            keys.Up("cel", 0x26);
+
+            Assert.Equal(new ushort[] { 0x12 }, keys.Keys.ToArray());
+            Assert.Equal(new[] { HeldKeys.OneShotPrefix + "shift", HeldKeys.OneShotPrefix + "ctrl" }, soltos.OrderByDescending(s => s));
+        }
+
+        [Fact]
+        public void TravaAteAProximaTecla_SoltaDepoisDeUmToqueOuAtalho()
+        {
+            using var keys = Make();
+            keys.Down(HeldKeys.OneShotPrefix + "shift", 0x10);
+            keys.KeyTapped(0x11); // so Ctrl: nao conta
+            Assert.Contains((ushort)0x10, keys.Keys);
+            keys.KeyTapped();
+            Assert.Empty(keys.Keys);
+        }
+
+        [Fact]
+        public void TeclaSegurada_Repete_ModificadorNao()
+        {
+            using var keys = Make();
+            keys.RepeatDelay = TimeSpan.FromMilliseconds(20);
+            keys.RepeatInterval = TimeSpan.FromMilliseconds(10);
+
+            keys.Down("cel", 0x10); // Shift
+            Thread.Sleep(150);
+            Assert.Single(Sent(), s => s == (0x10, true));
+
+            keys.Down("cel", 0x26); // seta
+            Thread.Sleep(150);
+            Assert.True(Sent().Count(s => s == (0x26, true)) > 2);
+
+            keys.Up("cel", 0x26);
+            var depois = Sent().Length;
+            Thread.Sleep(100);
+            Assert.Equal(depois, Sent().Length);
         }
     }
 }
 
+namespace DroidDeck.Tests
+{
+    public class KeyboardProfileSeedTests
+    {
+        [Fact]
+        public void PerfilTeclado_CabeNaGradePadrao_EPastasExistem()
+        {
+            var profiles = DroidDeck.Services.StreamDeckConfigService.CreateKeyboardProfiles();
+            var ids = profiles.Select(p => p.Id).ToHashSet();
+            var layout = new DroidDeck.Models.DeviceLayout();
+            foreach (var p in profiles)
+            {
+                Assert.All(p.Buttons, b => Assert.True(b.Row < layout.Rows && b.Column < layout.Columns, $"{p.Name}: {b.Label} fora da grade"));
+                Assert.Equal(p.Buttons.Count, p.Buttons.Select(b => (b.Row, b.Column)).Distinct().Count());
+                foreach (var b in p.Buttons.Where(b => b.Action?.Type == "open_profile"))
+                    Assert.Contains(b.Action!.Parameters["profileId"], ids);
+                foreach (var b in p.Buttons.Where(b => b.Action?.Type == "key"))
+                    Assert.True(KeyboardInput.TryResolveKey(b.Action!.Parameters["key"], out _), b.Action.Parameters["key"]);
+            }
+        }
+    }
+}
