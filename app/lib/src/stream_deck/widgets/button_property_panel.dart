@@ -19,12 +19,16 @@ class ButtonPropertyPanel extends StatefulWidget {
   final VoidCallback? onCancel;
   final List<DeckProfile> profiles;
 
+  /// "Copiar ou mover…": leva o botão salvo para outro perfil. Nulo esconde a opção.
+  final VoidCallback? onCopyOrMove;
+
   const ButtonPropertyPanel({
     super.key,
     required this.button,
     required this.onSave,
     this.onCancel,
     this.profiles = const [],
+    this.onCopyOrMove,
   });
 
   @override
@@ -369,6 +373,13 @@ class ButtonPropertyPanelState extends State<ButtonPropertyPanel> {
               onPressed: _delete,
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: Text(tr('Limpar botão')),
+            ),
+          // Copia o que está salvo: com mudanças pendentes, salve antes.
+          if (widget.onCopyOrMove != null && widget.button.id.isNotEmpty)
+            IconButton(
+              tooltip: tr('Copiar ou mover…'),
+              icon: const Icon(Icons.drive_file_move_outline),
+              onPressed: widget.onCopyOrMove,
             ),
           const Spacer(),
           if (widget.onCancel != null)

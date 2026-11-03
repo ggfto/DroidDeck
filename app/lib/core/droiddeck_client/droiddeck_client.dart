@@ -336,6 +336,29 @@ class DroidDeckClient {
     );
   }
 
+  /// Copia (ou move) um botão salvo para a casa [row],[column] de outro perfil. O PC copia
+  /// o que está salvo, então vale também para atalhos e programas.
+  Future<void> copyButton({
+    required String fromProfileId,
+    required String buttonId,
+    required String toProfileId,
+    required int row,
+    required int column,
+    required bool move,
+  }) async {
+    await _dio.post(
+      '/api/StreamDeck/buttons/copy',
+      data: {
+        'fromProfileId': fromProfileId,
+        'buttonId': buttonId,
+        'toProfileId': toProfileId,
+        'row': row,
+        'column': column,
+        'move': move,
+      },
+    );
+  }
+
   /// Backup dos perfis (.droiddeck, um zip).
   Future<List<int>> exportBackup() async {
     final response = await _dio.get<List<int>>('/api/backup',

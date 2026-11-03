@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:droiddeck/core/core.dart'; // Contains DroidDeckClient, DeckProfile, etc.
 import 'package:droiddeck/src/stream_deck/actions/action_catalog.dart';
+import 'package:droiddeck/src/stream_deck/layout/grid_placement.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -266,6 +267,49 @@ class StreamDeckController {
     buttons[srcIdx] = _copyWithPos(buttons[srcIdx], newRow, newCol);
 
     await updateProfileFull(profile.copyWith(buttons: buttons));
+  }
+
+  /// Copia (ou move) [button] para a primeira casa livre de [target], numa grade de
+  /// [rows]×[columns] (a do celular: botão fora dela some). Devolve o erro para mostrar,
+  /// ou null se deu certo.
+  Future<String?> copyButtonTo(DeckButton button, DeckProfile target,
+      {required int rows, required int columns, required bool move}) async {
+    final owner = profiles.value
+        .where((p) => p.buttons.any((b) => b.id == button.id))
+        .firstOrNull;
+    if (owner == null) return tr('O botão não está mais no PC. Atualize o deck.');
+
+    final layout = GridLayout.of(target.buttons, rows, columns);
+    // Casa com botão escondido (fora da grade de outro aparelho) também conta como ocupada.
+    final anchors = {for (final b in target.buttons) GridLayout.key(b.row, b.column)};
+    (int, int)? free;
+    for (var r = 0; r < rows && free == null; r++) {
+      for (var c = 0; c < columns; c++) {
+        if (layout.isFree(r, c) && !anchors.contains(GridLayout.key(r, c))) {
+          free = (r, c);
+          break;
+        }
+      }
+    }
+    if (free == null) {
+      return tr('"{name}" está cheio. Libere uma casa e tente de novo.', {'name': target.name});
+    }
+
+    try {
+      await _client.copyButton(
+        fromProfileId: owner.id,
+        buttonId: button.id,
+        toProfileId: target.id,
+        row: free.$1,
+        column: free.$2,
+        move: move,
+      );
+      await loadProfiles();
+      return null;
+    } catch (e) {
+      debugPrint('Error copying button: $e');
+      return tr('O PC não respondeu. Confira se o DroidDeck está aberto nele.');
+    }
   }
 
   /// Ajusta as dimensões (linhas/colunas) do perfil atual.

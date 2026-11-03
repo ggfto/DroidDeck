@@ -19,25 +19,25 @@ class KeyButtonRenderer extends ButtonRenderer {
       case 'ARROWUP':
       case 'UPARROW':
         fallbackIcon = Icons.arrow_upward;
-        fallbackLabel = '▲';
+        fallbackLabel = ''; // a seta já diz tudo
         break;
       case 'DOWN':
       case 'ARROWDOWN':
       case 'DOWNARROW':
         fallbackIcon = Icons.arrow_downward;
-        fallbackLabel = '▼';
+        fallbackLabel = ''; // a seta já diz tudo
         break;
       case 'LEFT':
       case 'ARROWLEFT':
       case 'LEFTARROW':
         fallbackIcon = Icons.arrow_back;
-        fallbackLabel = '◄';
+        fallbackLabel = ''; // a seta já diz tudo
         break;
       case 'RIGHT':
       case 'ARROWRIGHT':
       case 'RIGHTARROW':
         fallbackIcon = Icons.arrow_forward;
-        fallbackLabel = '►';
+        fallbackLabel = ''; // a seta já diz tudo
         break;
       case 'ENTER':
       case 'RETURN':

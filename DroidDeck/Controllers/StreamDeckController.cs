@@ -146,6 +146,29 @@ namespace DroidDeck.Controllers
         }
 
         /// <summary>
+        /// Copia ou move um botao salvo para outro perfil (ou duplica no mesmo). Liberado para
+        /// o celular mesmo com acao privilegiada: o PC copia o que ja esta salvo.
+        /// </summary>
+        [HttpPost("buttons/copy")]
+        public async Task<ActionResult> CopyButton([FromBody] CopyButtonRequest request)
+        {
+            if (request == null) return BadRequest();
+            var result = _configService.CopyButton(request.FromProfileId, request.ButtonId,
+                request.ToProfileId, request.Row, request.Column, request.Move);
+            switch (result)
+            {
+                case StreamDeckConfigService.CopyButtonResult.NotFound: return NotFound();
+                case StreamDeckConfigService.CopyButtonResult.Occupied:
+                    return Conflict(new { error = L.T("Essa casa já tem um botão.") });
+                case StreamDeckConfigService.CopyButtonResult.SamePlace: return BadRequest();
+            }
+            await _hubContext.Clients.All.SendAsync("ReceiveDeckUpdate", new { profileId = request.ToProfileId });
+            if (request.Move && request.FromProfileId != request.ToProfileId)
+                await _hubContext.Clients.All.SendAsync("ReceiveDeckUpdate", new { profileId = request.FromProfileId });
+            return Ok();
+        }
+
+        /// <summary>
         /// Tecla avulsa para scripts e automacoes do proprio PC. De fora dele, 403: tecla
         /// livre e o mesmo que um atalho (ActionPolicy); o celular usa os botoes salvos.
         /// </summary>
@@ -176,6 +199,16 @@ namespace DroidDeck.Controllers
         }
 
         private const string ApiKeyOwner = "api";
+    }
+
+    public class CopyButtonRequest
+    {
+        public string FromProfileId { get; set; } = "";
+        public string ButtonId { get; set; } = "";
+        public string ToProfileId { get; set; } = "";
+        public int Row { get; set; }
+        public int Column { get; set; }
+        public bool Move { get; set; }
     }
 
     public class KeyRequest

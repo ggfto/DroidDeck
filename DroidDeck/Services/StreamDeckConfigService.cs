@@ -156,6 +156,49 @@ namespace DroidDeck.Services
             }
         }
 
+        public enum CopyButtonResult { Ok, NotFound, Occupied, SamePlace }
+
+        /// <summary>
+        /// Copia (ou move) um botao salvo para a casa (row, column) de outro perfil -- ou do
+        /// mesmo, para duplicar. Le o botao do perfil gravado: o cliente nao manda o conteudo,
+        /// entao copiar um atalho pelo celular nao abre brecha na ActionPolicy. Mover mantem
+        /// o id (o liga/desliga do botao vai junto); a copia ganha um id novo.
+        /// </summary>
+        public CopyButtonResult CopyButton(string fromProfileId, string buttonId, string toProfileId, int row, int column, bool move)
+        {
+            lock (_lock)
+            {
+                var from = GetProfile(fromProfileId);
+                var to = GetProfile(toProfileId);
+                var button = from?.Buttons?.FirstOrDefault(b => b.Id == buttonId);
+                if (from == null || to == null || button == null || row < 0 || column < 0)
+                    return CopyButtonResult.NotFound;
+                if (move && from.Id == to.Id) return CopyButtonResult.SamePlace;
+                if (to.Buttons.Any(b => b.Row == row && b.Column == column))
+                    return CopyButtonResult.Occupied;
+
+                // Copias por JSON: o cache devolve os proprios objetos.
+                var target = Clone(to);
+                var copy = Clone(button);
+                copy.Id = move ? button.Id : Guid.NewGuid().ToString();
+                copy.Row = row;
+                copy.Column = column;
+                target.Buttons.Add(copy);
+                SaveProfile(target);
+
+                if (move)
+                {
+                    var source = Clone(from);
+                    source.Buttons.RemoveAll(b => b.Id == button.Id);
+                    SaveProfile(source);
+                }
+                return CopyButtonResult.Ok;
+            }
+        }
+
+        private T Clone<T>(T value) =>
+            JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, _jsonOptions), _jsonOptions)!;
+
         public void DeleteProfile(string id)
         {
             if (!IsValidProfileId(id))

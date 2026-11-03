@@ -87,10 +87,29 @@ class IconGrid extends StatelessWidget {
       );
     }
 
-    return Wrap(
-      spacing: spacing,
-      runSpacing: spacing,
-      children: [option(null), ...buttonIcons.keys.map(option)],
+    Widget grid(Iterable<String?> names) => Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: names.map(option).toList(),
+        );
+
+    // Por assunto: com mais de 200 ícones, uma grade só virava caça ao tesouro.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        grid(const [null]),
+        for (final (title, names) in iconCategories) ...[
+          Padding(
+            padding: EdgeInsets.only(top: spacing + 4, bottom: spacing / 2),
+            child: Text(
+              tr(title),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ),
+          grid(names),
+        ],
+      ],
     );
   }
 }
