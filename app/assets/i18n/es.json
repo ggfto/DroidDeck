@@ -1066,5 +1066,18 @@
   "VTube Studio desconectado.": "VTube Studio desconectado.",
   "O VTube Studio não respondeu.": "VTube Studio no respondió.",
   "O VTube Studio recusou.": "VTube Studio lo rechazó.",
-  "Encerrar": "Salir"
+  "Encerrar": "Salir",
+  "Tecla do teclado": "Tecla del teclado",
+  "Tecla": "Tecla",
+  "Modo de envio": "Modo de envío",
+  "Pressionar e segurar (tempo real)": "Mantener presionado (tiempo real)",
+  "Toque rápido": "Toque rápido",
+  "Alternar / Trava (Latch)": "Alternar / Bloqueo (Latch)",
+  "Envia uma tecla com suporte a pressionar e segurar em tempo real ou alternar.": "Envía una tecla con soporte para mantener presionado en tiempo real o alternar.",
+  "Teclado (Setas & F-Keys)": "Teclado (Flechas y Teclas F)",
+  "Seta Acima (UP)": "Flecha Arriba (UP)",
+  "Seta Abaixo (DOWN)": "Flecha Abajo (DOWN)",
+  "Seta Esquerda (LEFT)": "Flecha Izquierda (LEFT)",
+  "Seta Direita (RIGHT)": "Flecha Derecha (RIGHT)",
+  "Nome da tecla (ex.: UP, DOWN, LEFT, RIGHT, F1-F12, ENTER, SPACE, A-Z) ou modificador (SHIFT, CTRL, ALT, WIN).": "Nombre de la tecla (ej.: UP, DOWN, LEFT, RIGHT, F1-F12, ENTER, SPACE, A-Z) o modificador (SHIFT, CTRL, ALT, WIN)."
 }

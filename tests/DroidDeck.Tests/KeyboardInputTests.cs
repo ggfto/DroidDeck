@@ -186,4 +186,80 @@ namespace DroidDeck.Tests
         [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr GetModuleHandle(string? name);
     }
+
+    public class KeyboardInputUnitTests
+    {
+        [Theory]
+        [InlineData("UP", 0x26)]
+        [InlineData("DOWN", 0x28)]
+        [InlineData("LEFT", 0x25)]
+        [InlineData("RIGHT", 0x27)]
+        [InlineData("{UP}", 0x26)]
+        [InlineData("F1", 0x70)]
+        [InlineData("F5", 0x74)]
+        [InlineData("F12", 0x7B)]
+        [InlineData("{F12}", 0x7B)]
+        [InlineData("SHIFT", 0x10)]
+        [InlineData("CTRL", 0x11)]
+        [InlineData("CONTROL", 0x11)]
+        [InlineData("ALT", 0x12)]
+        [InlineData("WIN", 0x5B)]
+        [InlineData("ENTER", 0x0D)]
+        [InlineData("ESC", 0x1B)]
+        [InlineData("TAB", 0x09)]
+        [InlineData("INSERT", 0x2D)]
+        [InlineData("DELETE", 0x2E)]
+        [InlineData("HOME", 0x24)]
+        [InlineData("END", 0x23)]
+        [InlineData("PGUP", 0x21)]
+        [InlineData("PGDN", 0x22)]
+        [InlineData("A", 0x41)]
+        [InlineData("a", 0x41)]
+        [InlineData("1", 0x31)]
+        public void TryResolveKey_TeclasComunsEMapas_RetornaCodigoCorreto(string keyName, ushort expectedVk)
+        {
+            Assert.True(KeyboardInput.TryResolveKey(keyName, out var vk));
+            Assert.Equal(expectedVk, vk);
+        }
+
+        [Fact]
+        public void KeyDownEKeyUp_RastreiaTeclasPressionadas()
+        {
+            KeyboardInput.ReleaseAll();
+            Assert.Empty(KeyboardInput.HeldKeys);
+
+            KeyboardInput.KeyDown(0x26); // UP
+            Assert.Contains(0x26, KeyboardInput.HeldKeys);
+
+            KeyboardInput.KeyUp(0x26);
+            Assert.DoesNotContain(0x26, KeyboardInput.HeldKeys);
+        }
+
+        [Fact]
+        public void KeyDownPorNomeEKeyUpPorNome_RastreiaTeclas()
+        {
+            KeyboardInput.ReleaseAll();
+
+            KeyboardInput.KeyDown("F5");
+            Assert.Contains((ushort)0x74, KeyboardInput.HeldKeys);
+
+            KeyboardInput.KeyUp("F5");
+            Assert.DoesNotContain((ushort)0x74, KeyboardInput.HeldKeys);
+        }
+
+        [Fact]
+        public void ReleaseAll_LiberaTodasAsTeclasPresas()
+        {
+            KeyboardInput.ReleaseAll();
+
+            KeyboardInput.KeyDown("SHIFT");
+            KeyboardInput.KeyDown("CTRL");
+            KeyboardInput.KeyDown("UP");
+            Assert.Equal(3, KeyboardInput.HeldKeys.Count);
+
+            KeyboardInput.ReleaseAll();
+            Assert.Empty(KeyboardInput.HeldKeys);
+        }
+    }
 }
+

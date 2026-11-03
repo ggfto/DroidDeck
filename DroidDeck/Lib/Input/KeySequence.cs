@@ -43,19 +43,25 @@ namespace DroidDeck.Lib.Input
         {
             ["BACKSPACE"] = 0x08, ["BS"] = 0x08, ["BKSP"] = 0x08,
             ["TAB"] = 0x09,
-            ["ENTER"] = 0x0D,
+            ["ENTER"] = 0x0D, ["RETURN"] = 0x0D,
+            ["SHIFT"] = 0x10, ["LSHIFT"] = 0xA0, ["RSHIFT"] = 0xA1,
+            ["CTRL"] = 0x11, ["CONTROL"] = 0x11, ["LCTRL"] = 0xA2, ["LCONTROL"] = 0xA2, ["RCTRL"] = 0xA3, ["RCONTROL"] = 0xA3,
+            ["ALT"] = 0x12, ["LALT"] = 0xA4, ["RALT"] = 0xA5,
             ["BREAK"] = 0x13,
             ["CAPSLOCK"] = 0x14,
             ["ESC"] = 0x1B, ["ESCAPE"] = 0x1B,
             ["SPACE"] = 0x20,
-            ["PGUP"] = 0x21, ["PGDN"] = 0x22,
+            ["PGUP"] = 0x21, ["PAGEUP"] = 0x21, ["PGDN"] = 0x22, ["PAGEDOWN"] = 0x22,
             ["END"] = 0x23, ["HOME"] = 0x24,
-            ["LEFT"] = 0x25, ["UP"] = 0x26, ["RIGHT"] = 0x27, ["DOWN"] = 0x28,
-            ["PRTSC"] = 0x2C,
+            ["LEFT"] = 0x25, ["ARROWLEFT"] = 0x25, ["LEFTARROW"] = 0x25,
+            ["UP"] = 0x26, ["ARROWUP"] = 0x26, ["UPARROW"] = 0x26,
+            ["RIGHT"] = 0x27, ["ARROWRIGHT"] = 0x27, ["RIGHTARROW"] = 0x27,
+            ["DOWN"] = 0x28, ["ARROWDOWN"] = 0x28, ["DOWNARROW"] = 0x28,
+            ["PRTSC"] = 0x2C, ["PRINTSCREEN"] = 0x2C,
             ["INSERT"] = 0x2D, ["INS"] = 0x2D,
             ["DELETE"] = 0x2E, ["DEL"] = 0x2E,
             ["HELP"] = 0x2F,
-            ["WIN"] = 0x5B, ["LWIN"] = 0x5B, ["RWIN"] = 0x5C, ["APPS"] = 0x5D, ["MENU"] = 0x5D,
+            ["WIN"] = 0x5B, ["LWIN"] = 0x5B, ["RWIN"] = 0x5C, ["WINDOWS"] = 0x5B, ["META"] = 0x5B, ["CMD"] = 0x5B, ["COMMAND"] = 0x5B, ["APPS"] = 0x5D, ["MENU"] = 0x5D,
             ["MULTIPLY"] = 0x6A, ["ADD"] = 0x6B, ["SUBTRACT"] = 0x6D, ["DECIMAL"] = 0x6E, ["DIVIDE"] = 0x6F,
             ["NUMLOCK"] = 0x90, ["SCROLLLOCK"] = 0x91,
             ["VOLUME_MUTE"] = 0xAD, ["VOLUME_DOWN"] = 0xAE, ["VOLUME_UP"] = 0xAF,
@@ -66,6 +72,16 @@ namespace DroidDeck.Lib.Input
         {
             for (int i = 1; i <= 24; i++) NamedKeys["F" + i] = (ushort)(0x70 + i - 1);
             for (int i = 0; i <= 9; i++) NamedKeys["NUMPAD" + i] = (ushort)(0x60 + i);
+        }
+
+        public static bool TryGetNamedKey(string name, out ushort vk)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                vk = 0;
+                return false;
+            }
+            return NamedKeys.TryGetValue(name.Trim(), out vk);
         }
 
         public static List<KeyStroke> Parse(string keys)

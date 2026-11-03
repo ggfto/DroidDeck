@@ -1066,5 +1066,18 @@
   "VTube Studio desconectado.": "VTube Studio disconnected.",
   "O VTube Studio não respondeu.": "VTube Studio didn't respond.",
   "O VTube Studio recusou.": "VTube Studio refused.",
-  "Encerrar": "Quit"
+  "Encerrar": "Quit",
+  "Tecla do teclado": "Keyboard key",
+  "Tecla": "Key",
+  "Modo de envio": "Send mode",
+  "Pressionar e segurar (tempo real)": "Press and hold (real time)",
+  "Toque rápido": "Quick tap",
+  "Alternar / Trava (Latch)": "Toggle / Latch",
+  "Envia uma tecla com suporte a pressionar e segurar em tempo real ou alternar.": "Sends a key with real-time press and hold or toggle support.",
+  "Teclado (Setas & F-Keys)": "Keyboard (Arrows & F-Keys)",
+  "Seta Acima (UP)": "Up Arrow (UP)",
+  "Seta Abaixo (DOWN)": "Down Arrow (DOWN)",
+  "Seta Esquerda (LEFT)": "Left Arrow (LEFT)",
+  "Seta Direita (RIGHT)": "Right Arrow (RIGHT)",
+  "Nome da tecla (ex.: UP, DOWN, LEFT, RIGHT, F1-F12, ENTER, SPACE, A-Z) ou modificador (SHIFT, CTRL, ALT, WIN).": "Key name (e.g., UP, DOWN, LEFT, RIGHT, F1-F12, ENTER, SPACE, A-Z) or modifier (SHIFT, CTRL, ALT, WIN)."
 }

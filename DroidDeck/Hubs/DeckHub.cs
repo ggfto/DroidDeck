@@ -105,8 +105,27 @@ namespace DroidDeck.Hubs
 
         public static string LanguageGroup(string language) => "lang:" + language;
 
+        public Task SendKeyDown(string key)
+        {
+            Lib.Input.KeyboardInput.KeyDown(key);
+            return Task.CompletedTask;
+        }
+
+        public Task SendKeyUp(string key)
+        {
+            Lib.Input.KeyboardInput.KeyUp(key);
+            return Task.CompletedTask;
+        }
+
+        public Task ReleaseAllKeys()
+        {
+            Lib.Input.KeyboardInput.ReleaseAll();
+            return Task.CompletedTask;
+        }
+
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
+            Lib.Input.KeyboardInput.ReleaseAll();
             Interlocked.Decrement(ref _connectedCount);
             await base.OnDisconnectedAsync(exception);
         }

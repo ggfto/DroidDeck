@@ -40,6 +40,7 @@ namespace DroidDeck
         /// </summary>
         public static IServiceCollection AddActionProviders(this IServiceCollection services)
         {
+            services.AddSingleton<IActionProvider, KeyProvider>();
             services.AddSingleton<IActionProvider, HotkeyProvider>();
             services.AddSingleton<IActionProvider, LaunchAppProvider>();
             services.AddSingleton<IActionProvider, ActivateWindowProvider>();

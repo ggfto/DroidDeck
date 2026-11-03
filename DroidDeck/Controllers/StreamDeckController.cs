@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using DroidDeck.Hubs;
 using DroidDeck.Lib;
+using DroidDeck.Lib.Input;
 using DroidDeck.Models;
 using DroidDeck.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -143,6 +144,38 @@ namespace DroidDeck.Controllers
                 new { rows = saved.Rows, columns = saved.Columns });
             return Ok(saved);
         }
+
+        [HttpPost("key")]
+        public ActionResult SendKey([FromBody] KeyRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Key))
+                return BadRequest();
+
+            var state = request.State?.Trim().ToLowerInvariant() ?? "tap";
+            switch (state)
+            {
+                case "down":
+                    KeyboardInput.KeyDown(request.Key);
+                    break;
+                case "up":
+                    KeyboardInput.KeyUp(request.Key);
+                    break;
+                case "tap":
+                    KeyboardInput.KeyDown(request.Key);
+                    System.Threading.Thread.Sleep(KeyboardInput.HoldMs);
+                    KeyboardInput.KeyUp(request.Key);
+                    break;
+                default:
+                    return BadRequest(new { error = $"Estado desconhecido: '{request.State}'. Use 'down', 'up' ou 'tap'." });
+            }
+            return Ok();
+        }
+    }
+
+    public class KeyRequest
+    {
+        public string Key { get; set; } = "";
+        public string State { get; set; } = "tap";
     }
 
     public class PressRequest

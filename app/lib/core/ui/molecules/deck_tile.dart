@@ -17,6 +17,9 @@ class DeckTile extends StatelessWidget {
     this.activeColor,
     this.onTap,
     this.onLongPress,
+    this.onTapDown,
+    this.onTapUp,
+    this.onTapCancel,
   });
 
   final Widget child;
@@ -31,6 +34,9 @@ class DeckTile extends StatelessWidget {
   final Color? activeColor;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final GestureTapDownCallback? onTapDown;
+  final GestureTapUpCallback? onTapUp;
+  final VoidCallback? onTapCancel;
 
   static Color foregroundOf(BuildContext context) =>
       IconTheme.of(context).color ?? Colors.white;
@@ -115,8 +121,15 @@ class DeckTile extends StatelessWidget {
         );
     }
 
-    if (onTap == null && onLongPress == null) return tile;
-    return _Pressable(onTap: onTap, onLongPress: onLongPress, child: tile);
+    if (onTap == null && onLongPress == null && onTapDown == null && onTapUp == null && onTapCancel == null) return tile;
+    return _Pressable(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      onTapDown: onTapDown,
+      onTapUp: onTapUp,
+      onTapCancel: onTapCancel,
+      child: tile,
+    );
   }
 
   Widget _content(Color fg, EdgeInsets padding) {
@@ -146,11 +159,21 @@ class DeckTile extends StatelessWidget {
 /// Botão que afunda ao encostar o dedo (e vibra): sem vibração, o afundar é a única
 /// confirmação de que o toque pegou.
 class _Pressable extends StatefulWidget {
-  const _Pressable({required this.child, this.onTap, this.onLongPress});
+  const _Pressable({
+    required this.child,
+    this.onTap,
+    this.onLongPress,
+    this.onTapDown,
+    this.onTapUp,
+    this.onTapCancel,
+  });
 
   final Widget child;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final GestureTapDownCallback? onTapDown;
+  final GestureTapUpCallback? onTapUp;
+  final VoidCallback? onTapCancel;
 
   @override
   State<_Pressable> createState() => _PressableState();
@@ -169,13 +192,23 @@ class _PressableState extends State<_Pressable> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       // Vibra ao encostar, não ao soltar: é o que dá a sensação de botão físico.
-      onTapDown: (_) {
+      onTapDown: (details) {
         _set(true);
-        if (widget.onTap != null) ThemeController.instance.tapFeedback();
+        if (widget.onTap != null || widget.onTapDown != null) ThemeController.instance.tapFeedback();
+        widget.onTapDown?.call(details);
       },
-      onTapUp: (_) => _set(false),
-      onTapCancel: () => _set(false),
-      onLongPressEnd: (_) => _set(false),
+      onTapUp: (details) {
+        _set(false);
+        widget.onTapUp?.call(details);
+      },
+      onTapCancel: () {
+        _set(false);
+        widget.onTapCancel?.call();
+      },
+      onLongPressEnd: (_) {
+        _set(false);
+        widget.onTapCancel?.call();
+      },
       onTap: widget.onTap,
       onLongPress: widget.onLongPress,
       child: AnimatedScale(

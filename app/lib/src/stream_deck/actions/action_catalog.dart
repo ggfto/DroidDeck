@@ -57,6 +57,7 @@ class ActionCatalog {
     }
     // Apelidos antigos gravados em perfis.
     if (t == 'launchapp') return find('launch_app');
+    if (t == 'keyboard_key' || t == 'send_key') return find('key');
     return null;
   }
 }

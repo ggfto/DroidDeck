@@ -530,6 +530,39 @@ class SignalRService {
     }
   }
 
+  /// Emulador de teclado: pressiona uma tecla no PC em tempo real.
+  Future<void> sendKeyDown(String key) async {
+    final conn = _hubConnection;
+    if (conn == null || conn.state != HubConnectionState.Connected) return;
+    try {
+      await conn.invoke("SendKeyDown", args: [key]);
+    } catch (e) {
+      _logger.warning("Error invoking SendKeyDown: $e");
+    }
+  }
+
+  /// Emulador de teclado: solta uma tecla no PC em tempo real.
+  Future<void> sendKeyUp(String key) async {
+    final conn = _hubConnection;
+    if (conn == null || conn.state != HubConnectionState.Connected) return;
+    try {
+      await conn.invoke("SendKeyUp", args: [key]);
+    } catch (e) {
+      _logger.warning("Error invoking SendKeyUp: $e");
+    }
+  }
+
+  /// Emulador de teclado: solta todas as teclas que possam estar presas no PC.
+  Future<void> releaseAllKeys() async {
+    final conn = _hubConnection;
+    if (conn == null || conn.state != HubConnectionState.Connected) return;
+    try {
+      await conn.invoke("ReleaseAllKeys", args: []);
+    } catch (e) {
+      _logger.warning("Error invoking ReleaseAllKeys: $e");
+    }
+  }
+
   Future<void> updateUrl(String baseUrl, {String? apiKey}) async {
     // Marca como parada deliberada para o onclose do stop() abaixo nao agendar
     // uma reconexao para a URL ANTIGA; o init() em seguida limpa a flag.

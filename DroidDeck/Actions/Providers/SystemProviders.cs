@@ -62,6 +62,55 @@ namespace DroidDeck.Actions.Providers
         }
     }
 
+    /// <summary>Tecla do teclado com suporte a toque continuo (KeyDown/KeyUp) e latch. Privilegiada.</summary>
+    public class KeyProvider : IActionProvider
+    {
+        public string Type => "key";
+        public IReadOnlyCollection<string> Aliases => new[] { "keyboard_key", "send_key" };
+
+        public ActionSchema Describe() => new()
+        {
+            Type = Type,
+            Title = "Tecla do teclado",
+            Icon = "keyboard",
+            Category = "Sistema",
+            Privileged = true,
+            Description = "Envia uma tecla com suporte a pressionar e segurar em tempo real ou alternar.",
+            Fields =
+            {
+                ActionField.Text("key", "Tecla", "UP", "Nome da tecla (ex.: UP, DOWN, LEFT, RIGHT, F1-F12, ENTER, SPACE, A-Z) ou modificador (SHIFT, CTRL, ALT, WIN).", required: true),
+                ActionField.Select("mode", "Modo de envio",
+                    ("hold", "Pressionar e segurar (tempo real)"),
+                    ("tap", "Toque rápido"),
+                    ("toggle", "Alternar / Trava (Latch)"))
+                    .WithDefault("hold"),
+            },
+        };
+
+        public Task ExecuteAsync(ActionContext c)
+        {
+            var key = c.Get("key");
+            if (string.IsNullOrWhiteSpace(key)) return Task.CompletedTask;
+
+            var mode = c.Get("mode");
+            if (string.Equals(mode, "down", System.StringComparison.OrdinalIgnoreCase))
+            {
+                Lib.Input.KeyboardInput.KeyDown(key);
+            }
+            else if (string.Equals(mode, "up", System.StringComparison.OrdinalIgnoreCase))
+            {
+                Lib.Input.KeyboardInput.KeyUp(key);
+            }
+            else
+            {
+                Lib.Input.KeyboardInput.KeyDown(key);
+                System.Threading.Thread.Sleep(Lib.Input.KeyboardInput.HoldMs);
+                Lib.Input.KeyboardInput.KeyUp(key);
+            }
+            return Task.CompletedTask;
+        }
+    }
+
     /// <summary>Atalho de teclado via SendInput. Privilegiada.</summary>
     public class HotkeyProvider : IActionProvider
     {
@@ -80,13 +129,32 @@ namespace DroidDeck.Actions.Providers
             Fields =
             {
                 ActionField.Text("keys", "Teclas", "^C", "^ = Ctrl, + = Shift, % = Alt, # = Win, {ENTER}, {F5}…", required: true),
+                ActionField.Select("mode", "Modo de envio",
+                    ("tap", "Toque rápido"),
+                    ("hold", "Pressionar e segurar (tempo real)"))
+                    .WithDefault("tap"),
             },
         };
 
         public Task ExecuteAsync(ActionContext c)
         {
             var keys = c.Get("keys");
-            if (keys.Length > 0) _activator.SendKeys(keys);
+            if (keys.Length == 0) return Task.CompletedTask;
+
+            var mode = c.Get("mode");
+            if (string.Equals(mode, "hold", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(mode, "down", System.StringComparison.OrdinalIgnoreCase))
+            {
+                Lib.Input.KeyboardInput.KeyDown(keys);
+            }
+            else if (string.Equals(mode, "up", System.StringComparison.OrdinalIgnoreCase))
+            {
+                Lib.Input.KeyboardInput.KeyUp(keys);
+            }
+            else
+            {
+                _activator.SendKeys(keys);
+            }
             return Task.CompletedTask;
         }
     }
