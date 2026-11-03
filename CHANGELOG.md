@@ -1,3 +1,17 @@
+# [1.13.0](https://github.com/ggfto/DroidDeck/compare/v1.12.1...v1.13.0) (2026-11-03)
+
+
+### Bug Fixes
+
+* **teclado:** segurar de verdade, tecla so pelo botao salvo e trava ate a proxima tecla ([67e1432](https://github.com/ggfto/DroidDeck/commit/67e143285e9ab0dbf0e3286fff2981dab95de90e))
+* **web:** icone em branco no configurador depois de atualizar ([087065b](https://github.com/ggfto/DroidDeck/commit/087065bfb47026129c1bd6501c3908d431f002a8))
+
+
+### Features
+
+* **deck:** arrastar no celular, mais icones e copiar ou mover botao ([efe6600](https://github.com/ggfto/DroidDeck/commit/efe660072742b3efc59a9ff8cbb538e6099d8d9c))
+* **teclado:** implementar emulador fiel de teclado com hold continuo e latch ([0e01975](https://github.com/ggfto/DroidDeck/commit/0e019757307747374d2a2336214404463fef143b))
+
 ## [1.12.1](https://github.com/ggfto/DroidDeck/compare/v1.12.0...v1.12.1) (2026-10-29)
 
 
