@@ -145,31 +145,70 @@ namespace DroidDeck.Controllers
             return Ok(saved);
         }
 
-        [HttpPost("key")]
-        public ActionResult SendKey([FromBody] KeyRequest request)
+        /// <summary>
+        /// Copia ou move um botao salvo para outro perfil (ou duplica no mesmo). Liberado para
+        /// o celular mesmo com acao privilegiada: o PC copia o que ja esta salvo.
+        /// </summary>
+        [HttpPost("buttons/copy")]
+        public async Task<ActionResult> CopyButton([FromBody] CopyButtonRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Key))
-                return BadRequest();
+            if (request == null) return BadRequest();
+            var result = _configService.CopyButton(request.FromProfileId, request.ButtonId,
+                request.ToProfileId, request.Row, request.Column, request.Move);
+            switch (result)
+            {
+                case StreamDeckConfigService.CopyButtonResult.NotFound: return NotFound();
+                case StreamDeckConfigService.CopyButtonResult.Occupied:
+                    return Conflict(new { error = L.T("Essa casa já tem um botão.") });
+                case StreamDeckConfigService.CopyButtonResult.SamePlace: return BadRequest();
+            }
+            await _hubContext.Clients.All.SendAsync("ReceiveDeckUpdate", new { profileId = request.ToProfileId });
+            if (request.Move && request.FromProfileId != request.ToProfileId)
+                await _hubContext.Clients.All.SendAsync("ReceiveDeckUpdate", new { profileId = request.FromProfileId });
+            return Ok();
+        }
 
-            var state = request.State?.Trim().ToLowerInvariant() ?? "tap";
-            switch (state)
+        /// <summary>
+        /// Tecla avulsa para scripts e automacoes do proprio PC. De fora dele, 403: tecla
+        /// livre e o mesmo que um atalho (ActionPolicy); o celular usa os botoes salvos.
+        /// </summary>
+        [HttpPost("key")]
+        public async Task<ActionResult> SendKey([FromBody] KeyRequest request)
+        {
+            if (!IsLocalRequest) return PrivilegedOnlyOnPc(null);
+            if (request == null || !KeyboardInput.TryResolveKey(request.Key, out var vk))
+                return BadRequest(new { error = $"Tecla desconhecida: '{request?.Key}'." });
+
+            switch (request.State?.Trim().ToLowerInvariant() ?? "tap")
             {
                 case "down":
-                    KeyboardInput.KeyDown(request.Key);
+                    HeldKeys.Shared.Down(ApiKeyOwner, vk);
                     break;
                 case "up":
-                    KeyboardInput.KeyUp(request.Key);
+                    HeldKeys.Shared.Up(ApiKeyOwner, vk);
                     break;
                 case "tap":
-                    KeyboardInput.KeyDown(request.Key);
-                    System.Threading.Thread.Sleep(KeyboardInput.HoldMs);
-                    KeyboardInput.KeyUp(request.Key);
+                    KeyboardInput.KeyDown(vk);
+                    await Task.Delay(KeyboardInput.HoldMs);
+                    KeyboardInput.KeyUp(vk);
                     break;
                 default:
                     return BadRequest(new { error = $"Estado desconhecido: '{request.State}'. Use 'down', 'up' ou 'tap'." });
             }
             return Ok();
         }
+
+        private const string ApiKeyOwner = "api";
+    }
+
+    public class CopyButtonRequest
+    {
+        public string FromProfileId { get; set; } = "";
+        public string ButtonId { get; set; } = "";
+        public string ToProfileId { get; set; } = "";
+        public int Row { get; set; }
+        public int Column { get; set; }
+        public bool Move { get; set; }
     }
 
     public class KeyRequest

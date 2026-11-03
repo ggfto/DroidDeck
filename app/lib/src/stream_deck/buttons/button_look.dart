@@ -33,17 +33,11 @@ class ButtonLook {
   final DeckButton button;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
-  final GestureTapDownCallback? onTapDown;
-  final GestureTapUpCallback? onTapUp;
-  final VoidCallback? onTapCancel;
 
   ButtonLook({
     required this.button,
     required this.onTap,
     required this.onLongPress,
-    this.onTapDown,
-    this.onTapUp,
-    this.onTapCancel,
   });
 
   DeckAction? get action => button.action;
@@ -124,9 +118,6 @@ class ButtonLook {
         activeColor: activeColor ?? this.activeColor,
         onTap: onTap,
         onLongPress: onLongPress,
-        onTapDown: onTapDown,
-        onTapUp: onTapUp,
-        onTapCancel: onTapCancel,
         // Rótulo e ícone crescem com o botão: num tablet ou no configurador o texto não
         // fica miúdo; num celular pequeno não estoura.
         child: LayoutBuilder(

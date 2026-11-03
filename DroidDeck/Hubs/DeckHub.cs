@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
@@ -105,27 +106,48 @@ namespace DroidDeck.Hubs
 
         public static string LanguageGroup(string language) => "lang:" + language;
 
-        public Task SendKeyDown(string key)
+        /// <summary>
+        /// Tecla em modo "segurar": o app chama ao encostar o dedo e o <see cref="ReleaseKey"/>
+        /// ao tirar. Vem o id do botao, nao a tecla: o servidor le a acao do perfil salvo,
+        /// como no /press, entao o celular nao escolhe o que e digitado (ActionPolicy).
+        /// </summary>
+        public void HoldKey(string buttonId)
         {
-            Lib.Input.KeyboardInput.KeyDown(key);
-            return Task.CompletedTask;
+            if (FindHoldKey(buttonId) is ushort vk)
+                Lib.Input.HeldKeys.Shared.Down(Context.ConnectionId, vk);
         }
 
-        public Task SendKeyUp(string key)
+        public void ReleaseKey(string buttonId)
         {
-            Lib.Input.KeyboardInput.KeyUp(key);
-            return Task.CompletedTask;
+            if (FindHoldKey(buttonId) is ushort vk)
+                Lib.Input.HeldKeys.Shared.Up(Context.ConnectionId, vk);
         }
 
-        public Task ReleaseAllKeys()
+        private ushort? FindHoldKey(string buttonId)
         {
-            Lib.Input.KeyboardInput.ReleaseAll();
-            return Task.CompletedTask;
+            if (string.IsNullOrEmpty(buttonId)) return null;
+            if (_services.GetService(typeof(Services.StreamDeckConfigService)) is not Services.StreamDeckConfigService cfg)
+                return null;
+            var action = cfg.GetProfiles()
+                .SelectMany(p => p.Buttons ?? new List<Models.DeckButton>())
+                .FirstOrDefault(b => b.Id == buttonId)?.Action;
+            if (action == null || !IsKeyType(action.Type)) return null;
+            if (action.Parameters.TryGetValue("mode", out var mode) && mode is { Length: > 0 } &&
+                !string.Equals(mode, "hold", StringComparison.OrdinalIgnoreCase))
+                return null;
+            return action.Parameters.TryGetValue("key", out var key) &&
+                   Lib.Input.KeyboardInput.TryResolveKey(key, out var vk) ? vk : null;
         }
+
+        private static bool IsKeyType(string? type) =>
+            type != null && (type.Equals("key", StringComparison.OrdinalIgnoreCase) ||
+                             type.Equals("keyboard_key", StringComparison.OrdinalIgnoreCase) ||
+                             type.Equals("send_key", StringComparison.OrdinalIgnoreCase));
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            Lib.Input.KeyboardInput.ReleaseAll();
+            // Celular que caiu com o dedo numa tecla: solta so as dele.
+            Lib.Input.HeldKeys.Shared.ReleaseOwner(Context.ConnectionId);
             Interlocked.Decrement(ref _connectedCount);
             await base.OnDisconnectedAsync(exception);
         }

@@ -6,10 +6,14 @@ class ButtonEditorDialog extends StatelessWidget {
   final DeckButton button;
   final Function(DeckButton) onSave;
 
+  /// Ver [ButtonPropertyPanel.onCopyOrMove].
+  final VoidCallback? onCopyOrMove;
+
   const ButtonEditorDialog({
     super.key,
     required this.button,
     required this.onSave,
+    this.onCopyOrMove,
   });
 
   @override
@@ -25,6 +29,7 @@ class ButtonEditorDialog extends StatelessWidget {
             Navigator.of(context).pop();
           },
           onCancel: () => Navigator.of(context).pop(),
+          onCopyOrMove: onCopyOrMove,
         ),
       ),
     );

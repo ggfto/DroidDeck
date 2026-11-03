@@ -98,7 +98,7 @@ namespace DroidDeck.Services
                 {
                     var defaultProfile = new DeckProfile { Name = "Default", IsDefault = true };
                     SaveProfile(defaultProfile);
-                    SaveProfile(CreateKeyboardProfile());
+                    foreach (var keyboard in CreateKeyboardProfiles()) SaveProfile(keyboard);
                 }
                 return new List<DeckProfile>(_cache);
             }
@@ -155,6 +155,49 @@ namespace DroidDeck.Services
                 }
             }
         }
+
+        public enum CopyButtonResult { Ok, NotFound, Occupied, SamePlace }
+
+        /// <summary>
+        /// Copia (ou move) um botao salvo para a casa (row, column) de outro perfil -- ou do
+        /// mesmo, para duplicar. Le o botao do perfil gravado: o cliente nao manda o conteudo,
+        /// entao copiar um atalho pelo celular nao abre brecha na ActionPolicy. Mover mantem
+        /// o id (o liga/desliga do botao vai junto); a copia ganha um id novo.
+        /// </summary>
+        public CopyButtonResult CopyButton(string fromProfileId, string buttonId, string toProfileId, int row, int column, bool move)
+        {
+            lock (_lock)
+            {
+                var from = GetProfile(fromProfileId);
+                var to = GetProfile(toProfileId);
+                var button = from?.Buttons?.FirstOrDefault(b => b.Id == buttonId);
+                if (from == null || to == null || button == null || row < 0 || column < 0)
+                    return CopyButtonResult.NotFound;
+                if (move && from.Id == to.Id) return CopyButtonResult.SamePlace;
+                if (to.Buttons.Any(b => b.Row == row && b.Column == column))
+                    return CopyButtonResult.Occupied;
+
+                // Copias por JSON: o cache devolve os proprios objetos.
+                var target = Clone(to);
+                var copy = Clone(button);
+                copy.Id = move ? button.Id : Guid.NewGuid().ToString();
+                copy.Row = row;
+                copy.Column = column;
+                target.Buttons.Add(copy);
+                SaveProfile(target);
+
+                if (move)
+                {
+                    var source = Clone(from);
+                    source.Buttons.RemoveAll(b => b.Id == button.Id);
+                    SaveProfile(source);
+                }
+                return CopyButtonResult.Ok;
+            }
+        }
+
+        private T Clone<T>(T value) =>
+            JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, _jsonOptions), _jsonOptions)!;
 
         public void DeleteProfile(string id)
         {
@@ -216,184 +259,114 @@ namespace DroidDeck.Services
                     _logger.LogError(ex, "Error loading profiles directory");
                 }
             }
-        public static DeckProfile CreateKeyboardProfile()
+        }
+
+        public const string KeyboardProfileId = "keyboard_profile";
+
+        /// <summary>
+        /// Perfil "Teclado" de exemplo, com duas pastas (F1-F12 e "Mais"). Cada pagina tem
+        /// 3x5, a grade padrao: botao fora da grade do celular some, entao um perfil maior
+        /// perdia as setas num celular de grade pequena.
+        /// </summary>
+        public static List<DeckProfile> CreateKeyboardProfiles()
         {
-            var profile = new DeckProfile
+            const string fkeysId = "keyboard_fkeys", moreId = "keyboard_more";
+
+            DeckButton Key(int row, int col, string label, string key, string mode = "hold", string? icon = null, string bg = "#252530") => new()
             {
-                Id = "keyboard_profile",
-                Name = "Teclado (Setas & F-Keys)",
-                Rows = 5,
-                Columns = 6,
-                IsDefault = false,
-                Buttons = new List<DeckButton>()
+                Row = row,
+                Column = col,
+                Label = label,
+                IconName = icon,
+                BackgroundColor = bg,
+                ActiveColor = mode == "hold" ? null : "#3F51B5",
+                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = key, ["mode"] = mode } },
             };
-
-            for (int i = 1; i <= 6; i++)
+            DeckButton Shortcut(int row, int col, string label, string keys, string icon) => new()
             {
-                profile.Buttons.Add(new DeckButton
-                {
-                    Row = 0,
-                    Column = i - 1,
-                    Label = $"F{i}",
-                    BackgroundColor = "#202028",
-                    Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = $"F{i}", ["mode"] = "hold" } }
-                });
-            }
-            for (int i = 7; i <= 12; i++)
-            {
-                profile.Buttons.Add(new DeckButton
-                {
-                    Row = 1,
-                    Column = i - 7,
-                    Label = $"F{i}",
-                    BackgroundColor = "#202028",
-                    Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = $"F{i}", ["mode"] = "hold" } }
-                });
-            }
-
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 2,
-                Column = 0,
-                Label = "ESC",
-                BackgroundColor = "#302020",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "ESC", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 2,
-                Column = 1,
-                Label = "TAB",
-                BackgroundColor = "#252530",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "TAB", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 2,
-                Column = 2,
-                Label = "BKSP",
-                IconName = "backspace",
-                BackgroundColor = "#252530",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "BACKSPACE", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 2,
-                Column = 3,
-                Label = "ENTER",
-                IconName = "keyboard_return",
-                BackgroundColor = "#203025",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "ENTER", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 2,
-                Column = 4,
-                Label = "INS",
-                BackgroundColor = "#252530",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "INSERT", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 2,
-                Column = 5,
-                Label = "DEL",
-                BackgroundColor = "#352020",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "DELETE", ["mode"] = "hold" } }
-            });
-
-            var modifiers = new (string key, string label)[]
-            {
-                ("SHIFT", "SHIFT"),
-                ("CTRL", "CTRL"),
-                ("ALT", "ALT"),
-                ("WIN", "WIN")
+                Row = row,
+                Column = col,
+                Label = L.T(label),
+                IconName = icon,
+                BackgroundColor = "#202830",
+                Action = new DeckAction { Type = "hotkey", Parameters = new() { ["keys"] = keys } },
             };
-            for (int c = 0; c < modifiers.Length; c++)
+            DeckButton Folder(int row, int col, string label, string profileId) => new()
             {
-                var mod = modifiers[c];
-                profile.Buttons.Add(new DeckButton
-                {
-                    Row = 3,
-                    Column = c,
-                    Label = mod.label,
-                    Toggle = true,
-                    BackgroundColor = "#2A2A38",
-                    ActiveColor = "#3F51B5",
-                    Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = mod.key, ["mode"] = "toggle" } }
-                });
-            }
-            profile.Buttons.Add(new DeckButton
+                Row = row,
+                Column = col,
+                Label = label,
+                IconName = "folder",
+                BackgroundColor = "#303040",
+                Action = new DeckAction { Type = "open_profile", Parameters = new() { ["profileId"] = profileId } },
+            };
+            DeckButton Back(int row, int col) => new()
             {
-                Row = 3,
-                Column = 4,
-                Label = "HOME",
-                BackgroundColor = "#252530",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "HOME", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 3,
-                Column = 5,
-                Label = "END",
-                BackgroundColor = "#252530",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "END", ["mode"] = "hold" } }
-            });
-
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 4,
-                Column = 0,
-                Label = "PG UP",
-                BackgroundColor = "#252530",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "PGUP", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 4,
-                Column = 1,
-                Label = "PG DN",
-                BackgroundColor = "#252530",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "PGDN", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 4,
-                Column = 2,
-                Label = "◄",
+                Row = row,
+                Column = col,
+                Label = L.T("Voltar"),
                 IconName = "arrow_back",
-                BackgroundColor = "#252538",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "LEFT", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 4,
-                Column = 3,
-                Label = "▲",
-                IconName = "arrow_upward",
-                BackgroundColor = "#252538",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "UP", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 4,
-                Column = 4,
-                Label = "▼",
-                IconName = "arrow_downward",
-                BackgroundColor = "#252538",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "DOWN", ["mode"] = "hold" } }
-            });
-            profile.Buttons.Add(new DeckButton
-            {
-                Row = 4,
-                Column = 5,
-                Label = "►",
-                IconName = "arrow_forward",
-                BackgroundColor = "#252538",
-                Action = new DeckAction { Type = "key", Parameters = new() { ["key"] = "RIGHT", ["mode"] = "hold" } }
-            });
+                BackgroundColor = "#303040",
+                Action = new DeckAction { Type = "back" },
+            };
 
-            return profile;
+            var main = new DeckProfile
+            {
+                Id = KeyboardProfileId,
+                Name = L.T("Teclado"),
+                Rows = 3,
+                Columns = 5,
+                Buttons =
+                {
+                    Key(0, 0, "ESC", "ESC", bg: "#302020"),
+                    Key(0, 1, "TAB", "TAB"),
+                    Key(0, 2, "", "UP", icon: "arrow_upward", bg: "#252538"),
+                    Key(0, 3, "", "BACKSPACE", icon: "backspace"),
+                    Key(0, 4, "", "ENTER", icon: "keyboard_return", bg: "#203025"),
+                    // Modificadores: travam ate a proxima tecla (Shift + seta seleciona).
+                    Key(1, 0, "SHIFT", "SHIFT", "oneshot", bg: "#2A2A38"),
+                    Key(1, 1, "", "LEFT", icon: "arrow_back", bg: "#252538"),
+                    Key(1, 2, "", "DOWN", icon: "arrow_downward", bg: "#252538"),
+                    Key(1, 3, "", "RIGHT", icon: "arrow_forward", bg: "#252538"),
+                    Key(1, 4, "", "SPACE"),
+                    Key(2, 0, "CTRL", "CTRL", "oneshot", bg: "#2A2A38"),
+                    Key(2, 1, "ALT", "ALT", "oneshot", bg: "#2A2A38"),
+                    Key(2, 2, "WIN", "WIN", "oneshot", bg: "#2A2A38"),
+                    Folder(2, 3, "F1–F12", fkeysId),
+                    Folder(2, 4, L.T("Mais"), moreId),
+                },
+            };
+
+            var fkeys = new DeckProfile { Id = fkeysId, Name = L.T("Teclado") + " · F1–F12", Rows = 3, Columns = 5 };
+            for (int i = 0; i < 12; i++)
+                fkeys.Buttons.Add(Key(i / 5, i % 5, $"F{i + 1}", $"F{i + 1}", bg: "#202028"));
+            fkeys.Buttons.Add(Back(2, 4));
+
+            var more = new DeckProfile
+            {
+                Id = moreId,
+                Name = L.T("Teclado") + " · " + L.T("Mais"),
+                Rows = 3,
+                Columns = 5,
+                Buttons =
+                {
+                    Shortcut(0, 0, "Copiar", "^c", "content_copy"),
+                    Shortcut(0, 1, "Colar", "^v", "content_paste"),
+                    Shortcut(0, 2, "Recortar", "^x", "content_cut"),
+                    Shortcut(0, 3, "Desfazer", "^z", "undo"),
+                    Shortcut(0, 4, "Selecionar tudo", "^a", "select_all"),
+                    Key(1, 0, "HOME", "HOME"),
+                    Key(1, 1, "END", "END"),
+                    Key(1, 2, "PG UP", "PGUP"),
+                    Key(1, 3, "PG DN", "PGDN"),
+                    Shortcut(1, 4, "Fechar janela", "%{F4}", "close"),
+                    Key(2, 0, "INS", "INSERT"),
+                    Key(2, 1, "DEL", "DELETE", bg: "#352020"),
+                    Back(2, 4),
+                },
+            };
+
+            return new List<DeckProfile> { main, fkeys, more };
         }
     }
 }

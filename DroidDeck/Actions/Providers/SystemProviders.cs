@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using DroidDeck.Lib.Input;
 using DroidDeck.Services;
 
 namespace DroidDeck.Actions.Providers
@@ -62,9 +65,28 @@ namespace DroidDeck.Actions.Providers
         }
     }
 
-    /// <summary>Tecla do teclado com suporte a toque continuo (KeyDown/KeyUp) e latch. Privilegiada.</summary>
-    public class KeyProvider : IActionProvider
+    /// <summary>
+    /// Uma tecla do teclado. Privilegiada (ActionPolicy): com teclas soltas da para chegar
+    /// a Win+R e digitar um comando, entao so nasce no configurador, como o atalho.
+    ///
+    /// Modos: "hold" segura enquanto o dedo estiver no botao -- o app manda o aperta e o
+    /// solta pelo hub (DeckHub.HoldKey/ReleaseKey); por aqui (gatilho, /press sem hub) vira
+    /// toque rapido. "toggle" trava a tecla apertada ate o proximo toque (Shift, Ctrl...);
+    /// "oneshot" trava so ate a proxima tecla do deck, como as teclas de aderencia.
+    /// </summary>
+    public class KeyProvider : IActionProvider, IDisposable
     {
+        public const string LatchOwner = "latch";
+
+        private readonly ButtonToggleService _toggles;
+        private readonly HashSet<string> _latchedButtons = new();
+
+        public KeyProvider(ButtonToggleService toggles)
+        {
+            _toggles = toggles;
+            HeldKeys.Shared.OneShotReleased += OnOneShotReleased;
+        }
+
         public string Type => "key";
         public IReadOnlyCollection<string> Aliases => new[] { "keyboard_key", "send_key" };
 
@@ -74,40 +96,93 @@ namespace DroidDeck.Actions.Providers
             Title = "Tecla do teclado",
             Icon = "keyboard",
             Category = "Sistema",
-            Privileged = true,
-            Description = "Envia uma tecla com suporte a pressionar e segurar em tempo real ou alternar.",
+            Description = "Aperta uma tecla no PC: segura enquanto o dedo estiver no botão, dá um toque rápido ou fica travada até o próximo toque.",
             Fields =
             {
-                ActionField.Text("key", "Tecla", "UP", "Nome da tecla (ex.: UP, DOWN, LEFT, RIGHT, F1-F12, ENTER, SPACE, A-Z) ou modificador (SHIFT, CTRL, ALT, WIN).", required: true),
+                new ActionField
+                {
+                    Key = "key",
+                    Label = "Tecla",
+                    Kind = FieldKind.Select,
+                    AllowCustom = true,
+                    Required = true,
+                    Default = "UP",
+                    Help = "Escolha na lista ou digite outra: A-Z, 0-9, F13-F24, NUMPAD0 ou o código (0x41).",
+                    Options = KeyOptions.Select(o => new FieldOption(o.value, o.label)).ToList(),
+                },
                 ActionField.Select("mode", "Modo de envio",
-                    ("hold", "Pressionar e segurar (tempo real)"),
+                    ("hold", "Segurar enquanto o dedo estiver no botão"),
                     ("tap", "Toque rápido"),
-                    ("toggle", "Alternar / Trava (Latch)"))
+                    ("toggle", "Travar: um toque aperta, outro solta"),
+                    ("oneshot", "Travar até a próxima tecla"))
                     .WithDefault("hold"),
             },
         };
 
-        public Task ExecuteAsync(ActionContext c)
+        private static readonly (string value, string label)[] KeyOptions =
         {
-            var key = c.Get("key");
-            if (string.IsNullOrWhiteSpace(key)) return Task.CompletedTask;
+            ("UP", "Seta para cima"), ("DOWN", "Seta para baixo"),
+            ("LEFT", "Seta para a esquerda"), ("RIGHT", "Seta para a direita"),
+            ("SHIFT", "Shift"), ("CTRL", "Ctrl"), ("ALT", "Alt"), ("WIN", "Windows"),
+            ("ENTER", "Enter"), ("ESC", "Esc"), ("TAB", "Tab"), ("SPACE", "Espaço"), ("BACKSPACE", "Backspace"),
+            ("INSERT", "Insert"), ("DELETE", "Delete"), ("HOME", "Home"), ("END", "End"),
+            ("PGUP", "Page Up"), ("PGDN", "Page Down"),
+            ("F1", "F1"), ("F2", "F2"), ("F3", "F3"), ("F4", "F4"), ("F5", "F5"), ("F6", "F6"),
+            ("F7", "F7"), ("F8", "F8"), ("F9", "F9"), ("F10", "F10"), ("F11", "F11"), ("F12", "F12"),
+        };
+
+        public async Task ExecuteAsync(ActionContext c)
+        {
+            if (!KeyboardInput.TryResolveKey(c.Get("key"), out var vk)) return;
 
             var mode = c.Get("mode");
-            if (string.Equals(mode, "down", System.StringComparison.OrdinalIgnoreCase))
+            var oneShot = string.Equals(mode, "oneshot", StringComparison.OrdinalIgnoreCase);
+            if (oneShot || string.Equals(mode, "toggle", StringComparison.OrdinalIgnoreCase))
             {
-                Lib.Input.KeyboardInput.KeyDown(key);
+                // A trava vale por botao (ou pela tecla, numa execucao avulsa). O estado aceso
+                // segue o da tecla, nao o liga/desliga do botao: os dois nunca se desencontram.
+                var owner = (oneShot ? HeldKeys.OneShotPrefix : LatchOwner + ":") + (c.ButtonId ?? vk.ToString());
+                var on = !HeldKeys.Shared.IsHeld(owner, vk);
+                if (on) HeldKeys.Shared.Down(owner, vk);
+                else HeldKeys.Shared.Up(owner, vk);
+                if (c.ButtonId != null)
+                {
+                    lock (_latchedButtons)
+                    {
+                        if (on) _latchedButtons.Add(c.ButtonId);
+                        else _latchedButtons.Remove(c.ButtonId);
+                    }
+                    _toggles.Set(c.ButtonId, on);
+                }
+                return;
             }
-            else if (string.Equals(mode, "up", System.StringComparison.OrdinalIgnoreCase))
-            {
-                Lib.Input.KeyboardInput.KeyUp(key);
-            }
-            else
-            {
-                Lib.Input.KeyboardInput.KeyDown(key);
-                System.Threading.Thread.Sleep(Lib.Input.KeyboardInput.HoldMs);
-                Lib.Input.KeyboardInput.KeyUp(key);
-            }
-            return Task.CompletedTask;
+
+            KeyboardInput.KeyDown(vk);
+            await Task.Delay(KeyboardInput.HoldMs);
+            KeyboardInput.KeyUp(vk);
+            HeldKeys.Shared.KeyTapped(vk);
+        }
+
+        // Trava "ate a proxima tecla" que soltou sozinha: apaga o botao nos celulares.
+        private void OnOneShotReleased(string owner)
+        {
+            var buttonId = owner[HeldKeys.OneShotPrefix.Length..];
+            lock (_latchedButtons)
+                if (!_latchedButtons.Remove(buttonId)) return;
+            _toggles.Set(buttonId, false);
+        }
+
+        /// <summary>
+        /// PC encerrando: solta as travas e apaga o aceso delas (o toggles.json sobrevive ao
+        /// reinicio, a tecla apertada nao).
+        /// </summary>
+        public void Dispose()
+        {
+            HeldKeys.Shared.OneShotReleased -= OnOneShotReleased;
+            string[] latched;
+            lock (_latchedButtons) latched = _latchedButtons.ToArray();
+            foreach (var id in latched) _toggles.Set(id, false);
+            HeldKeys.Shared.ReleaseAll();
         }
     }
 
@@ -129,10 +204,6 @@ namespace DroidDeck.Actions.Providers
             Fields =
             {
                 ActionField.Text("keys", "Teclas", "^C", "^ = Ctrl, + = Shift, % = Alt, # = Win, {ENTER}, {F5}…", required: true),
-                ActionField.Select("mode", "Modo de envio",
-                    ("tap", "Toque rápido"),
-                    ("hold", "Pressionar e segurar (tempo real)"))
-                    .WithDefault("tap"),
             },
         };
 
@@ -140,21 +211,9 @@ namespace DroidDeck.Actions.Providers
         {
             var keys = c.Get("keys");
             if (keys.Length == 0) return Task.CompletedTask;
-
-            var mode = c.Get("mode");
-            if (string.Equals(mode, "hold", System.StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(mode, "down", System.StringComparison.OrdinalIgnoreCase))
-            {
-                Lib.Input.KeyboardInput.KeyDown(keys);
-            }
-            else if (string.Equals(mode, "up", System.StringComparison.OrdinalIgnoreCase))
-            {
-                Lib.Input.KeyboardInput.KeyUp(keys);
-            }
-            else
-            {
-                _activator.SendKeys(keys);
-            }
+            _activator.SendKeys(keys);
+            // Shift "ate a proxima tecla" vale para o atalho e solta depois dele.
+            HeldKeys.Shared.KeyTapped();
             return Task.CompletedTask;
         }
     }

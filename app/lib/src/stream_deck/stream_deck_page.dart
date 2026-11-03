@@ -7,6 +7,7 @@ import 'package:droiddeck/src/stream_deck/actions/action_catalog.dart';
 import 'package:droiddeck/src/stream_deck/stream_deck_controller.dart';
 import 'package:droiddeck/src/stream_deck/widgets/dynamic_deck_button.dart';
 import 'package:droiddeck/src/stream_deck/widgets/button_editor_dialog.dart';
+import 'package:droiddeck/src/stream_deck/widgets/copy_move_dialog.dart';
 import 'package:droiddeck/src/stream_deck/widgets/profile_settings_dialog.dart';
 import 'package:droiddeck/core/core.dart';
 import 'package:flutter/foundation.dart';
@@ -36,6 +37,9 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
   DeckProfile? _rootProfile; // perfil-raiz antes de entrar em pastas
   int? _reportedCols; // última grade reportada ao PC (evita reenvio)
   int? _reportedRows;
+
+  /// Grade desenhada agora (para achar casa livre ao copiar um botão).
+  _GridFit? _grid;
 
   /// Deck no navegador: usa a grade do celular (guardada no PC) em vez de calcular a
   /// própria — senão o navegador e o celular brigariam pela grade.
@@ -269,6 +273,12 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
       context: context,
       builder: (context) => ButtonEditorDialog(
         button: button,
+        onCopyOrMove: button.id.isEmpty
+            ? null
+            : () {
+                Navigator.of(context).pop();
+                _copyOrMove(button);
+              },
         onSave: (b) async {
           final refused = await controller.updateButton(b);
           // "Limpar botão" apaga na hora, mas dá para desfazer.
@@ -295,6 +305,19 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
           }
         },
       ),
+    );
+  }
+
+  /// A grade de quem define o deck (o celular), mesmo copiando pelo navegador.
+  void _copyOrMove(DeckButton button) {
+    final shared = _sharedGrid;
+    final profile = controller.currentProfile.value;
+    copyOrMoveButton(
+      context,
+      controller: controller,
+      button: button,
+      rows: shared?['rows'] ?? _grid?.rows ?? profile?.rows ?? 3,
+      columns: shared?['columns'] ?? _grid?.cols ?? profile?.columns ?? 5,
     );
   }
 
@@ -396,7 +419,8 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
                     width: g.cell,
                     height: g.cell,
                     child: _buildCell(row, col, null, profiles,
-                        showEmpty: _editMode || profile.buttons.isEmpty),
+                        showEmpty: _editMode || profile.buttons.isEmpty,
+                        movable: _editMode),
                   ),
           for (final p in layout.placements)
             Positioned(
@@ -404,7 +428,8 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
               top: p.row * step,
               width: size(p.columnSpan),
               height: size(p.rowSpan),
-              child: _buildCell(p.row, p.column, original[p.button.id] ?? p.button, profiles),
+              child: _buildCell(p.row, p.column, original[p.button.id] ?? p.button, profiles,
+                  movable: _editMode && !reflow),
             ),
         ],
       ),
@@ -422,6 +447,65 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
     DeckButton? existing,
     List<DeckProfile> profiles, {
     bool showEmpty = true,
+    bool movable = false,
+  }) {
+    final cell = _buildCellContent(row, col, existing, profiles, showEmpty: showEmpty);
+    return movable ? _movableCell(row, col, existing, cell) : cell;
+  }
+
+  /// Modo de edição: segurar um botão e arrastar para outra casa move (ou troca de lugar
+  /// com o que estiver lá), como no configurador do PC.
+  Widget _movableCell(int row, int col, DeckButton? existing, Widget cell) {
+    return DragTarget<DeckButton>(
+      onWillAcceptWithDetails: (d) => d.data.row != row || d.data.column != col,
+      onAcceptWithDetails: (d) {
+        ThemeController.instance.tapFeedback();
+        controller.moveButton(d.data, row, col);
+      },
+      builder: (context, candidate, _) {
+        final scheme = Theme.of(context).colorScheme;
+        final target = candidate.isEmpty
+            ? cell
+            : DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: BoxDecoration(
+                  border: Border.all(color: scheme.tertiary, width: 3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: cell,
+              );
+        if (existing == null) return target;
+        return LayoutBuilder(
+          builder: (context, c) => LongPressDraggable<DeckButton>(
+            data: existing,
+            // Antes do toque longo do botão (500 ms), que abriria o editor.
+            delay: const Duration(milliseconds: 350),
+            hapticFeedbackOnStart: true,
+            feedback: SizedBox(
+              width: c.maxWidth,
+              height: c.maxHeight,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Opacity(
+                  opacity: 0.85,
+                  child: DynamicDeckButton(button: existing, onTap: () {}, onLongPress: () {}),
+                ),
+              ),
+            ),
+            childWhenDragging: Opacity(opacity: 0.3, child: cell),
+            child: target,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCellContent(
+    int row,
+    int col,
+    DeckButton? existing,
+    List<DeckProfile> profiles, {
+    required bool showEmpty,
   }) {
     if (existing == null) {
       // Fora do modo de edição, casa vazia é só espaço: um toque sem querer no meio de
@@ -448,6 +532,7 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
     final hasLongPress = existing.longPressAction != null;
     final tile = DynamicDeckButton(
       button: existing,
+      liveKeys: !_editMode,
       onTap: _editMode
           ? () => _editButton(existing)
           : () => _handlePress(existing, profiles),
@@ -611,6 +696,7 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
                 constraints.maxHeight,
               );
               _maybeReportLayout(g);
+              _grid = g;
               return Stack(
                 children: [
                   PageView.builder(
@@ -718,7 +804,7 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
                               vertical: 4,
                             ),
                             child: Text(
-                              tr('Modo de edição: toque num botão para editar'),
+                              tr('Modo de edição: toque para editar, segure e arraste para mover'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Theme.of(context).colorScheme.onPrimary,

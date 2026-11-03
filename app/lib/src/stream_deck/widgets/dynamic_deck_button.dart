@@ -15,11 +15,15 @@ class DynamicDeckButton extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
+  /// Ver [DeckGridButton.liveKeys].
+  final bool liveKeys;
+
   const DynamicDeckButton({
     super.key,
     required this.button,
     required this.onTap,
     required this.onLongPress,
+    this.liveKeys = false,
   });
 
   /// O que o leitor de tela diz além do texto que a tecla já mostra (os dois se juntam
@@ -67,6 +71,7 @@ class DynamicDeckButton extends StatelessWidget {
         button: button,
         onTap: onTap,
         onLongPress: onLongPress,
+        liveKeys: liveKeys,
       );
     }
 

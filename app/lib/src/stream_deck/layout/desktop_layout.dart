@@ -3,6 +3,7 @@ import '../widgets/share_profile_dialog.dart';
 import 'package:droiddeck/src/config/triggers_page.dart';
 import 'package:droiddeck/src/stream_deck/stream_deck_controller.dart';
 import 'package:droiddeck/src/stream_deck/widgets/button_property_panel.dart';
+import 'package:droiddeck/src/stream_deck/widgets/copy_move_dialog.dart';
 import 'package:droiddeck/src/stream_deck/widgets/dynamic_deck_button.dart';
 import 'package:droiddeck/src/stream_deck/widgets/connection_chip.dart';
 import 'package:droiddeck/src/services/signalr_service.dart';
@@ -303,6 +304,16 @@ class _SteamDeckDesktopLayoutState extends State<SteamDeckDesktopLayout> {
         setState(() => _selectedButton = btn.id.isEmpty ? null : btn);
       },
       onCancel: () => setState(() => _selectedButton = null),
+      onCopyOrMove: () {
+        final lay = Injector.get<SignalRService>().deckLayout.value;
+        copyOrMoveButton(
+          context,
+          controller: widget.controller,
+          button: selected,
+          rows: lay['rows'] ?? 3,
+          columns: lay['columns'] ?? 5,
+        );
+      },
     );
   }
 

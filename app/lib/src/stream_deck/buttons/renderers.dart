@@ -14,6 +14,7 @@ import 'windows_button.dart';
 const Map<String, ButtonRenderer> _renderers = {
   'key': KeyButtonRenderer(),
   'keyboard_key': KeyButtonRenderer(),
+  'send_key': KeyButtonRenderer(),
   'media': MediaButtonRenderer(),
   'mixer': MixerButtonRenderer(),
   'discord': DiscordButtonRenderer(),
