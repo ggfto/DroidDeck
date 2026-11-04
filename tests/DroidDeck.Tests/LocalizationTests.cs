@@ -156,6 +156,7 @@ namespace DroidDeck.Tests
         {
             "Discord", "OBS Studio", "Soundboard", "Windows", "Home Assistant", "Spotify", "Twitch", "YouTube", "Streaming",
             "Script", "Voicemeeter", "Elgato Key Light", "Philips Hue", "Govee", "MQTT", "Streamer.bot", "VTube Studio",
+            "vMix", "Companion", "mAirList", "RadioDJ",
         };
 
         // Exemplos, unidades e termos tecnicos: ficam iguais em qualquer idioma.
@@ -165,6 +166,8 @@ namespace DroidDeck.Tests
             "Authorization: Bearer …", @"C:\scripts\backup.ps1", @"C:\Windows\System32\notepad.exe", "dB", "DELETE", "GET",
             "JSON", "K", "light.turn_on", "min", " min", "ON", "PATCH", "Pause", "Play", "Playlist", "POST", "PowerShell", "PUT",
             "Python", "s", "Strip[0].A1", "URL",
+            "OSC", "TCP", "UDP", "ms", "/ch/01/mix/on", "i:1", "PLAY", "SetText", "Input=1&SelectedName=Titulo&Value=Oi",
+            "PLAYLIST 1 NEXT", "RefreshEvents",
             // Nomes das teclas (o que esta impresso no teclado).
             "Alt", "Backspace", "Ctrl", "Delete", "End", "Enter", "Esc", "Home", "Insert", "Page Down", "Page Up", "Shift", "Tab",
             "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",

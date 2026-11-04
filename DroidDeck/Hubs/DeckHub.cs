@@ -115,12 +115,38 @@ namespace DroidDeck.Hubs
         {
             if (FindHoldKey(buttonId) is ushort vk)
                 Lib.Input.HeldKeys.Shared.Down(Context.ConnectionId, vk);
+            else if (FindHoldMute(buttonId) is { } parameter)
+                MicHold?.Down(Context.ConnectionId, parameter);
         }
 
         public void ReleaseKey(string buttonId)
         {
             if (FindHoldKey(buttonId) is ushort vk)
                 Lib.Input.HeldKeys.Shared.Up(Context.ConnectionId, vk);
+            else if (FindHoldMute(buttonId) is { } parameter)
+                MicHold?.Up(Context.ConnectionId, parameter);
+        }
+
+        private Integrations.MicHoldService? MicHold =>
+            _services.GetService(typeof(Integrations.MicHoldService)) as Integrations.MicHoldService;
+
+        private Integrations.CompanionIntegration? Companion =>
+            _services.GetService(typeof(Integrations.CompanionIntegration)) as Integrations.CompanionIntegration;
+
+        /// <summary>Tecla da superficie do Companion: o app manda ao encostar e ao soltar o dedo.</summary>
+        public Task CompanionKey(int key, bool pressed) =>
+            Companion?.SetKeyAsync(Context.ConnectionId, key, pressed) ?? Task.CompletedTask;
+
+        /// <summary>Parametro de mudo de um botao "cortar enquanto segura" do Voicemeeter.</summary>
+        private string? FindHoldMute(string buttonId)
+        {
+            if (string.IsNullOrEmpty(buttonId)) return null;
+            if (_services.GetService(typeof(Services.StreamDeckConfigService)) is not Services.StreamDeckConfigService cfg)
+                return null;
+            var action = cfg.GetProfiles()
+                .SelectMany(p => p.Buttons ?? new List<Models.DeckButton>())
+                .FirstOrDefault(b => b.Id == buttonId)?.Action;
+            return action == null ? null : Integrations.VoicemeeterProvider.HoldMuteParameter(action);
         }
 
         private ushort? FindHoldKey(string buttonId)
@@ -148,6 +174,8 @@ namespace DroidDeck.Hubs
         {
             // Celular que caiu com o dedo numa tecla: solta so as dele.
             Lib.Input.HeldKeys.Shared.ReleaseOwner(Context.ConnectionId);
+            MicHold?.ReleaseOwner(Context.ConnectionId);
+            Companion?.ReleaseOwner(Context.ConnectionId);
             Interlocked.Decrement(ref _connectedCount);
             await base.OnDisconnectedAsync(exception);
         }

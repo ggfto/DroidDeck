@@ -537,6 +537,16 @@ class SignalRService {
   /// Solta a tecla do [holdKey]. Se a conexão cair antes, o PC solta sozinho.
   bool releaseKey(String buttonId) => _invokeKey("ReleaseKey", buttonId);
 
+  /// Tecla da superfície do Companion. Se a conexão cair, o PC solta sozinho.
+  void companionKey(int key, bool pressed) {
+    final conn = _hubConnection;
+    if (conn == null || conn.state != HubConnectionState.Connected) return;
+    conn.invoke("CompanionKey", args: [key, pressed]).catchError((e) {
+      _logger.warning("Error invoking CompanionKey: $e");
+      return null;
+    });
+  }
+
   bool _invokeKey(String method, String buttonId) {
     final conn = _hubConnection;
     if (conn == null || conn.state != HubConnectionState.Connected) return false;

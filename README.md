@@ -120,6 +120,10 @@ Having trouble (SmartScreen, firewall, phone not finding the PC)? See
 | Streamer.bot (WebSocket Server) | [Streamer.bot](https://me.gf2.in/DroidDeck/docs/integrations/streamerbot/) |
 | VTube Studio (plugin API) | [VTube Studio](https://me.gf2.in/DroidDeck/docs/integrations/vtubestudio/) |
 | Voicemeeter (Standard, Banana, Potato) | [Voicemeeter](https://me.gf2.in/DroidDeck/docs/integrations/voicemeeter/) |
+| vMix (TCP API, with tally) | [vMix](https://me.gf2.in/DroidDeck/docs/integrations/vmix/) |
+| Bitfocus Companion (the phone as a surface) | [Companion](https://me.gf2.in/DroidDeck/docs/integrations/companion/) |
+| mAirList and RadioDJ (radio automation) | [Radio](https://me.gf2.in/DroidDeck/docs/integrations/radio/) |
+| Full-screen tally and ON AIR | [Tally and ON AIR](https://me.gf2.in/DroidDeck/docs/integrations/tally/) |
 | Philips Hue (Hue Bridge) | [Philips Hue](https://me.gf2.in/DroidDeck/docs/integrations/hue/) |
 | Elgato Key Light | [Elgato Key Light](https://me.gf2.in/DroidDeck/docs/integrations/elgato/) |
 | Govee (LAN API) | [Govee](https://me.gf2.in/DroidDeck/docs/integrations/govee/) |

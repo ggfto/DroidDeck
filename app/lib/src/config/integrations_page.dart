@@ -1,4 +1,5 @@
 import 'package:droiddeck/core/core.dart';
+import 'package:droiddeck/src/studio/tally_page.dart';
 import 'package:flutter/material.dart';
 
 import 'account_integration_page.dart';
@@ -25,6 +26,11 @@ class IntegrationsPage extends StatelessWidget {
         'mqtt' => const AccountIntegrationPage(spec: mqttSpec),
         'streamerbot' => const AccountIntegrationPage(spec: streamerBotSpec),
         'vtubestudio' => const AccountIntegrationPage(spec: vtubeStudioSpec),
+        'vmix' => const AccountIntegrationPage(spec: vmixSpec),
+        'companion' => const AccountIntegrationPage(spec: companionSpec),
+        'mairlist' => const AccountIntegrationPage(spec: mairlistSpec),
+        'radiodj' => const AccountIntegrationPage(spec: radioDjSpec),
+        'tally' => const TallyPage(),
         _ => null,
       };
 
@@ -41,6 +47,11 @@ class IntegrationsPage extends StatelessWidget {
     ('mqtt', Icons.hub_outlined, 'MQTT', 'Publicar mensagens no seu broker'),
     ('streamerbot', Icons.smart_toy_outlined, 'Streamer.bot', 'Ações do Streamer.bot, com argumentos'),
     ('vtubestudio', Icons.face, 'VTube Studio', 'Atalhos e modelos do VTube Studio'),
+    ('tally', Icons.sensors, 'Tally e ON AIR', 'O celular em tela cheia como luz de no ar'),
+    ('vmix', Icons.live_tv, 'vMix', 'Corte, entradas, overlays, gravação e tally'),
+    ('companion', Icons.grid_view, 'Companion', 'O celular como superfície do Bitfocus Companion'),
+    ('mairlist', Icons.radio, 'mAirList', 'No ar, automação, players e cartwall'),
+    ('radiodj', Icons.radio, 'RadioDJ', 'Player, AutoDJ, entrada ao vivo e carts'),
   ];
 
   @override

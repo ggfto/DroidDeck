@@ -45,6 +45,11 @@ namespace DroidDeck.Services
         public string Title => "OBS Studio";
         public bool IsConnected => Connected;
         public string? CurrentScene { get; private set; }
+
+        /// <summary>Cena no preview (so com o Modo Estudio ligado).</summary>
+        public string? PreviewScene { get; private set; }
+        public bool StudioMode { get; private set; }
+        public IReadOnlyList<string> Scenes => _scenes;
         public bool Recording { get; private set; }
         public bool RecordPaused { get; private set; }
         public bool Streaming { get; private set; }
@@ -88,6 +93,8 @@ namespace DroidDeck.Services
         {
             connected = Connected,
             currentScene = CurrentScene,
+            previewScene = PreviewScene,
+            studioMode = StudioMode,
             recording = Recording,
             recordPaused = RecordPaused,
             streaming = Streaming,
@@ -189,6 +196,8 @@ namespace DroidDeck.Services
                 Streaming = await BoolReq("GetStreamStatus", "outputActive");
                 VirtualCam = await BoolReq("GetVirtualCamStatus", "outputActive");
                 ReplayBuffer = await BoolReq("GetReplayBufferStatus", "outputActive");
+                StudioMode = await BoolReq("GetStudioModeEnabled", "studioModeEnabled");
+                await RefreshPreviewSceneAsync();
 
                 var il = await RequestAsync("GetInputList");
                 var inputs = new List<object>();
@@ -204,6 +213,22 @@ namespace DroidDeck.Services
             }
             catch (Exception ex) { _logger.LogWarning("OBS RefreshState: {Msg}", ex.Message); }
             await BroadcastAsync();
+        }
+
+        /// <summary>O OBS recusa o pedido fora do Modo Estudio.</summary>
+        private async Task RefreshPreviewSceneAsync()
+        {
+            if (!StudioMode)
+            {
+                PreviewScene = null;
+                return;
+            }
+            try
+            {
+                var r = await RequestAsync("GetCurrentPreviewScene");
+                PreviewScene = r.TryGetProperty("currentPreviewSceneName", out var n) ? n.GetString() : null;
+            }
+            catch { PreviewScene = null; }
         }
 
         private async Task<bool> BoolReq(string req, string prop)
@@ -451,6 +476,13 @@ namespace DroidDeck.Services
                 case "CurrentProgramSceneChanged":
                     if (data.TryGetProperty("sceneName", out var sn)) CurrentScene = sn.GetString();
                     break;
+                case "CurrentPreviewSceneChanged":
+                    if (data.TryGetProperty("sceneName", out var pn)) PreviewScene = pn.GetString();
+                    break;
+                case "StudioModeStateChanged":
+                    if (data.TryGetProperty("studioModeEnabled", out var sm)) StudioMode = sm.GetBoolean();
+                    _ = RefreshPreviewAndBroadcastAsync();
+                    return;
                 case "RecordStateChanged":
                     ApplyRecordState(data);
                     break;
@@ -472,6 +504,12 @@ namespace DroidDeck.Services
             _ = BroadcastAsync();
         }
 
+        private async Task RefreshPreviewAndBroadcastAsync()
+        {
+            await RefreshPreviewSceneAsync();
+            await BroadcastAsync();
+        }
+
         private async Task BroadcastAsync()
         {
             try { await _hub.Clients.All.SendAsync("ReceiveObsState", GetStatePayload()); } catch { }
@@ -484,6 +522,8 @@ namespace DroidDeck.Services
             _ws = null;
             Connected = false;
             CurrentScene = null;
+            PreviewScene = null;
+            StudioMode = false;
             Recording = RecordPaused = Streaming = VirtualCam = ReplayBuffer = false;
             foreach (var kv in _pending) kv.Value.TrySetCanceled();
             _pending.Clear();

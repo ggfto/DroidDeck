@@ -53,6 +53,7 @@ namespace DroidDeck
             services.AddSingleton<IActionProvider, TuyaProvider>();
             services.AddSingleton<IActionProvider, WindowsProvider>();
             services.AddSingleton<IActionProvider, HttpProvider>();
+            services.AddSingleton<IActionProvider, NetworkProvider>();
             services.AddSingleton<IActionProvider, ScriptProvider>();
             services.AddSingleton<IActionProvider, TimerProvider>();
             services.AddSingleton<IActionProvider, SteamProvider>();
@@ -67,6 +68,11 @@ namespace DroidDeck
             services.AddSingleton<IActionProvider, KeyLightProvider>();
             services.AddSingleton<IActionProvider, GoveeProvider>();
             services.AddSingleton<IActionProvider, MqttProvider>();
+            services.AddSingleton<IActionProvider, TallyProvider>();
+            services.AddSingleton<IActionProvider, VmixProvider>();
+            services.AddSingleton<IActionProvider, CompanionProvider>();
+            services.AddSingleton<IActionProvider, MairlistProvider>();
+            services.AddSingleton<IActionProvider, RadioDjProvider>();
             foreach (var clientOnly in ClientOnlyProvider.All())
                 services.AddSingleton(clientOnly);
             return services;
@@ -95,8 +101,14 @@ namespace DroidDeck
             services.AddAccountIntegration<MqttIntegration>();
             services.AddAccountIntegration<StreamerBotIntegration>();
             services.AddAccountIntegration<VTubeStudioIntegration>();
+            services.AddAccountIntegration<VmixIntegration>();
+            services.AddAccountIntegration<CompanionIntegration>();
+            services.AddAccountIntegration<MairlistIntegration>();
+            services.AddAccountIntegration<RadioDjIntegration>();
             // ...e sem tela nenhuma (o IP vai em cada botao, o Voicemeeter e o do PC).
             services.AddSingleton<IVoicemeeterApi, VoicemeeterRemote>();
+            services.AddSingleton<MicHoldService>();
+            services.AddHostedSingleton<TallyService>();
             services.AddSingleton<GoveeLan>();
             return services;
         }

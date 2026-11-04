@@ -114,6 +114,8 @@ const Map<String, IconData> buttonIcons = {
   'queue_music': Icons.queue_music,
   'album': Icons.album,
   'radio': Icons.radio,
+  'lan': Icons.lan,
+  'grid_view': Icons.grid_view,
   'equalizer': Icons.equalizer,
   'graphic_eq': Icons.graphic_eq,
   'headset_off': Icons.headset_off,
@@ -255,7 +257,7 @@ const List<(String, List<String>)> iconCategories = [
     'mouse', 'usb', 'folder', 'folder_open', 'description', 'download', 'upload', 'cloud', 'sync',
     'http', 'link', 'public', 'language', 'email', 'notifications', 'notifications_off',
     'calendar_today', 'schedule', 'alarm', 'timer', 'hourglass_bottom', 'bug_report', 'build',
-    'extension', 'hub', 'sensors',
+    'extension', 'hub', 'lan', 'grid_view', 'sensors',
   ]),
   ('Jogos', [
     'gamepad', 'videogame_asset', 'casino', 'emoji_events', 'military_tech', 'sports_soccer',

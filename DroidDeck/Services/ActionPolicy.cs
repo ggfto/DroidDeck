@@ -16,8 +16,8 @@ namespace DroidDeck.Services
     /// perfil com um botao desses e depois o apertava. A chave trafega em HTTP pela LAN,
     /// entao vaza-la equivalia a entregar o PC.
     ///
-    /// Requisicao HTTP entra na mesma regra: ela sai do PC com o acesso de rede dele, inclusive
-    /// a servicos que so aceitam localhost.
+    /// Requisicao HTTP e mensagem de rede (OSC, TCP, UDP) entram na mesma regra: saem do PC com
+    /// o acesso de rede dele, inclusive a servicos que so aceitam localhost.
     ///
     /// Regra: acao privilegiada so nasce ou muda pelo proprio PC (configurador em
     /// localhost). Clientes remotos (o celular) continuam apertando esses botoes -- pelo id,
@@ -26,7 +26,7 @@ namespace DroidDeck.Services
     public static class ActionPolicy
     {
         private static readonly HashSet<string> PrivilegedTypes =
-            new(StringComparer.OrdinalIgnoreCase) { "launchapp", "launch_app", "activatewindow", "hotkey", "key", "keyboard_key", "send_key", "http", "script" };
+            new(StringComparer.OrdinalIgnoreCase) { "launchapp", "launch_app", "activatewindow", "hotkey", "key", "keyboard_key", "send_key", "http", "script", "network" };
 
         private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 

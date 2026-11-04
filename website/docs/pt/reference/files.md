@@ -28,6 +28,8 @@
 | `mqtt.json` | Endereço, usuário e senha do broker MQTT. |
 | `streamerbot.json` | Endereço e senha do WebSocket Server do Streamer.bot. |
 | `vtubestudio.json` | Endereço da API do VTube Studio e o token do plugin. |
+| `vmix.json`, `companion.json` | Endereço do vMix; endereço, grade e id de aparelho do Companion. |
+| `mairlist.json`, `radiodj.json` | Endereço, usuário e senha do mAirList; endereço e senha do plugin REST Server do RadioDJ. |
 | `usb.json` | Se a [conexão USB](../getting-started/browser-usb.md#usb) está ligada (`Enabled`). Sem o arquivo, ela só fica ligada quando um `adb` do Android SDK é encontrado. |
 | `platform-tools\` | As platform-tools do Google (`adb`), quando o DroidDeck as baixou para a conexão USB. Pode apagar com o DroidDeck fechado; ligar a conexão USB de novo baixa outra vez. |
 | `scripts\` | [Scripts](../guide/actions.md#script) escritos num botão, salvos como arquivo para rodar (um por conteúdo). Pode apagar; eles são recriados. |
@@ -40,7 +42,7 @@ As atualizações substituem esta pasta; seus dados ficam nas pastas acima e sã
 !!! info "Os segredos são cifrados"
     `apikey` e os arquivos das integrações (`discord.json`, `obs.json`, `tuya.json`,
     `homeassistant.json`, `spotify.json`, `twitch.json`, `youtube.json`, `hue.json`, `mqtt.json`,
-    `streamerbot.json`, `vtubestudio.json`) são cifrados com a DPAPI do Windows e só podem
+    `streamerbot.json`, `vmix.json`, `companion.json`, `mairlist.json`, `radiodj.json`, `vtubestudio.json`) são cifrados com a DPAPI do Windows e só podem
     ser lidos pela sua conta do Windows neste PC. Arquivos de versões antigas, em texto puro, são
     cifrados automaticamente na primeira leitura. Para editar um deles à mão (ex.: o `ClientId` da
     Tuya), salve-o como JSON puro; o DroidDeck cifra de novo na próxima inicialização.
