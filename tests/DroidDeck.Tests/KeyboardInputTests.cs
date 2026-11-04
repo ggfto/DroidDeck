@@ -342,8 +342,8 @@ namespace DroidDeck.Tests
             Assert.Single(Sent(), s => s == (0x10, true));
 
             keys.Down("cel", 0x26); // seta
-            Thread.Sleep(150);
-            Assert.True(Sent().Count(s => s == (0x26, true)) > 2);
+            // Espera a condicao, nao um tempo fixo: numa maquina ocupada o temporizador atrasa.
+            Assert.True(SpinWait.SpinUntil(() => Sent().Count(s => s == (0x26, true)) > 2, TimeSpan.FromSeconds(10)));
 
             keys.Up("cel", 0x26);
             var depois = Sent().Length;
