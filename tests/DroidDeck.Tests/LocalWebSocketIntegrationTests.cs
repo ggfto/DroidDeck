@@ -104,6 +104,7 @@ namespace DroidDeck.Tests
         }
     }
 
+    [Collection(RealTimeNetworkCollection.Name)]
     public class StreamerBotTests
     {
         [Fact]
@@ -232,6 +233,7 @@ namespace DroidDeck.Tests
         }
     }
 
+    [Collection(RealTimeNetworkCollection.Name)]
     public class VTubeStudioTests
     {
         [Fact]

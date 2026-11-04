@@ -31,6 +31,17 @@ using Xunit;
 
 namespace DroidDeck.Tests
 {
+    /// <summary>
+    /// Testes com rede de verdade e prazos curtos rodam em serie, depois dos outros. Numa maquina
+    /// de 2 nucleos (o CI), os testes em paralelo disputam o processador por muitos segundos, e o
+    /// prazo vencia sem nada estar errado.
+    /// </summary>
+    [CollectionDefinition(Name, DisableParallelization = true)]
+    public class RealTimeNetworkCollection
+    {
+        public const string Name = "Rede em tempo real";
+    }
+
     /// <summary>Servidor TCP de mentira, de protocolo em linhas: faz o papel do vMix e do Companion.</summary>
     internal sealed class FakeLineServer : IAsyncDisposable
     {
@@ -63,6 +74,8 @@ namespace DroidDeck.Tests
                             while ((line = await reader.ReadLineAsync(_cts.Token)) != null)
                             {
                                 Received.Enqueue(line);
+                                // Como o Companion: sem resposta ao PING, o cliente reconecta.
+                                if (line.StartsWith("PING ")) await SendAsync("PONG " + line[5..] + " \n");
                                 await onLine(line, this);
                             }
                         }
@@ -133,6 +146,7 @@ namespace DroidDeck.Tests
 
     // ---- Rede: OSC, TCP e UDP ----
 
+    [Collection(RealTimeNetworkCollection.Name)]
     public class NetworkProviderTests
     {
         [Fact]
@@ -233,6 +247,7 @@ namespace DroidDeck.Tests
 
     // ---- vMix ----
 
+    [Collection(RealTimeNetworkCollection.Name)]
     public class VmixTests
     {
         // Exemplo da documentacao da Web API do vMix, encurtado.
@@ -406,6 +421,7 @@ namespace DroidDeck.Tests
 
     // ---- Radio ----
 
+    [Collection(RealTimeNetworkCollection.Name)]
     public class MairlistTests
     {
         [Theory]
@@ -518,6 +534,7 @@ namespace DroidDeck.Tests
             Assert.Throws<InvalidOperationException>(() => PolledHttpIntegration.NormalizeUrl("ftp://x", MairlistIntegration.DefaultUrl));
     }
 
+    [Collection(RealTimeNetworkCollection.Name)]
     public class RadioDjTests
     {
         // Exemplo do /np no topico do plugin REST Server, encurtado.
@@ -795,6 +812,7 @@ namespace DroidDeck.Tests
 
     // ---- Tally no resto do deck: botao, condicoes e automacoes ----
 
+    [Collection(RealTimeNetworkCollection.Name)]
     public class TallyDeckTests
     {
         // Uma instancia so: cada StreamDeckConfigService novo le todos os perfis do disco, e no
@@ -1074,6 +1092,7 @@ namespace DroidDeck.Tests
         }
     }
 
+    [Collection(RealTimeNetworkCollection.Name)]
     public class CompanionTests
     {
         [Fact]
