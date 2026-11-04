@@ -1,3 +1,16 @@
+# [1.14.0](https://github.com/ggfto/DroidDeck/compare/v1.13.0...v1.14.0) (2026-11-04)
+
+
+### Bug Fixes
+
+* **perfis:** edicao do perfil nao se perde se outro programa estiver lendo o arquivo ([8d37d2f](https://github.com/ggfto/DroidDeck/commit/8d37d2fe77a4ec82bd9eb650202eab02e395cfae))
+
+
+### Features
+
+* **estudio:** radio e TV com tally, vMix, mAirList, RadioDJ, Companion e OSC ([1430d45](https://github.com/ggfto/DroidDeck/commit/1430d4583bb0c17dfbcbdecb4f011d9f6080b0b4))
+* **tally:** tally no deck, em multi-acoes e em automacoes ([3cf9290](https://github.com/ggfto/DroidDeck/commit/3cf92906ebd01bd8dd8d74aa75ee6f195c88599b))
+
 # [1.13.0](https://github.com/ggfto/DroidDeck/compare/v1.12.1...v1.13.0) (2026-11-03)
 
 
