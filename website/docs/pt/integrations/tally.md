@@ -39,4 +39,17 @@ SINAL**. Ela nunca mostra "fora do ar" sem saber: quem está diante da câmera p
 
 ## No botão
 
-Com **Só mostrar o estado no botão**, o botão fica vermelho ou verde sem abrir a tela cheia.
+Com **Só mostrar o estado no botão**, o botão fica vermelho ou verde sem abrir a tela cheia. Se o alvo
+for o sinal manual, o toque no botão também liga e desliga.
+
+O botão de cena do [OBS](obs.md) segue as mesmas cores: vermelho no programa (ou a cor escolhida para o botão) e
+verde no preview.
+
+## Em automações e multiações
+
+O tally também serve de sinal para o resto do deck:
+
+- [Automações](../guide/automations.md): **Quando um alvo do tally entrar no ar** ou **sair do ar**. Por exemplo,
+  acender uma luz da Hue quando o microfone abrir.
+- [Multiações](../guide/multi-action.md#conditions): as condições **Um alvo do tally estiver no ar** e **em
+  preview**. Alvo indisponível (programa fechado) não vale como nenhum dos dois; com **Não**, a condição passa.

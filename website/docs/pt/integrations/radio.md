@@ -46,3 +46,7 @@ Botões do tipo **RadioDJ**:
     2.0.4, enquanto os demais comandos funcionam. O desenvolvedor não reproduziu o problema.
 
 O RadioDJ não informa se o player está pausado, então os botões de pausa não mostram esse estado.
+
+!!! warning "Ainda não testado com o programa de verdade"
+    Estas integrações foram feitas a partir da documentação e do fórum de cada programa e testadas com um simulador
+    do protocolo, não com o mAirList e o RadioDJ reais. Se algo não funcionar, [abra uma issue](https://github.com/ggfto/DroidDeck/issues).

@@ -21,6 +21,13 @@ O DroidDeck se conecta ao **OBS Studio 28 ou mais recente** pelo servidor WebSoc
 
 O estado vem direto dos eventos do OBS, então mudanças feitas no próprio OBS também aparecem no deck.
 
+O botão de **Trocar de cena** mostra onde a cena está: vermelho no programa (ou a cor escolhida para o botão) e, com o
+**Modo de estúdio** ligado, verde no preview. Se a mesma cena estiver nos dois, vale o programa. Por padrão, o OBS troca
+as duas cenas a cada transição, então o botão alterna entre vermelho e verde. Tocar no botão manda a cena direto para o
+programa.
+
+Para usar o celular como luz de "no ar" ou tally de câmera, veja [Tally e ON AIR](tally.md).
+
 ## Configuração
 
 1. No OBS: **Ferramentas → Configurações do servidor WebSocket**. Marque **Ativar servidor WebSocket**.

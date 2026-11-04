@@ -79,7 +79,7 @@ com os parâmetros (`fields[].key`), os valores aceitos (`options`) e quando cad
 | `activatewindow` | `windowName` (título exato da janela) |
 | `media` | `command`: `playpause`·`play`·`pause`·`next`·`previous`·`stop`; `sessionId`? |
 | `mixer` | `operation`: `toggleMute`·`mute`·`unmute`·`setVolume`·`volumeUp`·`volumeDown`; `processName` **ou** `deviceId` (`default` ou o id de um endpoint); `deviceKind`: `output`·`input`; `volume` (0–100); `step` (1–50) |
-| `multi` | `steps`: string com um array JSON `[{"type","parameters","delayMs","if"}]`; `if` é opcional: `{check, value, negate}`, com `check` entre `obs_streaming`·`obs_recording`·`discord_mute`·`discord_deaf`·`toggle_on` (`value` = id do botão)·`app_running`·`app_focused` (`value` = processo)·`time_between` (`value` = `08:00-18:00`)·`weekday` (`value` = `1-5`, 0 = domingo) |
+| `multi` | `steps`: string com um array JSON `[{"type","parameters","delayMs","if"}]`; `if` é opcional: `{check, value, negate}`, com `check` entre `obs_streaming`·`obs_recording`·`discord_mute`·`discord_deaf`·`toggle_on` (`value` = id do botão)·`app_running`·`app_focused` (`value` = processo)·`time_between` (`value` = `08:00-18:00`)·`weekday` (`value` = `1-5`, 0 = domingo)·`tally_program`·`tally_preview` (`value` = alvo do tally) |
 | `discord` | `operation`: `toggleMute`·`mute`·`unmute`·`toggleDeafen`·`joinChannel` (`channelId`)·`disconnect`·`inputVolumeUp/Down`·`outputVolumeUp/Down` (`delta`)·`setInputVolume`·`setOutputVolume` (`value`)·`toggleVoiceMode`·`setVoiceMode` (`mode`: `VOICE_ACTIVITY`·`PUSH_TO_TALK`)·`userMute` (`userId`)·`userVolume` (`userId`, `value` 0–200) |
 | `obs` | `operation`: `setScene` (`scene`)·`toggleRecord`·`startRecord`·`stopRecord`·`toggleStream`·`toggleVirtualCam`·`toggleReplayBuffer`·`saveReplay`·`toggleInputMute` (`inputName`) |
 | `soundboard` | `operation`: `play`·`stop`; `source`: `myinstants` (`id`, `url`, `title`) ou `discord` (`soundId`, `guildId`) |
@@ -165,7 +165,7 @@ casa do canto superior esquerdo).
 
 Uma automação é `{id, name, enabled, event, time, days, app, profileId, buttonId, if}`. `event` é
 `schedule` (`time` `HH:mm`, `days` como `1-5`), `app_start` / `app_exit` (`app`), `resume` ou
-`startup`; `if` é uma condição opcional no formato da multiação. Como as automações só apertam botões
+`startup`, ou `tally_on` / `tally_off` (`target`, da lista em `GET /api/tally/targets`); `if` é uma condição opcional no formato da multiação. Como as automações só apertam botões
 salvos, elas seguem as regras com que esses botões foram criados.
 
 ## Tipos de ação: `/api/actions` { #action-types-apiactions }

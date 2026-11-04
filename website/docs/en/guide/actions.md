@@ -62,7 +62,7 @@ Voice chat, your stream and the tools around it. Each one needs its integration 
 | [vMix](../integrations/vmix.md) | Cut, inputs, overlays, audio, recording and streaming. |
 | [Companion](../integrations/companion.md) | Opens the Bitfocus Companion surface. |
 | [mAirList and RadioDJ](../integrations/radio.md) | On air, automation, players and carts. |
-| Network (OSC, TCP, UDP) | Sends a message to mixing consoles, QLab and other devices on the network. Can only be created on the PC. |
+| [Network (OSC, TCP, UDP)](../integrations/network.md) | Sends a message to mixing consoles, QLab and other devices on the network. Can only be created on the PC. |
 
 ### Lights and smart home
 

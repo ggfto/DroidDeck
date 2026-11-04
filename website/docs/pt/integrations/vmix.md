@@ -24,3 +24,7 @@ Crie um botão do tipo **vMix** e escolha:
   como na Web API (`Input=1&SelectedName=Titulo&Value=Oi`).
 
 Para usar o celular como tally de uma câmera, veja [Tally e ON AIR](tally.md).
+
+!!! warning "Ainda não testado com o programa de verdade"
+    Esta integração foi feita a partir da documentação oficial e testada com um simulador do protocolo, não com o
+    vMix real. Se algo não funcionar, [abra uma issue](https://github.com/ggfto/DroidDeck/issues).

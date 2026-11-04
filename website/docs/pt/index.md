@@ -42,6 +42,12 @@ Você precisa das duas partes:
     clipes, enquetes e chat da Twitch e do YouTube, Streamer.bot e VTube Studio.
     [Discord](integrations/discord.md) · [OBS](integrations/obs.md)
 
+-   :material-broadcast: **Estúdio: rádio e TV**
+
+    O celular como luz de "no ar" e tally de câmera, vMix, automação de rádio com mAirList e RadioDJ, superfície do
+    Bitfocus Companion e comandos OSC para mesas de som.
+    [Tally](integrations/tally.md) · [vMix](integrations/vmix.md) · [Rádio](integrations/radio.md)
+
 -   :material-lightbulb-on: **Luzes e casa inteligente**
 
     Tuya / Smart Life, Home Assistant, Philips Hue, Elgato Key Light, Govee e MQTT: liga/desliga,

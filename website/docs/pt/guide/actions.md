@@ -63,7 +63,7 @@ Chat de voz, a sua live e as ferramentas em volta dela. Cada uma precisa da inte
 | [vMix](../integrations/vmix.md) | Corte, entradas, overlays, áudio, gravação e transmissão. |
 | [Companion](../integrations/companion.md) | Abre a superfície do Bitfocus Companion. |
 | [mAirList e RadioDJ](../integrations/radio.md) | No ar, automação, players e carts. |
-| Rede (OSC, TCP, UDP) | Manda uma mensagem para mesas de som, QLab e outros aparelhos da rede. Só nasce no PC. |
+| [Rede (OSC, TCP, UDP)](../integrations/network.md) | Manda uma mensagem para mesas de som, QLab e outros aparelhos da rede. Só nasce no PC. |
 
 ### Luzes e casa inteligente { #lights-and-smart-home }
 

@@ -41,4 +41,17 @@ trust it.
 
 ## On a button
 
-With **Only show the state on the button**, the button turns red or green without opening the full screen.
+With **Only show the state on the button**, the button turns red or green without opening the full screen. If
+the target is the manual signal, tapping the button also turns it on and off.
+
+The [OBS](obs.md) scene button uses the same colors: red in program (or the color chosen for the button) and
+green in preview.
+
+## In automations and multi-actions
+
+The tally also works as a signal for the rest of the deck:
+
+- [Automations](../guide/automations.md): **When a tally target goes on air** or **goes off air**. For example,
+  turn on a Hue light when the microphone opens.
+- [Multi-actions](../guide/multi-action.md#conditions): the **A tally target is on air** and **in preview**
+  conditions. An unavailable target (program closed) counts as neither; with **Not**, the condition passes.

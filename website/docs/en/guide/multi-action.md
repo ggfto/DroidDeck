@@ -30,6 +30,7 @@ is skipped and the multi-action moves on. **Not** inverts it: the step runs when
 | **An app is focused** | Process name of the window in focus. |
 | **It is between two times** | `08:00-18:00`. A range that crosses midnight works: `22:00-06:00`. |
 | **It is one of these weekdays** | `0` = Sunday … `6` = Saturday, with ranges and commas: `1-5`, `0,6`. |
+| **A tally target is on air** / **in preview** | A scene, input, microphone or the manual signal, from the [tally](../integrations/tally.md) list. |
 
 - The condition is checked when the step's turn comes, after its delay. The delay is waited even if
   the step is then skipped.

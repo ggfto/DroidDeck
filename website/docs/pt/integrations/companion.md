@@ -21,3 +21,7 @@ estiver aberta. Segurar uma tecla conta como segurar: o Companion recebe o apert
 
 - Todos os celulares mostram a mesma superfície. Para o Companion, é um aparelho só.
 - Se o celular cair com o dedo numa tecla, o PC solta a tecla sozinho.
+
+!!! warning "Ainda não testado com o programa de verdade"
+    Esta integração foi feita a partir da documentação oficial e testada com um simulador do protocolo, não com o
+    Companion real. Se algo não funcionar, [abra uma issue](https://github.com/ggfto/DroidDeck/issues).

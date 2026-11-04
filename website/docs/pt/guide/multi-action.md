@@ -30,6 +30,7 @@ pulado e a multiação segue. **Não** inverte: o passo roda quando a condição
 | **Um app estiver em foco** | Nome do processo da janela em foco. |
 | **For entre dois horários** | `08:00-18:00`. Um intervalo que passa da meia-noite funciona: `22:00-06:00`. |
 | **For um destes dias da semana** | `0` = domingo … `6` = sábado, com intervalos e vírgulas: `1-5`, `0,6`. |
+| **Um alvo do tally estiver no ar** / **em preview** | Uma cena, entrada, microfone ou o sinal manual, da lista do [tally](../integrations/tally.md). |
 
 - A condição é conferida na vez do passo, depois da espera dele. A espera acontece mesmo que o passo
   acabe pulado.

@@ -46,3 +46,7 @@ Uses the **REST Server** plugin for [RadioDJ](https://www.radiodj.ro).
     while other commands work. The developer couldn't reproduce the problem.
 
 RadioDJ doesn't report whether the player is paused, so the pause buttons don't show that state.
+
+!!! warning "Not yet tested with the real program"
+    These integrations were built from each program's documentation and forum and tested with a protocol simulator,
+    not with the real mAirList and RadioDJ. If something doesn't work, [open an issue](https://github.com/ggfto/DroidDeck/issues).

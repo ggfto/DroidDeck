@@ -120,6 +120,7 @@ Algum problema (SmartScreen, firewall, celular não encontra o PC)? Veja
 | Bitfocus Companion (o celular como superfície) | [Companion](https://me.gf2.in/DroidDeck/docs/pt/integrations/companion/) |
 | mAirList e RadioDJ (automação de rádio) | [Rádio](https://me.gf2.in/DroidDeck/docs/pt/integrations/radio/) |
 | Tally e ON AIR em tela cheia | [Tally e ON AIR](https://me.gf2.in/DroidDeck/docs/pt/integrations/tally/) |
+| OSC, TCP e UDP (mesas de som, QLab) | [Rede](https://me.gf2.in/DroidDeck/docs/pt/integrations/network/) |
 | Philips Hue (Hue Bridge) | [Philips Hue](https://me.gf2.in/DroidDeck/docs/pt/integrations/hue/) |
 | Elgato Key Light | [Elgato Key Light](https://me.gf2.in/DroidDeck/docs/pt/integrations/elgato/) |
 | Govee (API LAN) | [Govee](https://me.gf2.in/DroidDeck/docs/pt/integrations/govee/) |

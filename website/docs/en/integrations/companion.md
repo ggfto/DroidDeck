@@ -21,3 +21,7 @@ Holding a key counts as holding: Companion gets the press and the release separa
 
 - All phones show the same surface. To Companion, it's a single device.
 - If a phone drops with a finger on a key, the PC releases the key by itself.
+
+!!! warning "Not yet tested with the real program"
+    This integration was built from the official documentation and tested with a protocol simulator, not with the
+    real Companion. If something doesn't work, [open an issue](https://github.com/ggfto/DroidDeck/issues).

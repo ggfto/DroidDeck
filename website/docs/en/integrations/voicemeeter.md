@@ -29,3 +29,7 @@ The buttons don't show Voicemeeter's state (e.g. muted). For a button that looks
 ## Cough button
 
 The **Cut while held (cough)** operation mutes the input only while your finger is on the button. When you let go, it returns to what it was: if it was already muted, it stays muted. If the phone loses its connection with a finger on the button, the PC restores the microphone by itself, so it doesn't stay muted on air.
+
+!!! warning "Cough button not yet tested with the real program"
+    The cut was tested with a simulator, not with real Voicemeeter. Test it before using it on air. If something
+    doesn't work, [open an issue](https://github.com/ggfto/DroidDeck/issues).

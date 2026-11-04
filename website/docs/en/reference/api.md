@@ -79,7 +79,7 @@ its parameters (`fields[].key`), allowed values (`options`) and when each field 
 | `activatewindow` | `windowName` (exact window title) |
 | `media` | `command`: `playpause`·`play`·`pause`·`next`·`previous`·`stop`; `sessionId`? |
 | `mixer` | `operation`: `toggleMute`·`mute`·`unmute`·`setVolume`·`volumeUp`·`volumeDown`; `processName` **or** `deviceId` (`default` or an endpoint id); `deviceKind`: `output`·`input`; `volume` (0–100); `step` (1–50) |
-| `multi` | `steps`: JSON array string `[{"type","parameters","delayMs","if"}]`; `if` is optional: `{check, value, negate}` with `check` one of `obs_streaming`·`obs_recording`·`discord_mute`·`discord_deaf`·`toggle_on` (`value` = button id)·`app_running`·`app_focused` (`value` = process)·`time_between` (`value` = `08:00-18:00`)·`weekday` (`value` = `1-5`, 0 = Sunday) |
+| `multi` | `steps`: JSON array string `[{"type","parameters","delayMs","if"}]`; `if` is optional: `{check, value, negate}` with `check` one of `obs_streaming`·`obs_recording`·`discord_mute`·`discord_deaf`·`toggle_on` (`value` = button id)·`app_running`·`app_focused` (`value` = process)·`time_between` (`value` = `08:00-18:00`)·`weekday` (`value` = `1-5`, 0 = Sunday)·`tally_program`·`tally_preview` (`value` = tally target) |
 | `discord` | `operation`: `toggleMute`·`mute`·`unmute`·`toggleDeafen`·`joinChannel` (`channelId`)·`disconnect`·`inputVolumeUp/Down`·`outputVolumeUp/Down` (`delta`)·`setInputVolume`·`setOutputVolume` (`value`)·`toggleVoiceMode`·`setVoiceMode` (`mode`: `VOICE_ACTIVITY`·`PUSH_TO_TALK`)·`userMute` (`userId`)·`userVolume` (`userId`, `value` 0–200) |
 | `obs` | `operation`: `setScene` (`scene`)·`toggleRecord`·`startRecord`·`stopRecord`·`toggleStream`·`toggleVirtualCam`·`toggleReplayBuffer`·`saveReplay`·`toggleInputMute` (`inputName`) |
 | `soundboard` | `operation`: `play`·`stop`; `source`: `myinstants` (`id`, `url`, `title`) or `discord` (`soundId`, `guildId`) |
@@ -164,7 +164,7 @@ Large buttons add `columnSpan` and `rowSpan` (default 1; `row`/`column` is the t
 
 An automation is `{id, name, enabled, event, time, days, app, profileId, buttonId, if}`. `event` is
 `schedule` (`time` `HH:mm`, `days` like `1-5`), `app_start` / `app_exit` (`app`), `resume` or
-`startup`; `if` is an optional condition in the multi-action format. Since automations only press saved
+`startup`, or `tally_on` / `tally_off` (`target`, from the list at `GET /api/tally/targets`); `if` is an optional condition in the multi-action format. Since automations only press saved
 buttons, they follow the rules those buttons were created under.
 
 ## Action types: `/api/actions` { #action-types-apiactions }

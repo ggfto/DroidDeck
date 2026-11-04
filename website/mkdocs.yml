@@ -74,6 +74,7 @@ nav:
           - vMix: integrations/vmix.md
           - Companion: integrations/companion.md
           - Radio (mAirList, RadioDJ): integrations/radio.md
+          - Network (OSC, TCP, UDP): integrations/network.md
       - Lights & smart home:
           - Smart home (Tuya): integrations/tuya.md
           - Home Assistant: integrations/homeassistant.md
@@ -142,6 +143,7 @@ plugins:
             Studio (radio & TV): Estúdio (rádio e TV)
             Tally & ON AIR: Tally e ON AIR
             Radio (mAirList, RadioDJ): Rádio (mAirList, RadioDJ)
+            Network (OSC, TCP, UDP): Rede (OSC, TCP, UDP)
             Lights & smart home: Luzes e casa inteligente
             Audio & media: Áudio e mídia
 

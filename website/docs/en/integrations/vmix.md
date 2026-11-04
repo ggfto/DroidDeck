@@ -24,3 +24,7 @@ Create a **vMix** button and choose:
   the Web API (`Input=1&SelectedName=Title&Value=Hi`).
 
 To use a phone as a camera tally, see [Tally and ON AIR](tally.md).
+
+!!! warning "Not yet tested with the real program"
+    This integration was built from the official documentation and tested with a protocol simulator, not with the
+    real vMix. If something doesn't work, [open an issue](https://github.com/ggfto/DroidDeck/issues).
