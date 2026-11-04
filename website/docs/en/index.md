@@ -42,6 +42,12 @@ You need both parts:
     YouTube markers, clips, polls and chat, Streamer.bot and VTube Studio.
     [Discord](integrations/discord.md) · [OBS](integrations/obs.md)
 
+-   :material-broadcast: **Studio: radio and TV**
+
+    Your phone as an on-air light and camera tally, vMix, radio automation with mAirList and RadioDJ, a Bitfocus
+    Companion surface and OSC commands for mixing consoles.
+    [Tally](integrations/tally.md) · [vMix](integrations/vmix.md) · [Radio](integrations/radio.md)
+
 -   :material-lightbulb-on: **Lights and smart home**
 
     Tuya / Smart Life, Home Assistant, Philips Hue, Elgato Key Light, Govee and MQTT: toggles,

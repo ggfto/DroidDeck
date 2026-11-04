@@ -1,6 +1,8 @@
 import 'package:droiddeck/src/config/pc_switcher.dart';
 import 'package:droiddeck/src/services/signalr_service.dart';
 import 'package:droiddeck/src/stream_deck/layout/desktop_layout.dart';
+import 'package:droiddeck/src/studio/companion_surface_page.dart';
+import 'package:droiddeck/src/studio/tally_page.dart';
 import 'package:droiddeck/src/stream_deck/layout/grid_placement.dart';
 import 'package:droiddeck/src/stream_deck/widgets/connection_chip.dart';
 import 'package:droiddeck/src/stream_deck/actions/action_catalog.dart';
@@ -222,6 +224,21 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
     if (type == 'back') {
       _goBack(profiles);
       return;
+    }
+    // Telas do estúdio abrem aqui mesmo: quem sabe mostrar é o app.
+    if (type == 'companion') {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CompanionSurfacePage()));
+      return;
+    }
+    if (type == 'tally') {
+      final op = action!.parameters['operation'] ?? 'open';
+      if (op == 'open') {
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => TallyPage(target: action.parameters['target'])));
+        return;
+      }
+      // Só mostrar: o sinal manual muda no toque, os outros alvos só se observam.
+      if (op == 'show' && action.parameters['target'] != tallyManualTarget) return;
     }
     // Dois estados vai ao PC mesmo sem ação: o toque alterna o estado lá.
     if (action == null && !(gesture == 'tap' && b.toggle)) return;

@@ -21,6 +21,12 @@ DroidDeck connects to **OBS Studio 28 or later** through its built-in WebSocket 
 
 State comes straight from OBS events, so changes made in OBS itself are reflected on the deck too.
 
+The **Switch scene** button shows where the scene is: red in program (or the color chosen for the button) and, with
+**Studio Mode** on, green in preview. If the same scene is in both, program wins. By default OBS swaps the two scenes on
+each transition, so the button alternates between red and green. Tapping the button sends the scene straight to program.
+
+To use a phone as an on-air light or a camera tally, see [Tally and ON AIR](tally.md).
+
 ## Setup
 
 1. In OBS: **Tools → WebSocket Server Settings**. Tick **Enable WebSocket server**. Note the port

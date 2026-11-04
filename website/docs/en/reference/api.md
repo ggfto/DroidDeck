@@ -79,7 +79,7 @@ its parameters (`fields[].key`), allowed values (`options`) and when each field 
 | `activatewindow` | `windowName` (exact window title) |
 | `media` | `command`: `playpause`·`play`·`pause`·`next`·`previous`·`stop`; `sessionId`? |
 | `mixer` | `operation`: `toggleMute`·`mute`·`unmute`·`setVolume`·`volumeUp`·`volumeDown`; `processName` **or** `deviceId` (`default` or an endpoint id); `deviceKind`: `output`·`input`; `volume` (0–100); `step` (1–50) |
-| `multi` | `steps`: JSON array string `[{"type","parameters","delayMs","if"}]`; `if` is optional: `{check, value, negate}` with `check` one of `obs_streaming`·`obs_recording`·`discord_mute`·`discord_deaf`·`toggle_on` (`value` = button id)·`app_running`·`app_focused` (`value` = process)·`time_between` (`value` = `08:00-18:00`)·`weekday` (`value` = `1-5`, 0 = Sunday) |
+| `multi` | `steps`: JSON array string `[{"type","parameters","delayMs","if"}]`; `if` is optional: `{check, value, negate}` with `check` one of `obs_streaming`·`obs_recording`·`discord_mute`·`discord_deaf`·`toggle_on` (`value` = button id)·`app_running`·`app_focused` (`value` = process)·`time_between` (`value` = `08:00-18:00`)·`weekday` (`value` = `1-5`, 0 = Sunday)·`tally_program`·`tally_preview` (`value` = tally target) |
 | `discord` | `operation`: `toggleMute`·`mute`·`unmute`·`toggleDeafen`·`joinChannel` (`channelId`)·`disconnect`·`inputVolumeUp/Down`·`outputVolumeUp/Down` (`delta`)·`setInputVolume`·`setOutputVolume` (`value`)·`toggleVoiceMode`·`setVoiceMode` (`mode`: `VOICE_ACTIVITY`·`PUSH_TO_TALK`)·`userMute` (`userId`)·`userVolume` (`userId`, `value` 0–200) |
 | `obs` | `operation`: `setScene` (`scene`)·`toggleRecord`·`startRecord`·`stopRecord`·`toggleStream`·`toggleVirtualCam`·`toggleReplayBuffer`·`saveReplay`·`toggleInputMute` (`inputName`) |
 | `soundboard` | `operation`: `play`·`stop`; `source`: `myinstants` (`id`, `url`, `title`) or `discord` (`soundId`, `guildId`) |
@@ -88,6 +88,12 @@ its parameters (`fields[].key`), allowed values (`options`) and when each field 
 | `spotify` | `operation`: `playPause`·`next`·`previous`·`like`·`shuffle`·`repeat`·`volume` (`step`)·`playlist` (`uri`, `shuffleOn`)·`nowPlaying` |
 | `twitch` | `operation`: `marker` (`description`)·`clip`·`ad` (`length`)·`chat` (`message`)·`poll` (`question`, `choices` one per line, `duration`)·`title` (`title`)·`status` |
 | `youtube` | `operation`: `chat` (`message`)·`status` |
+| `network` | `protocol`: `osc` (`path`, `args`: `i:1`·`f:0.5`·`s:text`·`T`·`F`, one per line)·`udp`·`tcp` (`message`, `encoding`: `text`·`hex`, `ending`: `none`·`lf`·`crlf`·`cr`); `host`, `port`. Privileged |
+| `tally` | `operation`: `open`·`show` (`target`, from the list at `GET /api/tally/targets`)·`manual_toggle`·`manual_on`·`manual_off` |
+| `vmix` | `operation`: `cut`·`fade` (`duration`)·`preview`·`program`·`quickplay`·`toggle_audio` (`input`)·`set_volume` (`input`, `volume`)·`overlay` (`input`, `overlay`)·`overlay_off`·`master_audio`·`master_volume` (`volume`)·`toggle_record`·`toggle_stream`·`toggle_external`·`toggle_multicorder`·`fade_to_black`·`snapshot`·`custom` (`function`, `query`) |
+| `companion` | Only the app opens the surface |
+| `mairlist` | `operation`: `on_air_toggle`·`on_air`·`off_air`·`automation_toggle`·`automation_on`·`automation_off`·`next` (`playlist`)·`player_toggle`·`player_start`·`player_stop`·`player_fadeout` (`playlist`, `player`)·`cart` (`cart`)·`cart_stop_all`·`custom` (`command`) |
+| `radiodj` | `operation`: `play_track` (`track`, from 1)·`stop`·`pause`·`resume`·`restart`·`play_intro`·`autodj_toggle`·`assisted_toggle`·`input_toggle`·`events_on`·`events_off`·`cart` (`cart`)·`load_playlist`·`load_track` (`id`)·`custom` (`command`, `arg`) |
 | `streamerbot` | `action` (id or name), `args` (`key=value` per line, or JSON) |
 | `vtubestudio` | `operation`: `hotkey` (`hotkey`: id or name)·`model` (`model`: model id) |
 | `voicemeeter` | `operation`: `toggle_mute`·`mute`·`unmute`·`set_gain` (`gain` dB)·`adjust_gain` (`step` dB) with `target`: `strip`·`bus` and `index` (1–8)·`macro` (`button`)·`param_set` (`parameter`, `value`)·`param_toggle` (`parameter`) |
@@ -158,7 +164,7 @@ Large buttons add `columnSpan` and `rowSpan` (default 1; `row`/`column` is the t
 
 An automation is `{id, name, enabled, event, time, days, app, profileId, buttonId, if}`. `event` is
 `schedule` (`time` `HH:mm`, `days` like `1-5`), `app_start` / `app_exit` (`app`), `resume` or
-`startup`; `if` is an optional condition in the multi-action format. Since automations only press saved
+`startup`, or `tally_on` / `tally_off` (`target`, from the list at `GET /api/tally/targets`); `if` is an optional condition in the multi-action format. Since automations only press saved
 buttons, they follow the rules those buttons were created under.
 
 ## Action types: `/api/actions` { #action-types-apiactions }
@@ -208,7 +214,9 @@ response:
 | `/api/Soundboard` | `GET search?q=` · `GET trending` · `POST play` · `POST stop` · `GET state` · `GET devices` · `GET/POST config` |
 | `/api/tuya` | `POST pair/start` `{userCode}` · `POST pair/poll` (410 when the QR expired) · `GET state` · `POST connect` · `POST devices/refresh` · `POST command` `{deviceId, code, value}` |
 | `/api/govee` | `GET devices`: searches the network for Govee devices with LAN Control (about 2 s); list of `{value: ip, label}` |
-| `/api/integrations/{name}` | `homeassistant`, `spotify`, `twitch`, `youtube`, `hue`, `mqtt`, `streamerbot`, `vtubestudio`. `GET` status `{connected, configured, account, message, loginPending, userCode, verificationUri, redirectUri, fields}` · `POST` the setup fields (connects or starts sign-in in the PC's browser) · `DELETE` forget the account · `GET options/{list}` (`entities?operation=`, `playlists`, Hue `items?target=`·`scenes`, Streamer.bot `actions`, VTube Studio `hotkeys`·`models`) · `GET callback` (OAuth return, no API key) |
+| `/api/tally` | `GET targets`: what the tally screen can follow now, as `{value, label}` |
+| `/api/companion` | `GET keys`: `{connected, columns, rows, keys}`, with the surface's current keys |
+| `/api/integrations/{name}` | `homeassistant`, `spotify`, `twitch`, `youtube`, `hue`, `mqtt`, `streamerbot`, `vtubestudio`, `vmix`, `companion`, `mairlist`, `radiodj`. `GET` status `{connected, configured, account, message, loginPending, userCode, verificationUri, redirectUri, fields}` · `POST` the setup fields (connects or starts sign-in in the PC's browser) · `DELETE` forget the account · `GET options/{list}` (`entities?operation=`, `playlists`, Hue `items?target=`·`scenes`, Streamer.bot `actions`, vMix `inputs`, VTube Studio `hotkeys`·`models`) · `GET callback` (OAuth return, no API key) |
 
 Responses follow the request's `Accept-Language`: with `en`, action types, field labels and error
 messages come in English.

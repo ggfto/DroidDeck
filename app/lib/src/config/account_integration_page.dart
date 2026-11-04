@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:droiddeck/core/core.dart';
 import 'package:droiddeck/src/services/signalr_service.dart';
+import 'package:droiddeck/src/studio/companion_surface_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -37,6 +38,10 @@ class AccountIntegrationSpec {
   /// Resumo do estado ao vivo, mostrado quando conectado.
   final String? Function(Map<String, dynamic> state)? summary;
 
+  /// Tela que a integração abre depois de conectada, e o texto do botão que leva a ela.
+  final WidgetBuilder? connectedPage;
+  final String? connectedPageLabel;
+
   const AccountIntegrationSpec({
     required this.name,
     required this.title,
@@ -47,6 +52,8 @@ class AccountIntegrationSpec {
     this.connectLabel = 'Conectar',
     this.browserLogin = false,
     this.summary,
+    this.connectedPage,
+    this.connectedPageLabel,
   });
 }
 
@@ -196,6 +203,84 @@ const vtubeStudioSpec = AccountIntegrationSpec(
     'A porta padrão é 8001; se mudou no VTube Studio, mude aqui também.',
   ],
 );
+
+// ---- Estúdio: rádio e TV ----
+
+const vmixSpec = AccountIntegrationSpec(
+  name: 'vmix',
+  title: 'vMix',
+  icon: Icons.live_tv,
+  stateEvent: 'ReceiveVmixState',
+  fields: [
+    IntegrationField('host', 'Endereço do PC com o vMix', hint: '127.0.0.1'),
+  ],
+  steps: [
+    'Abra o vMix. A TCP API dele (porta 8099) já fica ligada, sem configuração nem senha.',
+    'vMix neste PC: toque em Conectar. Em outro PC: digite o IP dele e libere a porta 8099 no firewall de lá.',
+    'Depois, crie botões do tipo vMix. As entradas aparecem na lista.',
+  ],
+);
+
+Widget _companionSurface(BuildContext context) => const CompanionSurfacePage();
+
+const companionSpec = AccountIntegrationSpec(
+  name: 'companion',
+  title: 'Companion',
+  icon: Icons.grid_view,
+  stateEvent: 'ReceiveCompanionState',
+  connectedPage: _companionSurface,
+  connectedPageLabel: 'Abrir a superfície',
+  fields: [
+    IntegrationField('address', 'Endereço do Companion', hint: '127.0.0.1'),
+    IntegrationField('columns', 'Colunas', hint: '8'),
+    IntegrationField('rows', 'Linhas', hint: '4'),
+  ],
+  steps: [
+    'Abra o Companion. A porta da Satellite API (16622) já fica ligada por padrão.',
+    'Companion neste PC: toque em Conectar. Em outro PC: digite o IP dele.',
+    'O DroidDeck aparece em Surfaces no Companion, como um aparelho com essa grade.',
+    'Abra a superfície aqui ou crie um botão do tipo Companion no deck.',
+  ],
+);
+
+const mairlistSpec = AccountIntegrationSpec(
+  name: 'mairlist',
+  title: 'mAirList',
+  icon: Icons.radio,
+  stateEvent: 'ReceiveMairlistState',
+  fields: [
+    IntegrationField('url', 'Endereço da interface REST', hint: 'http://127.0.0.1:9300'),
+    IntegrationField('username', 'Usuário'),
+    IntegrationField('password', 'Senha', secret: true),
+  ],
+  steps: [
+    'No mAirList, abra Configuração → Remote Control e adicione uma interface REST (a porta padrão é 9300).',
+    'Crie um usuário e ligue os plugins ExecuteCommand (comandos) e GeneralRead (estado no ar).',
+    'Preencha aqui o endereço, o usuário e a senha.',
+    'Licença: segundo o fórum do mAirList, a interface REST pede a edição Advanced ou superior.',
+  ],
+);
+
+const radioDjSpec = AccountIntegrationSpec(
+  name: 'radiodj',
+  title: 'RadioDJ',
+  icon: Icons.radio,
+  stateEvent: 'ReceiveRadioDjState',
+  summary: _radioDjSummary,
+  fields: [
+    IntegrationField('url', 'Endereço do plugin REST Server', hint: 'http://127.0.0.1:8080'),
+    IntegrationField('password', 'Senha do plugin', secret: true),
+  ],
+  steps: [
+    'No RadioDJ 2, copie o Plugin_RestServer da pasta "Disabled Plugins" para a pasta Plugins e abra o RadioDJ.',
+    'Nas opções do plugin, defina o endereço, a porta e a senha, e inicie o servidor.',
+    'Preencha aqui o mesmo endereço e a mesma senha.',
+  ],
+);
+
+String? _radioDjSummary(Map<String, dynamic> s) => s['title'] != null
+    ? '${tr('tocando')}: ${s['artist'] != null ? '${s['artist']} - ' : ''}${s['title']}'
+    : null;
 
 /// Tela de configuração de uma integração com conta.
 class AccountIntegrationPage extends StatefulWidget {
@@ -402,6 +487,15 @@ class _AccountIntegrationPageState extends State<AccountIntegrationPage> {
                   ),
                 ),
               ]),
+              if (connected && spec.connectedPage != null) ...[
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute(builder: spec.connectedPage!)),
+                  icon: const Icon(Icons.open_in_full),
+                  label: Text(tr(spec.connectedPageLabel ?? 'Abrir')),
+                ),
+              ],
               if (spec.browserLogin) ...[
                 const SizedBox(height: 8),
                 Text(tr('O login abre no navegador do PC, mesmo quando você toca aqui no celular.'),

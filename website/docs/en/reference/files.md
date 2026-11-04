@@ -28,6 +28,8 @@
 | `mqtt.json` | MQTT broker address, username and password. |
 | `streamerbot.json` | Streamer.bot WebSocket Server address and password. |
 | `vtubestudio.json` | VTube Studio API address and the plugin token. |
+| `vmix.json`, `companion.json` | vMix address; Companion address, grid and device id. |
+| `mairlist.json`, `radiodj.json` | mAirList address, username and password; RadioDJ REST Server plugin address and password. |
 | `usb.json` | Whether the [USB connection](../getting-started/browser-usb.md#usb) is on (`Enabled`). Without the file, it's on only when an Android SDK `adb` is found. |
 | `platform-tools\` | Google's platform-tools (`adb`), when DroidDeck downloaded them for the USB connection. Safe to delete with DroidDeck closed; turning the USB connection on again downloads them. |
 | `scripts\` | [Scripts](../guide/actions.md#script) written in a button, saved as files to run (one per content). Safe to delete; they are recreated. |
@@ -39,7 +41,7 @@ Updates replace this folder; your data lives in the folders above and is kept.
 
 !!! info "Secrets are encrypted"
     `apikey` and the integration files (`discord.json`, `obs.json`, `tuya.json`, `homeassistant.json`,
-    `spotify.json`, `twitch.json`, `youtube.json`, `hue.json`, `mqtt.json`, `streamerbot.json`,
+    `spotify.json`, `twitch.json`, `youtube.json`, `hue.json`, `mqtt.json`, `streamerbot.json`, `vmix.json`, `companion.json`, `mairlist.json`, `radiodj.json`,
     `vtubestudio.json`) are encrypted with Windows DPAPI and can only
     be read by your Windows account on this PC. Files from older versions, saved in plain text, are
     encrypted automatically the first time they are read. To edit one by hand (e.g. a Tuya `ClientId`),

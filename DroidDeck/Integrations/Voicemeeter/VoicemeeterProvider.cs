@@ -23,7 +23,10 @@ namespace DroidDeck.Integrations
 
         public string Type => TypeName;
 
-        private static readonly string[] StripOps = { "toggle_mute", "mute", "unmute", "set_gain", "adjust_gain" };
+        /// <summary>Mudo so enquanto o dedo estiver no botao (corte de tosse; ver MicHoldService).</summary>
+        public const string HoldMute = "hold_mute";
+
+        private static readonly string[] StripOps = { "toggle_mute", "mute", "unmute", HoldMute, "set_gain", "adjust_gain" };
 
         public ActionSchema Describe() => new()
         {
@@ -38,6 +41,7 @@ namespace DroidDeck.Integrations
                     ("toggle_mute", "Mudo (alternar)"),
                     ("mute", "Mutar"),
                     ("unmute", "Desmutar"),
+                    (HoldMute, "Cortar enquanto segura (tosse)"),
                     ("set_gain", "Definir o ganho"),
                     ("adjust_gain", "Ganho (+/-)"),
                     ("macro", "Apertar botão do Macro Buttons"),
@@ -67,6 +71,9 @@ namespace DroidDeck.Integrations
             var op = ctx.Operation("toggle_mute");
             switch (op)
             {
+                // Vai pelo hub (encostar e soltar, ver DeckHub.HoldKey). Um toque avulso nao corta nada.
+                case HoldMute:
+                    break;
                 case "toggle_mute":
                 case "mute":
                 case "unmute":
@@ -107,6 +114,19 @@ namespace DroidDeck.Integrations
                 default:
                     throw new InvalidOperationException("Operação desconhecida.");
             }
+        }
+
+        /// <summary>Parametro de mudo de uma acao "cortar enquanto segura". Null se a acao for outra.</summary>
+        public static string? HoldMuteParameter(DroidDeck.Models.DeckAction action)
+        {
+            if (!string.Equals(action.Type, TypeName, StringComparison.OrdinalIgnoreCase) ||
+                !action.Parameters.TryGetValue("operation", out var op) ||
+                !string.Equals(op, HoldMute, StringComparison.OrdinalIgnoreCase))
+                return null;
+            action.Parameters.TryGetValue("target", out var target);
+            action.Parameters.TryGetValue("index", out var index);
+            var number = int.TryParse(index, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : 1;
+            return Parameter(target ?? "strip", number, "Mute");
         }
 
         /// <summary>"strip", 1, "Mute" vira "Strip[0].Mute" (o editor conta a partir de 1).</summary>

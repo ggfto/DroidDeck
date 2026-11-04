@@ -6,6 +6,7 @@ import 'default_button.dart';
 import 'discord_button.dart';
 import 'key_button.dart';
 import 'obs_button.dart';
+import 'studio_buttons.dart';
 import 'tuya_button.dart';
 import 'windows_button.dart';
 
@@ -25,6 +26,10 @@ const Map<String, ButtonRenderer> _renderers = {
   'spotify': SpotifyButtonRenderer(),
   'twitch': LiveButtonRenderer('ReceiveTwitchState', Icons.sensors),
   'youtube': LiveButtonRenderer('ReceiveYouTubeState', Icons.smart_display),
+  'tally': TallyButtonRenderer(),
+  'vmix': VmixButtonRenderer(),
+  'mairlist': MairlistButtonRenderer(),
+  'radiodj': RadioDjButtonRenderer(),
 };
 
 ButtonRenderer rendererFor(String? type) =>

@@ -1,3 +1,4 @@
+import 'package:droiddeck/src/studio/tally_target_field.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -134,6 +135,8 @@ class _MultiActionEditorState extends State<MultiActionEditor> {
     'app_focused': tr('Um app estiver em foco'),
     'time_between': tr('For entre dois horários'),
     'weekday': tr('For um destes dias da semana'),
+    'tally_program': tr('Um alvo do tally estiver no ar'),
+    'tally_preview': tr('Um alvo do tally estiver em preview'),
   };
 
   static String? _valueLabel(String check) => switch (check) {
@@ -223,6 +226,12 @@ class _MultiActionEditorState extends State<MultiActionEditor> {
         if (check == 'toggle_on') ...[
           const SizedBox(height: 8),
           _toggleButtonPicker(step),
+        ] else if (check == 'tally_program' || check == 'tally_preview') ...[
+          const SizedBox(height: 8),
+          TallyTargetField(
+            value: step['value'] as String?,
+            onChanged: (id, _) => _update(() => step['value'] = id),
+          ),
         ] else if (valueLabel != null) ...[
           const SizedBox(height: 8),
           TextFormField(

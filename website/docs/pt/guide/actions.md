@@ -55,6 +55,16 @@ Chat de voz, a sua live e as ferramentas em volta dela. Cada uma precisa da inte
 | [Streamer.bot](../integrations/streamerbot.md) | Dispara uma ação do Streamer.bot, com argumentos. |
 | [VTube Studio](../integrations/vtubestudio.md) | Dispara atalhos do modelo ou carrega um modelo. |
 
+### Estúdio: rádio e TV { #studio }
+
+| Tipo | O que faz |
+|---|---|
+| [Tally e ON AIR](../integrations/tally.md) | Tela cheia de tally ou ON AIR, ou o estado no botão. |
+| [vMix](../integrations/vmix.md) | Corte, entradas, overlays, áudio, gravação e transmissão. |
+| [Companion](../integrations/companion.md) | Abre a superfície do Bitfocus Companion. |
+| [mAirList e RadioDJ](../integrations/radio.md) | No ar, automação, players e carts. |
+| [Rede (OSC, TCP, UDP)](../integrations/network.md) | Manda uma mensagem para mesas de som, QLab e outros aparelhos da rede. Só nasce no PC. |
+
 ### Luzes e casa inteligente { #lights-and-smart-home }
 
 Aparelhos na sua rede ou na sua central de casa inteligente.

@@ -38,11 +38,12 @@ class _DeckGridButtonState extends State<DeckGridButton> {
   /// O aperta foi pelo hub; sem conexão, o soltar vira um toque pelo /press.
   bool _sentLive = false;
 
-  /// Tecla com aperta/solta ao vivo: ação "key" em modo "segurar".
+  /// Aperta/solta ao vivo: ação "key" em modo "segurar" e o corte de tosse do Voicemeeter.
   bool get _holdKey {
     if (!widget.liveKeys) return false;
     final action = widget.button.action;
     if (action == null) return false;
+    if (action.type == 'voicemeeter') return action.parameters['operation'] == 'hold_mute';
     if (!const {'key', 'keyboard_key', 'send_key'}.contains(action.type)) return false;
     final mode = action.parameters['mode'] ?? 'hold';
     return mode.isEmpty || mode == 'hold';

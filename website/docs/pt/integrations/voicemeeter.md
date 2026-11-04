@@ -25,3 +25,11 @@ ou não estiver aberto, o botão não faz nada e o log diz o motivo.
 
 Os botões não mostram o estado do Voicemeeter (ex.: mutado). Para um botão que muda de cara quando ligado,
 use um [botão de dois estados](../guide/actions.md#two-states) com **Mutar** e **Desmutar**.
+
+## Corte de tosse
+
+A operação **Cortar enquanto segura (tosse)** deixa a entrada muda só enquanto o dedo estiver no botão. Ao soltar, ela volta ao que era: se já estava muda, continua muda. Se o celular perder a conexão com o dedo em cima, o PC devolve o microfone sozinho, para ele não ficar mudo no ar.
+
+!!! warning "Corte de tosse ainda não testado com o programa de verdade"
+    O corte foi testado com um simulador, não com o Voicemeeter real. Teste antes de usar no ar. Se algo não
+    funcionar, [abra uma issue](https://github.com/ggfto/DroidDeck/issues).

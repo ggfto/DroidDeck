@@ -139,7 +139,7 @@ namespace DroidDeck.Services
                     // Grava ao lado e troca: uma queda no meio nao deixa o perfil truncado.
                     var tmp = filePath + ".tmp";
                     File.WriteAllText(tmp, json);
-                    File.Move(tmp, filePath, overwrite: true);
+                    MoveWithRetry(tmp, filePath);
 
                     // Substitui no mesmo lugar. Remover e adicionar no fim mudava a ordem dos
                     // perfis a cada edicao, e o celular abria em outra pagina do deck.
@@ -152,6 +152,27 @@ namespace DroidDeck.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error saving profile {Id}", profile.Id);
+                }
+            }
+        }
+
+        /// <summary>
+        /// No Windows, trocar um arquivo que alguem esta lendo (antivirus, backup) falha na hora. A
+        /// leitura dura pouco: sem tentar de novo, a edicao do perfil se perdia.
+        /// </summary>
+        private static void MoveWithRetry(string from, string to)
+        {
+            const int attempts = 5;
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    File.Move(from, to, overwrite: true);
+                    return;
+                }
+                catch (Exception ex) when (attempt < attempts && ex is IOException or UnauthorizedAccessException)
+                {
+                    System.Threading.Thread.Sleep(20 * attempt);
                 }
             }
         }
