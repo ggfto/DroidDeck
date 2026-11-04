@@ -793,6 +793,241 @@ namespace DroidDeck.Tests
         }
     }
 
+    // ---- Tally no resto do deck: botao, condicoes e automacoes ----
+
+    public class TallyDeckTests
+    {
+        // Uma instancia so: cada StreamDeckConfigService novo le todos os perfis do disco, e no
+        // Windows essa leitura faz falhar a gravacao de outro teste que rode ao mesmo tempo.
+        private static readonly StreamDeckConfigService SharedConfig = Fakes.Config();
+
+        private sealed class Recorder : IActionProvider
+        {
+            public readonly ConcurrentQueue<string> Ran = new();
+            public string Type => "rec";
+            public ActionSchema Describe() => new() { Type = Type, Title = "rec" };
+            public Task ExecuteAsync(ActionContext c)
+            {
+                Ran.Enqueue(c.Get("tag"));
+                return Task.CompletedTask;
+            }
+        }
+
+        private static TallyService Tally(FakeVoicemeeter? voicemeeter = null)
+        {
+            var hub = Fakes.Hub();
+            var config = SharedConfig;
+            return new TallyService(
+                new ObsService(NullLogger<ObsService>.Instance, hub),
+                new VmixIntegration(NullLogger<VmixIntegration>.Instance, hub, config),
+                new MairlistIntegration(NullLogger<MairlistIntegration>.Instance, hub, config, new SimpleHttpFactory()),
+                new RadioDjIntegration(NullLogger<RadioDjIntegration>.Instance, hub, config, new ForbiddenHttpFactory()),
+                voicemeeter ?? new FakeVoicemeeter { Closed = true },
+                hub);
+        }
+
+        private static TallyTarget Target(string id, string state) => new(id, "x", id, state);
+
+        // ---- Botao ----
+
+        [Fact]
+        public async Task SoMostrar_NoSinalManual_Alterna()
+        {
+            var tally = Tally();
+            var provider = new TallyProvider(tally);
+            await provider.ExecuteAsync(Ctx.Of("tally", ("operation", "show"), ("target", TallyService.ManualId)));
+            Assert.True(tally.Manual);
+            await provider.ExecuteAsync(Ctx.Of("tally", ("operation", "show"), ("target", TallyService.ManualId)));
+            Assert.False(tally.Manual);
+        }
+
+        [Fact]
+        public async Task SoMostrar_EmOutroAlvo_NaoMudaNada()
+        {
+            var tally = Tally();
+            await new TallyProvider(tally).ExecuteAsync(Ctx.Of("tally", ("operation", "show"), ("target", "obs/stream")));
+            Assert.False(tally.Manual);
+        }
+
+        // ---- Mudancas ----
+
+        [Fact]
+        public void Mudancas_AlvoNovoNaoConta_MudancaConta()
+        {
+            var tally = Tally();
+            Assert.Empty(tally.DetectChanges(new[] { Target("a", TallyTarget.Idle) }));
+            Assert.Empty(tally.DetectChanges(new[] { Target("a", TallyTarget.Idle) }));
+            var change = Assert.Single(tally.DetectChanges(new[] { Target("a", TallyTarget.Program) }));
+            Assert.Equal(TallyTarget.Idle, change.previous);
+            Assert.Equal(TallyTarget.Program, change.target.State);
+        }
+
+        [Fact]
+        public void Mudancas_AlvoQueSome_NaoConta_EVoltaComparandoComOUltimo()
+        {
+            var tally = Tally();
+            tally.DetectChanges(new[] { Target("a", TallyTarget.Program) });
+            // Programa fechou: nao se sabe se saiu do ar.
+            Assert.Empty(tally.DetectChanges(Array.Empty<TallyTarget>()));
+            // Voltou igual: nada aconteceu.
+            Assert.Empty(tally.DetectChanges(new[] { Target("a", TallyTarget.Program) }));
+            tally.DetectChanges(Array.Empty<TallyTarget>());
+            // Voltou diferente: agora se sabe que saiu.
+            var change = Assert.Single(tally.DetectChanges(new[] { Target("a", TallyTarget.Idle) }));
+            Assert.Equal(TallyTarget.Program, change.previous);
+        }
+
+        // ---- Condicoes ----
+
+        private static Conditions ConditionsWith(TallyService tally)
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton(tally);
+            return new Conditions(services.BuildServiceProvider());
+        }
+
+        [Fact]
+        public void Condicao_NoAr_SegueOEstado()
+        {
+            var tally = Tally();
+            var conditions = ConditionsWith(tally);
+            var on = new StepCondition { Check = "tally_program", Value = TallyService.ManualId };
+            Assert.False(conditions.Evaluate(on));
+            tally.SetManual(true);
+            Assert.True(conditions.Evaluate(on));
+            Assert.False(conditions.Evaluate(new StepCondition { Check = "tally_preview", Value = TallyService.ManualId }));
+        }
+
+        [Fact]
+        public void Condicao_AlvoIndisponivel_NaoEstaNoAr()
+        {
+            var conditions = ConditionsWith(Tally());
+            Assert.False(conditions.Evaluate(new StepCondition { Check = "tally_program", Value = "obs/scene:Cam 1" }));
+            Assert.False(conditions.Evaluate(new StepCondition { Check = "tally_preview", Value = "obs/scene:Cam 1" }));
+        }
+
+        [Fact]
+        public void Condicao_Voicemeeter_LeNaHora_MesmoSemCelular()
+        {
+            var api = new FakeVoicemeeter { Strips = 2 };
+            var conditions = ConditionsWith(Tally(api));
+            var open = new StepCondition { Check = "tally_program", Value = "voicemeeter/strip:1" };
+            Assert.True(conditions.Evaluate(open));
+            api.Values["Strip[0].Mute"] = 1;
+            Assert.False(conditions.Evaluate(open));
+        }
+
+        // ---- Automacoes ----
+
+        private static (TriggerService service, Recorder rec, TallyService tally) Automation(params TriggerService.Trigger[] triggers)
+        {
+            var config = SharedConfig;
+            var profileId = "tally-" + Guid.NewGuid().ToString("N");
+            config.SaveProfile(new DeckProfile
+            {
+                Id = profileId,
+                Name = "Tally",
+                Buttons =
+                {
+                    new DeckButton { Id = "on", Action = new DeckAction { Type = "rec", Parameters = { ["tag"] = "on" } } },
+                    new DeckButton { Id = "off", Action = new DeckAction { Type = "rec", Parameters = { ["tag"] = "off" } } },
+                },
+            });
+            foreach (var t in triggers) t.ProfileId = profileId;
+            var rec = new Recorder();
+            var tally = Tally();
+            var service = new TriggerService(config, new ButtonToggleService(NullLogger<ButtonToggleService>.Instance),
+                new ActionExecutorService(NullLogger<ActionExecutorService>.Instance, new IActionProvider[] { rec }),
+                ConditionsWith(tally), NullLogger<TriggerService>.Instance, tally);
+            service.SaveAll(new List<TriggerService.Trigger>(triggers));
+            return (service, rec, tally);
+        }
+
+        private static TriggerService.Trigger On(string target = "a") =>
+            new() { Event = "tally_on", Target = target, ButtonId = "on" };
+
+        private static TriggerService.Trigger Off(string target = "a") =>
+            new() { Event = "tally_off", Target = target, ButtonId = "off" };
+
+        [Theory]
+        [InlineData(TallyTarget.Idle, TallyTarget.Program, "on")]
+        [InlineData(TallyTarget.Preview, TallyTarget.Program, "on")]
+        [InlineData(TallyTarget.Program, TallyTarget.Idle, "off")]
+        [InlineData(TallyTarget.Program, TallyTarget.Preview, "off")]
+        public async Task Automacao_EntrarESairDoAr(string previous, string current, string expected)
+        {
+            var (service, rec, _) = Automation(On(), Off());
+            await service.OnTallyChangedAsync("a", previous, current);
+            Assert.Equal(new[] { expected }, rec.Ran);
+        }
+
+        [Fact]
+        public async Task Automacao_PreviewParaOcioso_NaoDispara()
+        {
+            var (service, rec, _) = Automation(On(), Off());
+            await service.OnTallyChangedAsync("a", TallyTarget.Preview, TallyTarget.Idle);
+            await service.OnTallyChangedAsync("a", TallyTarget.Idle, TallyTarget.Preview);
+            Assert.Empty(rec.Ran);
+        }
+
+        [Fact]
+        public async Task Automacao_SoDoAlvoDela()
+        {
+            var (service, rec, _) = Automation(On("a"));
+            await service.OnTallyChangedAsync("b", TallyTarget.Idle, TallyTarget.Program);
+            Assert.Empty(rec.Ran);
+        }
+
+        [Fact]
+        public async Task Automacao_Desligada_OuComCondicaoFalsa_NaoDispara()
+        {
+            var off = On();
+            off.Enabled = false;
+            var blocked = On("b");
+            blocked.If = new StepCondition { Check = "tally_program", Value = TallyService.ManualId };
+            var (service, rec, tally) = Automation(off, blocked);
+            await service.OnTallyChangedAsync("a", TallyTarget.Idle, TallyTarget.Program);
+            await service.OnTallyChangedAsync("b", TallyTarget.Idle, TallyTarget.Program);
+            Assert.Empty(rec.Ran);
+            tally.SetManual(true);
+            await service.OnTallyChangedAsync("b", TallyTarget.Idle, TallyTarget.Program);
+            Assert.Single(rec.Ran);
+        }
+
+        [Fact]
+        public void Automacao_SoPedeAcompanhamentoSeTiverGatilhoDeTallyLigado()
+        {
+            var (service, _, tally) = Automation();
+            Assert.False(tally.WatchRequested!());
+            var trigger = On();
+            service.SaveAll(new List<TriggerService.Trigger> { trigger });
+            Assert.True(tally.WatchRequested!());
+            trigger.Enabled = false;
+            Assert.False(tally.WatchRequested!());
+        }
+
+        /// <summary>O caminho inteiro, sem celular conectado: o laco do tally ve a mudanca e aperta o botao.</summary>
+        [Fact]
+        public async Task PontaAPonta_SinalManual_ApertaOBotao_SemCelular()
+        {
+            var (_, rec, tally) = Automation(On(TallyService.ManualId), Off(TallyService.ManualId));
+            await tally.StartAsync(CancellationToken.None);
+            try
+            {
+                // Da tempo da primeira leitura, que so serve de base.
+                await Task.Delay(400);
+                tally.SetManual(true);
+                await Fakes.Until(() => rec.Ran.Contains("on"));
+                tally.SetManual(false);
+                await Fakes.Until(() => rec.Ran.Contains("off"));
+            }
+            finally
+            {
+                await tally.StopAsync(CancellationToken.None);
+            }
+        }
+    }
+
     // ---- Companion ----
 
     public class SatelliteCodecTests

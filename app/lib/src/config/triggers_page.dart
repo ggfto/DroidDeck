@@ -1,4 +1,5 @@
 import 'package:droiddeck/core/core.dart';
+import 'package:droiddeck/src/studio/tally_target_field.dart';
 import 'package:flutter/material.dart';
 
 /// Automações: um acontecimento no PC (horário, app abrindo ou fechando, volta da
@@ -23,6 +24,8 @@ class _TriggersPageState extends State<TriggersPage> {
         'app_exit': tr('Quando um app fechar'),
         'resume': tr('Quando o PC voltar da suspensão'),
         'startup': tr('Quando o DroidDeck iniciar'),
+        'tally_on': tr('Quando um alvo do tally entrar no ar'),
+        'tally_off': tr('Quando um alvo do tally sair do ar'),
       };
 
   @override
@@ -109,6 +112,7 @@ class _TriggersPageState extends State<TriggersPage> {
     final when = switch (event) {
       'schedule' => '${t['time'] ?? '--:--'} · ${_daysText(t['days'] as String?)}',
       'app_start' || 'app_exit' => '${events[event]}: ${t['app'] ?? ''}',
+      'tally_on' || 'tally_off' => '${events[event]}: ${t['targetLabel'] ?? t['target'] ?? ''}',
       _ => events[event] ?? event,
     };
     return '$when → ${_buttonName(t)}';
@@ -378,7 +382,9 @@ class _TriggerDialogState extends State<_TriggerDialog> {
     final valid = buttons.containsKey(selected) &&
         (_event != 'schedule' || (_t['time'] as String? ?? '').isNotEmpty) &&
         (!(_event == 'app_start' || _event == 'app_exit') ||
-            (_t['app'] as String? ?? '').isNotEmpty);
+            (_t['app'] as String? ?? '').isNotEmpty) &&
+        (!(_event == 'tally_on' || _event == 'tally_off') ||
+            (_t['target'] as String? ?? '').isNotEmpty);
     return AlertDialog(
       title: Text(tr('Automação')),
       content: SizedBox(
@@ -410,6 +416,16 @@ class _TriggerDialogState extends State<_TriggerDialog> {
               if (_event == 'app_start' || _event == 'app_exit') ...[
                 const SizedBox(height: 12),
                 _appPicker(),
+              ],
+              if (_event == 'tally_on' || _event == 'tally_off') ...[
+                const SizedBox(height: 12),
+                TallyTargetField(
+                  value: _t['target'] as String?,
+                  onChanged: (id, label) => setState(() {
+                    _t['target'] = id;
+                    _t['targetLabel'] = label;
+                  }),
+                ),
               ],
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(

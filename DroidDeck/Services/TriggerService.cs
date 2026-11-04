@@ -21,6 +21,8 @@ namespace DroidDeck.Services
     ///   app_exit  App fechou
     ///   resume    PC voltou da suspensao/hibernacao
     ///   startup   DroidDeck iniciou (logo depois de ligar o PC, com o autostart)
+    ///   tally_on  Target (alvo do tally) entrou no ar
+    ///   tally_off Target saiu do ar. Perder a conexao nao conta: nao se sabe se saiu
     ///
     /// O gatilho aperta um botao salvo (como o celular faria): o que ele pode fazer ja foi
     /// decidido quando o botao foi criado (ver ActionPolicy), entao gatilho nao abre brecha.
@@ -37,13 +39,17 @@ namespace DroidDeck.Services
             public string? Time { get; set; }
             public string? Days { get; set; }
             public string? App { get; set; }
+
+            /// <summary>Alvo do tally e o nome dele quando foi escolhido (o id de uma entrada do vMix nao diz nada).</summary>
+            public string? Target { get; set; }
+            public string? TargetLabel { get; set; }
             public string? ProfileId { get; set; }
             public string? ButtonId { get; set; }
             /// <summary>Condicao extra (mesma da multi-acao), ex.: so se o OBS estiver aberto.</summary>
             public StepCondition? If { get; set; }
         }
 
-        public static readonly string[] Events = { "schedule", "app_start", "app_exit", "resume", "startup" };
+        public static readonly string[] Events = { "schedule", "app_start", "app_exit", "resume", "startup", "tally_on", "tally_off" };
 
         private static readonly TimeSpan Tick = TimeSpan.FromSeconds(2);
         private static readonly JsonSerializerOptions Json = new()
@@ -68,7 +74,8 @@ namespace DroidDeck.Services
         public Func<HashSet<string>> RunningProcesses { get; set; } = DefaultRunningProcesses;
 
         public TriggerService(StreamDeckConfigService config, ButtonToggleService toggles,
-            ActionExecutorService executor, Conditions conditions, ILogger<TriggerService> logger)
+            ActionExecutorService executor, Conditions conditions, ILogger<TriggerService> logger,
+            TallyService? tally = null)
         {
             _config = config;
             _toggles = toggles;
@@ -76,6 +83,28 @@ namespace DroidDeck.Services
             _conditions = conditions;
             _logger = logger;
             _triggers = Load();
+            if (tally != null)
+            {
+                tally.WatchRequested = () => GetAll().Any(t => t.Enabled && t.Event is "tally_on" or "tally_off");
+                // Na hora, sem esperar a volta de 2 s: a luz de "no ar" acende junto com o tally.
+                tally.TargetChanged += (target, previous) => _ = SafeTallyChangedAsync(target.Id, previous, target.State);
+            }
+        }
+
+        private async Task SafeTallyChangedAsync(string id, string previous, string current)
+        {
+            try { await OnTallyChangedAsync(id, previous, current); }
+            catch (Exception ex) { _logger.LogWarning("Gatilhos: {Message}", ex.Message); }
+        }
+
+        /// <summary>Um alvo do tally mudou de estado. Programa para preview tambem e sair do ar.</summary>
+        public async Task OnTallyChangedAsync(string id, string previous, string current)
+        {
+            var wasOn = previous == TallyTarget.Program;
+            var isOn = current == TallyTarget.Program;
+            if (wasOn == isOn) return;
+            var eventName = isOn ? "tally_on" : "tally_off";
+            await FireAsync(t => t.Event == eventName && t.Target == id);
         }
 
         private static string FilePath => Path.Combine(AppPaths.RoamingDir, "triggers.json");

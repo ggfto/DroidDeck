@@ -1258,5 +1258,10 @@
   "O celular como superfície do Bitfocus Companion": "The phone as a Bitfocus Companion surface",
   "Ligar o ON AIR": "Turn ON AIR on",
   "Desligar o ON AIR": "Turn ON AIR off",
-  "Toque na tela para ligar ou desligar.": "Tap the screen to turn it on or off."
+  "Toque na tela para ligar ou desligar.": "Tap the screen to turn it on or off.",
+  "A lista traz só o que está conectado agora. Com o sinal manual e \"só mostrar\", o toque no botão liga e desliga.": "The list only shows what is connected now. With the manual signal and \"only show\", tapping the button turns it on and off.",
+  "Um alvo do tally estiver no ar": "A tally target is on air",
+  "Um alvo do tally estiver em preview": "A tally target is in preview",
+  "Quando um alvo do tally entrar no ar": "When a tally target goes on air",
+  "Quando um alvo do tally sair do ar": "When a tally target goes off air"
 }

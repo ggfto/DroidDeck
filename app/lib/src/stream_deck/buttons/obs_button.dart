@@ -1,5 +1,6 @@
 import 'package:droiddeck/core/core.dart';
 import 'package:droiddeck/src/services/signalr_service.dart';
+import 'package:droiddeck/src/studio/tally_page.dart';
 import 'package:flutter/material.dart';
 
 import 'button_look.dart';
@@ -15,10 +16,21 @@ class ObsButtonRenderer extends ButtonRenderer {
     String named(String key, String fallback) =>
         (params[key]?.isNotEmpty ?? false) ? params[key]! : fallback;
 
-    final (IconData icon, bool active, String label) = switch (look.op('setScene')) {
+    final op = look.op('setScene');
+    final scene = params['scene'] ?? '';
+    final inProgram = scene.isNotEmpty && ds['currentScene'] == scene;
+    final inPreview = scene.isNotEmpty && !inProgram && ds['previewScene'] == scene;
+    // Cena: vermelho no programa (ou a cor escolhida no botão), verde no preview.
+    final Color? stateColor = op != 'setscene'
+        ? null
+        : inPreview
+            ? tallyPreviewColor
+            : look.activeColor ?? tallyProgramColor;
+
+    final (IconData icon, bool active, String label) = switch (op) {
       'setscene' => (
           Icons.movie_outlined,
-          (params['scene']?.isNotEmpty ?? false) && ds['currentScene'] == params['scene'],
+          inProgram || inPreview,
           named('scene', tr('Cena')),
         ),
       'togglerecord' => (
@@ -46,6 +58,11 @@ class ObsButtonRenderer extends ButtonRenderer {
       'screenshot' => (Icons.photo_camera, false, tr('Captura')),
       _ => (Icons.videocam, false, 'OBS'),
     };
-    return look.tile(active: active, icon: Icon(icon, size: 30), label: look.ownLabel ?? label);
+    return look.tile(
+      active: active,
+      activeColor: stateColor,
+      icon: Icon(icon, size: 30),
+      label: look.ownLabel ?? label,
+    );
   }
 }

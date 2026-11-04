@@ -237,7 +237,8 @@ class _StreamDeckPageState extends State<StreamDeckPage> {
             builder: (_) => TallyPage(target: action.parameters['target'])));
         return;
       }
-      if (op == 'show') return;
+      // Só mostrar: o sinal manual muda no toque, os outros alvos só se observam.
+      if (op == 'show' && action.parameters['target'] != tallyManualTarget) return;
     }
     // Dois estados vai ao PC mesmo sem ação: o toque alterna o estado lá.
     if (action == null && !(gesture == 'tap' && b.toggle)) return;

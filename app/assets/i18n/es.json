@@ -1258,5 +1258,10 @@
   "O celular como superfície do Bitfocus Companion": "El móvil como superficie de Bitfocus Companion",
   "Ligar o ON AIR": "Activar ON AIR",
   "Desligar o ON AIR": "Desactivar ON AIR",
-  "Toque na tela para ligar ou desligar.": "Toca la pantalla para activar o desactivar."
+  "Toque na tela para ligar ou desligar.": "Toca la pantalla para activar o desactivar.",
+  "A lista traz só o que está conectado agora. Com o sinal manual e \"só mostrar\", o toque no botão liga e desliga.": "La lista solo muestra lo que está conectado ahora. Con la señal manual y \"solo mostrar\", tocar el botón la activa y desactiva.",
+  "Um alvo do tally estiver no ar": "Un objetivo del tally esté al aire",
+  "Um alvo do tally estiver em preview": "Un objetivo del tally esté en preview",
+  "Quando um alvo do tally entrar no ar": "Cuando un objetivo del tally salga al aire",
+  "Quando um alvo do tally sair do ar": "Cuando un objetivo del tally deje el aire"
 }

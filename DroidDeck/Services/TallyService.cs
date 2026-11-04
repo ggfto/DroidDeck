@@ -46,6 +46,15 @@ namespace DroidDeck.Services
         private DateTime _nextVoicemeeter;
         private string _lastKey = "";
 
+        /// <summary>Ultimo estado conhecido de cada alvo: um alvo que some nao apaga o que se sabia dele.</summary>
+        private readonly Dictionary<string, string> _known = new();
+
+        /// <summary>Um alvo mudou de estado (novo alvo e estado anterior). Quem ouve sao as automacoes.</summary>
+        public event Action<TallyTarget, string>? TargetChanged;
+
+        /// <summary>Alguem precisa do acompanhamento mesmo sem celular conectado (automacoes).</summary>
+        public Func<bool>? WatchRequested { get; set; }
+
         public TallyService(ObsService obs, VmixIntegration vmix, MairlistIntegration mairlist,
             RadioDjIntegration radioDj, IVoicemeeterApi voicemeeter, IHubContext<DeckHub> hub)
         {
@@ -85,6 +94,34 @@ namespace DroidDeck.Services
                 list.Add(new($"voicemeeter/strip:{i + 1}", "voicemeeter", $"Voicemeeter: {L.T("Microfone aberto")} {i + 1}",
                     strips[i] ? TallyTarget.Program : TallyTarget.Idle));
             return list;
+        }
+
+        /// <summary>
+        /// Estado atual de um alvo; null se ele nao estiver disponivel (programa fechado). Le o
+        /// Voicemeeter na hora: sem celular conectado, o laco nao o acompanha.
+        /// </summary>
+        public string? StateOf(string id)
+        {
+            if (id.StartsWith("voicemeeter/", StringComparison.Ordinal))
+                _stripsOpen = ReadStrips(_voicemeeter);
+            return Targets().FirstOrDefault(t => t.Id == id)?.State;
+        }
+
+        /// <summary>
+        /// O que mudou desde a ultima leitura. Alvo novo nao conta (nao se sabe de onde veio) e alvo
+        /// que sumiu nao conta: perder a conexao nao quer dizer que saiu do ar. Quando ele volta,
+        /// compara com o ultimo estado conhecido.
+        /// </summary>
+        public List<(TallyTarget target, string previous)> DetectChanges(IEnumerable<TallyTarget> targets)
+        {
+            var changes = new List<(TallyTarget, string)>();
+            foreach (var t in targets)
+            {
+                if (_known.TryGetValue(t.Id, out var previous) && previous != t.State)
+                    changes.Add((t, previous));
+                _known[t.Id] = t.State;
+            }
+            return changes;
         }
 
         public static IEnumerable<TallyTarget> ObsTargets(IEnumerable<string> scenes, string? program, string? preview, bool streaming, bool recording)
@@ -127,15 +164,23 @@ namespace DroidDeck.Services
                 try
                 {
                     // Sem ninguem olhando nao ha para quem mandar; quem conectar recebe o estado na hora.
-                    if (DeckHub.ConnectedCount > 0)
+                    if (DeckHub.ConnectedCount > 0 || WatchRequested?.Invoke() == true)
                     {
                         PollVoicemeeter();
-                        var key = string.Join("|", Targets().Select(t => t.Id + "=" + t.State));
+                        var targets = Targets();
+                        foreach (var (target, previous) in DetectChanges(targets))
+                            TargetChanged?.Invoke(target, previous);
+                        var key = string.Join("|", targets.Select(t => t.Id + "=" + t.State));
                         if (key != _lastKey)
                         {
                             _lastKey = key;
                             await _hub.SendLocalizedAsync(Event, GetState);
                         }
+                    }
+                    else
+                    {
+                        // Parado por um tempo: o que se sabia ficou velho e nao serve de comparacao.
+                        _known.Clear();
                     }
                 }
                 catch (Exception) when (!stoppingToken.IsCancellationRequested) { }
@@ -204,7 +249,8 @@ namespace DroidDeck.Services
                     ("manual_on", "Ligar o sinal manual"),
                     ("manual_off", "Desligar o sinal manual")),
                 ActionField.Dynamic("target", "O que acompanhar", "/api/tally/targets",
-                    "A lista traz só o que está conectado agora.", allowCustom: true)
+                    "A lista traz só o que está conectado agora. Com o sinal manual e \"só mostrar\", o toque no botão liga e desliga.",
+                    allowCustom: true)
                     .When("operation", "open", "show"),
             },
         };
@@ -214,6 +260,10 @@ namespace DroidDeck.Services
             switch (c.Operation("open"))
             {
                 case "manual_toggle":
+                    _tally.SetManual(!_tally.Manual);
+                    break;
+                // O botao mostra o sinal manual: tocar nele muda. Os outros alvos so se observam.
+                case "show" when c.Get("target") == TallyService.ManualId:
                     _tally.SetManual(!_tally.Manual);
                     break;
                 case "manual_on":

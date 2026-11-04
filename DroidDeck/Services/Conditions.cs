@@ -17,6 +17,8 @@ namespace DroidDeck.Services
     ///   app_focused    Value = processo em foco
     ///   time_between   Value = "08:00-18:00" (atravessa a meia-noite: "22:00-06:00")
     ///   weekday        Value = dias, 0 = domingo: "1-5", "0,6"
+    ///   tally_program, tally_preview  Value = alvo do tally ("obs/scene:Cam 1"). Alvo indisponivel
+    ///                  (programa fechado) nao esta em nenhum dos dois: vale como falso
     /// Condicao desconhecida vale como verdadeira: um passo nao some por um nome errado.
     /// </summary>
     public class Conditions
@@ -25,6 +27,7 @@ namespace DroidDeck.Services
         {
             "obs_streaming", "obs_recording", "discord_mute", "discord_deaf",
             "toggle_on", "app_running", "app_focused", "time_between", "weekday",
+            "tally_program", "tally_preview",
         };
 
         private readonly IServiceProvider _services;
@@ -55,6 +58,8 @@ namespace DroidDeck.Services
                     return string.Equals(ForegroundWatcher.ForegroundProcess(), StripExe(value), StringComparison.OrdinalIgnoreCase);
                 case "time_between": return TimeBetween(value, Now());
                 case "weekday": return Weekday(value, Now());
+                case "tally_program": return _services.GetService<TallyService>()?.StateOf(value) == TallyTarget.Program;
+                case "tally_preview": return _services.GetService<TallyService>()?.StateOf(value) == TallyTarget.Preview;
                 default: return true;
             }
         }
