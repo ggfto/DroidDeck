@@ -52,6 +52,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # Fixa: o stable mais novo pode exigir outro Gradle e derrubar a release.
+          flutter-version: 3.47.9
           cache: true
 
       - name: Build do configurador web
@@ -114,6 +116,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # Fixa: o stable mais novo pode exigir outro Gradle e derrubar a release.
+          flutter-version: 3.47.9
           cache: true
 
       - name: Restaura assinatura de release (se os secrets existirem)
