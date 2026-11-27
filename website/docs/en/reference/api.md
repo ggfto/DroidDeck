@@ -13,7 +13,8 @@ Send the key in one of these ways:
 - query string `?access_token=<key>` (used for the SignalR WebSocket)
 
 `GET /api/pairing/local-key` returns `{key}` only to requests from the PC itself (loopback), and
-rejects cross-site browser requests. CORS only allows origins on loopback and private network ranges.
+rejects cross-site browser requests. The address used must also be `localhost`, `127.0.0.1` or
+`[::1]`: with any other name in the `Host` header the answer is `403` (protection against DNS rebinding). CORS only allows origins on loopback and private network ranges.
 
 Integration failures return `502` with `{error}`.
 

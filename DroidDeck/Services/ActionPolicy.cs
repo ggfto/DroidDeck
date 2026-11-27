@@ -46,6 +46,15 @@ namespace DroidDeck.Services
             IsLocal(connection.RemoteIpAddress) &&
             !Lib.UsbBridge.IsForwarded(connection.RemoteIpAddress, connection.RemotePort);
 
+        /// <summary>
+        /// O cabecalho Host e um endereco de loopback do proprio PC? Um site que aponta o
+        /// proprio nome para 127.0.0.1 (DNS rebinding) chega por loopback e como
+        /// same-origin, mas o Host continua sendo o nome dele.
+        /// </summary>
+        public static bool IsLoopbackHost(Microsoft.AspNetCore.Http.HostString host) =>
+            string.Equals(host.Host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+            host.Host == "127.0.0.1" || host.Host == "[::1]";
+
         /// <summary>A acao executa codigo no PC? Multi-acao herda dos passos.</summary>
         public static bool IsPrivileged(DeckAction? action)
         {

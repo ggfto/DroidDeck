@@ -13,7 +13,8 @@ Envie a chave de uma destas formas:
 - query string `?access_token=<key>` (usada no WebSocket do SignalR)
 
 `GET /api/pairing/local-key` só retorna `{key}` para requisições do próprio PC (loopback) e recusa
-requisições cross-site do navegador. O CORS só permite origens em loopback e em faixas de rede privada.
+requisições cross-site do navegador. O endereço usado também precisa ser `localhost`, `127.0.0.1` ou
+`[::1]`: com outro nome no cabeçalho `Host`, a resposta é `403` (proteção contra DNS rebinding). O CORS só permite origens em loopback e em faixas de rede privada.
 
 Falhas de integração retornam `502` com `{error}`.
 

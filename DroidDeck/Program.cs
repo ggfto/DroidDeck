@@ -277,7 +277,8 @@ namespace DroidDeck
                             {
                                 // Loopback que vem do adb e um celular pelo USB: qualquer app dele
                                 // alcanca o 127.0.0.1:4787 enquanto o encaminhamento existe.
-                                if (!DroidDeck.Services.ActionPolicy.IsLocal(ctx.Connection))
+                                if (!DroidDeck.Services.ActionPolicy.IsLocal(ctx.Connection) ||
+                                    !DroidDeck.Services.ActionPolicy.IsLoopbackHost(ctx.Request.Host))
                                     return Microsoft.AspNetCore.Http.Results.StatusCode(403);
 
                                 // SEGURANÇA: bloqueia leitura por site cross-site (o navegador da
