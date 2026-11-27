@@ -1,3 +1,10 @@
+## [1.14.1](https://github.com/ggfto/DroidDeck/compare/v1.14.0...v1.14.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* versao do APK segue a release e link do site respeita o idioma ([95a9e7b](https://github.com/ggfto/DroidDeck/commit/95a9e7bb986e243e34a687f30cc859a4717438c3))
+
 # [1.14.0](https://github.com/ggfto/DroidDeck/compare/v1.13.0...v1.14.0) (2026-11-04)
 
 
