@@ -63,6 +63,10 @@ Windows.
 
 É preciso ter Android 7.0 ou mais recente. O app usa a câmera só para ler os QR codes de pareamento.
 
+!!! tip "Atualizações no Android"
+    O APK não se atualiza sozinho. O [Obtainium](https://github.com/ImranR98/Obtainium) acompanha as
+    releases do GitHub e oferece cada versão nova: [adicione o DroidDeck ao Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/ggfto/DroidDeck).
+
 **Próximo passo: [pareie o celular com o PC](pairing.md).**
 
 ## Menu da bandeja { #tray-menu }

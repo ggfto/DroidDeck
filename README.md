@@ -10,7 +10,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/ggfto/DroidDeck?style=for-the-badge&logo=github&label=Stars&color=f5b301)](https://github.com/ggfto/DroidDeck/stargazers)
 [![Latest release](https://img.shields.io/github/v/release/ggfto/DroidDeck?style=for-the-badge&label=Release)](https://github.com/ggfto/DroidDeck/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/ggfto/DroidDeck/total?style=for-the-badge&label=Downloads)](https://github.com/ggfto/DroidDeck/releases)
+[![APK downloads](https://img.shields.io/github/downloads/ggfto/DroidDeck/DroidDeck.apk?style=for-the-badge&label=APK%20downloads&displayAssetName=false)](https://github.com/ggfto/DroidDeck/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ggfto/DroidDeck/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/ggfto/DroidDeck/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/ggfto/DroidDeck?style=for-the-badge)](LICENSE)
 
@@ -94,6 +94,7 @@ phone app alone does nothing. On an iPhone or iPad, use the
    It lives in the system tray and updates itself. (Prefer no installer? Use `DroidDeck-win-x64.zip`,
    extract it and run `DroidDeck.exe`.) No .NET install needed.
 2. **Android** — install `DroidDeck.apk` from the same release.
+   To get Android updates automatically, [add DroidDeck to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/ggfto/DroidDeck).
 3. **Pair** — right-click the tray icon → **Parear dispositivo (QR)…** and scan the code with the app.
 4. **Configure** — open `http://localhost:4787/` on the PC to edit your buttons. Changes show up on the phone instantly.
 

@@ -61,6 +61,10 @@ updates** in the tray menu. To uninstall, use Windows *Settings → Apps*.
 
 Android 7.0 or later is required. The app needs the camera only to scan pairing QR codes.
 
+!!! tip "Android updates"
+    The APK doesn't update itself. [Obtainium](https://github.com/ImranR98/Obtainium) watches the
+    GitHub releases and offers each new version: [add DroidDeck to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/ggfto/DroidDeck).
+
 **Next: [pair the phone with the PC](pairing.md).**
 
 ## Tray menu

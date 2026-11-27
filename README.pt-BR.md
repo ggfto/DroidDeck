@@ -10,7 +10,7 @@
 
 [![Estrelas no GitHub](https://img.shields.io/github/stars/ggfto/DroidDeck?style=for-the-badge&logo=github&label=Estrelas&color=f5b301)](https://github.com/ggfto/DroidDeck/stargazers)
 [![Última versão](https://img.shields.io/github/v/release/ggfto/DroidDeck?style=for-the-badge&label=Vers%C3%A3o)](https://github.com/ggfto/DroidDeck/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/ggfto/DroidDeck/total?style=for-the-badge&label=Downloads)](https://github.com/ggfto/DroidDeck/releases)
+[![Downloads do APK](https://img.shields.io/github/downloads/ggfto/DroidDeck/DroidDeck.apk?style=for-the-badge&label=Downloads%20do%20APK&displayAssetName=false)](https://github.com/ggfto/DroidDeck/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ggfto/DroidDeck/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/ggfto/DroidDeck/actions/workflows/ci.yml)
 [![Licença](https://img.shields.io/github/license/ggfto/DroidDeck?style=for-the-badge&label=Licen%C3%A7a)](LICENSE)
 
@@ -94,6 +94,7 @@ botões). Só o app do celular não faz nada. Num iPhone ou iPad, use o
    Ele fica na bandeja do sistema e se atualiza sozinho. (Prefere sem instalar? Use o `DroidDeck-win-x64.zip`,
    descompacte e rode o `DroidDeck.exe`.) Não precisa instalar o .NET.
 2. **Android** — instale o `DroidDeck.apk` da mesma release.
+   Para receber as atualizações do Android, [adicione o DroidDeck ao Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/ggfto/DroidDeck).
 3. **Parear** — clique com o botão direito no ícone da bandeja → **Parear dispositivo (QR)…** e escaneie o código com o app.
 4. **Configurar** — abra `http://localhost:4787/` no PC para editar seus botões. As mudanças aparecem no celular na hora.
 

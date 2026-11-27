@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'qr_scan_page.dart';
 import 'appearance_settings_page.dart';
 import '../welcome/welcome_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ConfigPage extends StatefulWidget {
   const ConfigPage({super.key});
@@ -232,6 +233,16 @@ class ConfigPageState extends State<ConfigPage> {
     }
   }
 
+  Future<void> _openRepo() async {
+    final ok = await launchUrl(Uri.parse(Constants.repoUrl),
+        mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('Não foi possível abrir o navegador.'))),
+      );
+    }
+  }
+
   /// Deck no navegador: mostra a qual PC está ligado e permite esquecer a chave.
   Widget _buildBrowserPairing() {
     return ListTile(
@@ -345,6 +356,15 @@ class ConfigPageState extends State<ConfigPage> {
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const TriggersPage()),
               ),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.star_outline),
+              title: Text(tr('DroidDeck no GitHub')),
+              subtitle: Text(tr(
+                  'Código aberto. Se ele está sendo útil, uma estrela ajuda outras pessoas a encontrar.')),
+              trailing: const Icon(Icons.open_in_new),
+              onTap: _openRepo,
             ),
           ],
           ),

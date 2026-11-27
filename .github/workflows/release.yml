@@ -101,6 +101,7 @@ jobs:
 
   app:
     name: App (Android APK)
+    needs: version
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
@@ -132,12 +133,16 @@ jobs:
             echo "Assinatura: debug (sem secrets)"
           fi
 
+      # O versionName precisa bater com a tag: sem isso todo APK sai como a versao do pubspec,
+      # e quem acompanha as releases (Obtainium, lojas) nao sabe qual esta instalada.
       - name: Build do APK
         working-directory: app
+        env:
+          VERSION: ${{ needs.version.outputs.version || '0.0.0' }}
         run: |
           flutter pub get
           flutter test
-          flutter build apk --release --build-number=${{ github.run_number }}
+          flutter build apk --release --build-name="$VERSION" --build-number=${{ github.run_number }}
 
       - name: Renomeia o APK
         run: cp app/build/app/outputs/flutter-apk/app-release.apk DroidDeck.apk

@@ -54,8 +54,9 @@ void main() {
     expect(find.byType(WelcomePage), findsNothing);
   });
 
-  test('o link do site aponta para a versão em português', () {
+  test('o link do site usa o endereço exibido e não força idioma', () {
     expect(Constants.siteUrl, startsWith('https://${Constants.siteDisplay}/'));
-    expect(Constants.siteUrl, contains('lang=pt'));
+    // O idioma fica por conta do navegador de quem abre o link.
+    expect(Constants.siteUrl, isNot(contains('lang=')));
   });
 }

@@ -7,7 +7,11 @@ class Constants {
   static const defaultPort = "4787";
 
   /// Site do projeto (download do DroidDeck para Windows). [siteDisplay] é a forma curta,
-  /// para a pessoa digitar no navegador do PC.
-  static const siteUrl = "https://me.gf2.in/DroidDeck/?lang=pt";
+  /// para a pessoa digitar no navegador do PC. Sem `?lang=`: o site escolhe o idioma pelo
+  /// navegador de quem abre.
+  static const siteUrl = "https://me.gf2.in/DroidDeck/";
   static const siteDisplay = "me.gf2.in/DroidDeck";
+
+  /// Código-fonte do projeto.
+  static const repoUrl = "https://github.com/ggfto/DroidDeck";
 }
