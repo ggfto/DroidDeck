@@ -1,3 +1,10 @@
+## [1.14.2](https://github.com/ggfto/DroidDeck/compare/v1.14.1...v1.14.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **seguranca:** chave local so sai quando o Host e o proprio PC ([457f5a2](https://github.com/ggfto/DroidDeck/commit/457f5a2c398d0c1e42743c0e75e895c6553ddc13))
+
 ## [1.14.1](https://github.com/ggfto/DroidDeck/compare/v1.14.0...v1.14.1) (2026-11-27)
 
 
